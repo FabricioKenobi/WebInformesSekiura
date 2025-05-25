@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Crear Nota</title>
+  <script>
+    function actualizarContenido() {
+      const tipo = document.getElementById("tipo").value;
+      const contenidoInput = document.getElementById("contenido");
+
+      if (tipo === "personal") {
+        contenidoInput.value = "Querido diario, hoy quiero escribir sobre...";
+      } else if (tipo === "trabajo") {
+        contenidoInput.value = "Tareas pendientes:\n- ";
+      } else {
+        contenidoInput.value = "";
+      }
+    }
+  </script>
+</head>
+<body>
+  <h1>Nueva Nota</h1>
+  {% if error %}
+    <p style="color:red">{{ error }}</p>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+
+    <label for="titulo">Título:</label><br>
+    <input type="text" name="titulo" id="titulo"><br><br>
+
+    <label for="tipo">Tipo:</label><br>
+    <select name="tipo" id="tipo" onchange="actualizarContenido()">
+      <option value="">-- Seleccioná un tipo --</option>
+      <option value="personal">Personal</option>
+      <option value="trabajo">Trabajo</option>
+    </select><br><br>
+
+    <label for="contenido">Contenido:</label><br>
+    <textarea name="contenido" id="contenido" rows="5" cols="40"></textarea><br><br>
+
+    <input type="submit" value="Guardar nota">
+  </form>
+  <a href="{% url 'home' %}">Volver</a>
+</body>
+</html>

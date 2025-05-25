@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mis Notas</title>
+</head>
+<body>
+  <h1>Bienvenido, {{ request.user.username }}</h1>
+
+  <p><a href="{% url 'crear_nota' %}">➕ Crear nueva nota</a></p>
+
+  <h2>Mis Notas</h2>
+  <ul>
+    {% for nota in notas %}
+      <li>
+        <strong>{{ nota.titulo }}</strong><br>
+        {{ nota.contenido }}<br>
+        <small>Creada: {{ nota.fecha_creacion|date:"d/m/Y H:i" }}</small>
+      </li>
+    {% empty %}
+      <li>No tenés notas todavía.</li>
+    {% endfor %}
+  </ul>
+
+  <p><a href="/logout/">Cerrar sesión</a></p>
+</body>
+</html>

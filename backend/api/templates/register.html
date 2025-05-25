@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registrarse</title>
+</head>
+<body>
+  <h1>Crear cuenta</h1>
+  {% if error %}
+    <p style="color:red">{{ error }}</p>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <label>Nombre de usuario:</label><input type="text" name="username"><br>
+    <label>Correo:</label><input type="email" name="email"><br>
+    <label>Contraseña:</label><input type="password" name="password1"><br>
+    <label>Confirmar contraseña:</label><input type="password" name="password2"><br>
+    <input type="submit" value="Registrarse">
+  </form>
+  <a href="{% url 'login' %}">Ya tengo cuenta</a>
+</body>
+</html>
