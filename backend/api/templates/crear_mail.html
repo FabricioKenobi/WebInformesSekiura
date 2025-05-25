@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Enviar Email</title>
+  <script>
+    function autocompletarCuerpo() {
+      const asunto = document.getElementById("asunto").value;
+      const fecha = document.getElementById("fecha_evento").value;
+      const cuerpo = document.getElementById("cuerpo");
+
+      if (asunto && fecha) {
+        cuerpo.value = `Estimado/a,\n\nEste mensaje es un ${asunto} programado para el día ${fecha}.\n\nSaludos,\n\nTu app`;
+      }
+    }
+  </script>
+</head>
+<body>
+  <h1>Redactar Email</h1>
+  {% if error %}
+    <p style="color:red">{{ error }}</p>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+
+    <label for="asunto">Asunto:</label><br>
+    <select name="asunto" id="asunto" onchange="autocompletarCuerpo()">
+      <option value="">-- Seleccioná un asunto --</option>
+      <option value="reunion">Reunión</option>
+      <option value="informe">Informe</option>
+      <option value="recordatorio">Recordatorio</option>
+    </select><br><br>
+
+    <label for="fecha_evento">Fecha del evento:</label><br>
+    <input type="date" name="fecha_evento" id="fecha_evento" onchange="autocompletarCuerpo()"><br><br>
+
+    <label for="cuerpo">Cuerpo:</label><br>
+    <textarea name="cuerpo" id="cuerpo" rows="6" cols="50"></textarea><br><br>
+
+    <input type="submit" value="Guardar / Enviar">
+  </form>
+  <a href="{% url 'home' %}">Volver</a>
+</body>
+</html>

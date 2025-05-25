@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Crear Cliente</title>
+</head>
+<body>
+  <h1>Registrar nuevo cliente</h1>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <label>Nombre del cliente:</label><br>
+    <input type="text" name="nombre" required><br><br>
+
+    {% for i in "123456" %}
+      <label>Email {{ i }}:</label><br>
+      <input type="email" name="email_{{ i }}" placeholder="correo{{ i }}@ejemplo.com"><br><br>
+    {% endfor %}
+
+    <label>CC 1:</label><br>
+    <input type="email" name="cc_1" placeholder="cc1@ejemplo.com"><br><br>
+
+    <label>CC 2:</label><br>
+    <input type="email" name="cc_2" placeholder="cc2@ejemplo.com"><br><br>
+
+    <input type="submit" value="Guardar Cliente">
+  </form>
+
+  <a href="{% url 'home' %}">← Volver</a>
+</body>
+</html>

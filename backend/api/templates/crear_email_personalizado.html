@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Enviar Email Personalizado</title>
+  <script>
+    function actualizarCuerpo() {
+      const plantilla = document.getElementById("plantilla");
+      const fecha = document.getElementById("fecha_evento").value;
+      const cuerpo = document.getElementById("cuerpo");
+
+      const cuerpoBase = plantilla.options[plantilla.selectedIndex].getAttribute("data-cuerpo");
+
+      if (cuerpoBase && fecha) {
+        cuerpo.value = cuerpoBase.replace("{fecha}", fecha);
+      }
+    }
+  </script>
+</head>
+<body>
+  <h1>Enviar Email Personalizado</h1>
+
+  {% if error %}
+    <p style="color:red">{{ error }}</p>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    <!-- Selector de cliente -->
+    <label for="cliente">Cliente:</label><br>
+    <select name="cliente" id="cliente" required>
+      <option value="">-- Seleccioná un cliente --</option>
+      {% for c in clientes %}
+        <option value="{{ c.id }}">{{ c.nombre }} - {{ c.email }}</option>
+      {% endfor %}
+    </select><br><br>
+
+    <!-- Selector de plantilla (tipo de email) -->
+    <label for="plantilla">Tipo de Email:</label><br>
+    <select name="plantilla" id="plantilla" onchange="actualizarCuerpo()" required>
+      <option value="">-- Seleccioná una plantilla --</option>
+      {% for p in plantillas %}
+        <option value="{{ p.id }}" data-cuerpo="{{ p.cuerpo_base|escape }}">{{ p.tipo }}</option>
+      {% endfor %}
+    </select><br><br>
+
+    <!-- Fecha del evento -->
+    <label for="fecha_evento">Fecha del Evento:</label><br>
+    <input type="date" name="fecha_evento" id="fecha_evento" onchange="actualizarCuerpo()" required><br><br>
+
+    <!-- Cuerpo editable -->
+    <label for="cuerpo">Cuerpo del Email:</label><br>
+    <textarea name="cuerpo" id="cuerpo" rows="6" cols="60" required></textarea><br><br>
+
+    <input type="submit" value="Guardar / Enviar">
+  </form>
+
+  <a href="{% url 'home' %}">← Volver</a>
+</body>
+</html>
