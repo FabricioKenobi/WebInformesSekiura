@@ -7,7 +7,16 @@
 <body>
   <h1>Bienvenido, {{ request.user.username }}</h1>
 
+  <!-- Botón para crear nueva nota -->
   <p><a href="{% url 'crear_nota' %}">➕ Crear nueva nota</a></p>
+
+  <!-- Cierre de sesión con método POST (seguro) -->
+  <form method="post" action="{% url 'logout' %}" style="display:inline;">
+    {% csrf_token %}
+    <button type="submit" style="background:none;border:none;color:#00f;text-decoration:underline;cursor:pointer;">
+      Cerrar sesión
+    </button>
+  </form>
 
   <h2>Mis Notas</h2>
   <ul>
@@ -15,13 +24,14 @@
       <li>
         <strong>{{ nota.titulo }}</strong><br>
         {{ nota.contenido }}<br>
-        <small>Creada: {{ nota.fecha_creacion|date:"d/m/Y H:i" }}</small>
+        <small>Tipo: {{ nota.tipo }} | Fecha creada: {{ nota.fecha_creacion|date:"d/m/Y H:i" }}</small><br>
+        {% if nota.fecha_programada %}
+          <small>Programada para: {{ nota.fecha_programada|date:"d/m/Y" }}</small><br>
+        {% endif %}
       </li>
     {% empty %}
       <li>No tenés notas todavía.</li>
     {% endfor %}
   </ul>
-
-  <p><a href="/logout/">Cerrar sesión</a></p>
 </body>
 </html>
