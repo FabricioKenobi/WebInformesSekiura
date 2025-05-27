@@ -1,80 +1,124 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <title>Enviar Email Personalizado</title>
+  <style>
+    textarea, input[type="text"], input[type="date"], select {
+      width: 100%;
+      padding: 6px;
+      margin-bottom: 12px;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      white-space: pre-wrap;
+      border: 1px solid #ddd;
+    }
+  </style>
   <script>
-    function actualizarCuerpoYAsunto() {
-      const plantilla = document.getElementById("plantilla");
+    function actualizarVista() {
+      const clienteSelect = document.getElementById("cliente");
+      const plantillaSelect = document.getElementById("plantilla");
       const fecha1 = document.getElementById("fecha_1").value;
       const fecha2 = document.getElementById("fecha_2").value;
-      const cuerpo = document.getElementById("cuerpo");
-      const asunto = document.getElementById("asunto");
+      const asuntoInput = document.getElementById("asunto");
+      const cuerpoInput = document.getElementById("cuerpo");
+      const previewEmails = document.getElementById("preview_emails");
+      const previewAsunto = document.getElementById("preview_asunto");
+      const previewCuerpo = document.getElementById("preview_cuerpo");
 
-      const cuerpoBase = plantilla.options[plantilla.selectedIndex].getAttribute("data-cuerpo");
-      const asuntoBase = plantilla.options[plantilla.selectedIndex].getAttribute("data-asunto");
+      const clienteOption = clienteSelect.options[clienteSelect.selectedIndex];
+      const plantillaOption = plantillaSelect.options[plantillaSelect.selectedIndex];
 
-      if (cuerpoBase) {
-        cuerpo.value = cuerpoBase.replace("{fecha_1}", fecha1 || "____").replace("{fecha_2}", fecha2 || "____");
+      const clienteNombre = clienteOption?.getAttribute("data-nombre") || "";
+      const clienteEmails = clienteOption?.getAttribute("data-emails") || "";
+      const plantillaCuerpo = plantillaOption?.getAttribute("data-cuerpo") || "";
+      const plantillaAsunto = plantillaOption?.getAttribute("data-asunto") || "";
+
+      // Mostrar correos
+      previewEmails.innerText = clienteEmails;
+
+      // Cargar plantilla si los campos están vacíos
+      if (!asuntoInput.value) {
+        asuntoInput.value = plantillaAsunto;
       }
 
-      if (asuntoBase) {
-        asunto.value = asuntoBase;
+      if (!cuerpoInput.value) {
+        cuerpoInput.value = plantillaCuerpo;
       }
-    }
 
-    function mostrarEmails() {
-      const cliente = document.getElementById("cliente");
-      const data = cliente.options[cliente.selectedIndex].getAttribute("data-emails");
-      document.getElementById("preview_emails").innerText = data || "Seleccioná un cliente";
+      // Reemplazar placeholders solo en vista previa
+      const asuntoPreview = asuntoInput.value
+        .replace(/{cliente}/g, clienteNombre)
+        .replace(/{fecha_1}/g, fecha1 || "____")
+        .replace(/{fecha_2}/g, fecha2 || "____");
+
+      const cuerpoPreview = cuerpoInput.value
+        .replace(/{cliente}/g, clienteNombre)
+        .replace(/{fecha_1}/g, fecha1 || "____")
+        .replace(/{fecha_2}/g, fecha2 || "____");
+
+      previewAsunto.innerText = asuntoPreview;
+      previewCuerpo.innerText = cuerpoPreview;
     }
   </script>
 </head>
 <body>
   <h1>Enviar Email Personalizado</h1>
+
   <form method="post">
     {% csrf_token %}
 
     <!-- Cliente -->
-    <label for="cliente">Cliente:</label><br>
-    <select name="cliente" id="cliente" onchange="mostrarEmails()" required>
+    <label for="cliente">Cliente:</label>
+    <select name="cliente" id="cliente" onchange="actualizarVista()" required>
       <option value="">-- Seleccioná un cliente --</option>
       {% for c in clientes %}
-        <option value="{{ c.id }}" data-emails="{{ c.lista_emails }}">
+        <option value="{{ c.id }}" data-nombre="{{ c.nombre }}" data-emails="{{ c.lista_emails }}">
           {{ c.nombre }}
         </option>
       {% endfor %}
-    </select><br>
-    <small id="preview_emails" style="font-style:italic; color:gray;">Seleccioná un cliente</small>
-    <br><br>
+    </select>
+    <small id="preview_emails" style="color: gray;">Seleccioná un cliente</small><br><br>
 
     <!-- Plantilla -->
-    <label for="plantilla">Tipo de Email:</label><br>
-    <select name="plantilla" id="plantilla" onchange="actualizarCuerpoYAsunto()" required>
+    <label for="plantilla">Tipo de Email:</label>
+    <select name="plantilla" id="plantilla" onchange="actualizarVista()" required>
       <option value="">-- Seleccioná una plantilla --</option>
       {% for p in plantillas %}
-        <option value="{{ p.id }}" data-cuerpo="{{ p.cuerpo_base|escape }}" data-asunto="{{ p.asunto|escape }}">
+        <option value="{{ p.id }}" data-asunto="{{ p.asunto|escape }}" data-cuerpo="{{ p.cuerpo_base|escape }}">
           {{ p.tipo }}
         </option>
       {% endfor %}
     </select><br><br>
 
     <!-- Fechas -->
-    <label for="fecha_1">Fecha principal:</label><br>
-    <input type="date" name="fecha_1" id="fecha_1" onchange="actualizarCuerpoYAsunto()" required><br><br>
+    <label for="fecha_1">Fecha principal:</label>
+    <input type="date" name="fecha_1" id="fecha_1" onchange="actualizarVista()" required><br>
 
-    <label for="fecha_2">Fecha secundaria:</label><br>
-    <input type="date" name="fecha_2" id="fecha_2" onchange="actualizarCuerpoYAsunto()"><br><br>
+    <label for="fecha_2">Fecha secundaria:</label>
+    <input type="date" name="fecha_2" id="fecha_2" onchange="actualizarVista()"><br><br>
 
-    <!-- Asunto y cuerpo -->
-    <label for="asunto">Asunto:</label><br>
-    <input type="text" name="asunto" id="asunto" required><br><br>
+    <!-- Asunto -->
+    <label for="asunto">Asunto:</label>
+    <input type="text" name="asunto" id="asunto" oninput="actualizarVista()" required><br>
 
-    <label for="cuerpo">Cuerpo del email:</label><br>
-    <textarea name="cuerpo" id="cuerpo" rows="6" cols="60" required></textarea><br><br>
+    <!-- Cuerpo -->
+    <label for="cuerpo">Cuerpo del email:</label>
+    <textarea name="cuerpo" id="cuerpo" rows="6" oninput="actualizarVista()" required></textarea><br>
 
-    <input type="submit" value="Enviar email">
+    <!-- Botón -->
+    <input type="submit" value="Enviar Email">
   </form>
+
+  <!-- Vista previa -->
+  <h3>Vista previa del asunto:</h3>
+  <pre id="preview_asunto">...</pre>
+
+  <h3>Vista previa del cuerpo:</h3>
+  <pre id="preview_cuerpo">...</pre>
+
   <a href="{% url 'home' %}">← Volver</a>
 </body>
 </html>
