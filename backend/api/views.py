@@ -112,40 +112,37 @@ def crear_email_personalizado(request):
     plantillas = PlantillaEmail.objects.all()
 
     if request.method == 'POST':
-        cliente_id = request.POST['cliente']
-        plantilla_id = request.POST['plantilla']
-        fecha_evento = request.POST['fecha_evento']
-        cuerpo_editado = request.POST['cuerpo']
+        cliente = Cliente.objects.get(id=request.POST['cliente'])
+        plantilla = PlantillaEmail.objects.get(id=request.POST['plantilla'])
 
-        cliente = Cliente.objects.get(id=cliente_id)
-        plantilla = PlantillaEmail.objects.get(id=plantilla_id)
+        fecha_1 = request.POST['fecha_1']
+        fecha_2 = request.POST['fecha_2']
+        asunto = request.POST['asunto']
+        cuerpo = request.POST['cuerpo']
 
-        # Reemplazar fecha en cuerpo
-        cuerpo = plantilla.cuerpo_base.replace("{fecha}", fecha_evento)
-        asunto = plantilla.asunto
-
-        # Recolectar todos los emails válidos
+        # Obtener todos los correos del cliente
         to_emails = [getattr(cliente, f"email_{i}") for i in range(1, 7) if getattr(cliente, f"email_{i}")]
         cc_emails = [cliente.cc_1, cliente.cc_2]
         cc_emails = [c for c in cc_emails if c]
 
-        # Crear y guardar el email (registro)
-        email_enviado = EmailEnviado.objects.create(
-            cliente=cliente,
-            plantilla=plantilla,
-            fecha_evento=fecha_evento,
-            asunto=asunto,
-            cuerpo=cuerpo_editado or cuerpo,
-            enviado=False,
-        )
 
-
-        email_enviado.enviado = True
-        email_enviado.save()
-
+        # Guardar si usás modelo de EmailEnviado
         return redirect('home')
 
     return render(request, 'crear_email_personalizado.html', {
         'clientes': clientes,
         'plantillas': plantillas,
     })
+
+
+@login_required
+def crear_plantilla_view(request):
+    if request.method == 'POST':
+        tipo = request.POST['tipo']
+        asunto = request.POST['asunto']
+        cuerpo = request.POST['cuerpo_base']
+
+        PlantillaEmail.objects.create(tipo=tipo, asunto=asunto, cuerpo_base=cuerpo)
+        return redirect('home')
+
+    return render(request, 'crear_plantilla.html')

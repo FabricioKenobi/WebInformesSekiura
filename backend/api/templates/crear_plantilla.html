@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Crear tipo de email</title>
+</head>
+<body>
+  <h1>Crear plantilla de email</h1>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <label for="tipo">Nombre del tipo (ej. recordatorio):</label><br>
+    <input type="text" name="tipo" id="tipo" required><br><br>
+
+    <label for="asunto">Asunto del email:</label><br>
+    <input type="text" name="asunto" id="asunto" required><br><br>
+
+    <label for="cuerpo_base">Cuerpo del email (podés usar {fecha}):</label><br>
+    <textarea name="cuerpo_base" id="cuerpo_base" rows="6" cols="60" required></textarea><br><br>
+
+    <input type="submit" value="Guardar plantilla">
+  </form>
+
+  <a href="{% url 'home' %}">← Volver</a>
+</body>
+</html>

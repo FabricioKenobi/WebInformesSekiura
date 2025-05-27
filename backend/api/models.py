@@ -39,8 +39,14 @@ class Cliente(models.Model):
     email_4 = models.EmailField(null=True, blank=True)
     email_5 = models.EmailField(null=True, blank=True)
     email_6 = models.EmailField(null=True, blank=True)
-    cc_1 = models.EmailField("Correo CC 1", null=True, blank=True)
-    cc_2 = models.EmailField("Correo CC 2", null=True, blank=True)
+    cc_1 = models.EmailField(null=True, blank=True)
+    cc_2 = models.EmailField(null=True, blank=True)
+
+    def lista_emails(self):
+        emails = [getattr(self, f"email_{i}") for i in range(1, 7) if getattr(self, f"email_{i}")]
+        cc = [self.cc_1, self.cc_2]
+        cc = [c for c in cc if c]
+        return ", ".join(emails + [f"CC: {c}" for c in cc])
 
     def __str__(self):
         return self.nombre
@@ -61,4 +67,3 @@ class EmailEnviado(models.Model):
     cuerpo = models.TextField()
     enviado = models.BooleanField(default=False)
     fecha_envio = models.DateTimeField(auto_now_add=True)
-

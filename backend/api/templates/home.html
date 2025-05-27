@@ -8,8 +8,8 @@
   <h1>Bienvenido, {{ request.user.username }}</h1>
 
   <!-- Botón para crear nueva nota -->
-  <p><a href="{% url 'crear_nota' %}">➕ Crear nueva nota</a></p>
-  <p><a href="{% url 'crear_email' %}">➕ Crear nuevo mail</a></p>
+  <p><a href="{% url 'crear_cliente' %}">➕ Crear cliente</a></p>
+  <p><a href="{% url 'crear_plantilla' %}">➕ Crear plantilla</a></p>
   <p><a href="{% url 'crear_email_personalizado' %}">➕ Crear nuevo mail personalizado</a></p>
 
   <!-- Cierre de sesión con método POST (seguro) -->

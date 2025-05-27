@@ -1,61 +1,80 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
   <meta charset="UTF-8">
   <title>Enviar Email Personalizado</title>
   <script>
-    function actualizarCuerpo() {
+    function actualizarCuerpoYAsunto() {
       const plantilla = document.getElementById("plantilla");
-      const fecha = document.getElementById("fecha_evento").value;
+      const fecha1 = document.getElementById("fecha_1").value;
+      const fecha2 = document.getElementById("fecha_2").value;
       const cuerpo = document.getElementById("cuerpo");
+      const asunto = document.getElementById("asunto");
 
       const cuerpoBase = plantilla.options[plantilla.selectedIndex].getAttribute("data-cuerpo");
+      const asuntoBase = plantilla.options[plantilla.selectedIndex].getAttribute("data-asunto");
 
-      if (cuerpoBase && fecha) {
-        cuerpo.value = cuerpoBase.replace("{fecha}", fecha);
+      if (cuerpoBase) {
+        cuerpo.value = cuerpoBase.replace("{fecha_1}", fecha1 || "____").replace("{fecha_2}", fecha2 || "____");
       }
+
+      if (asuntoBase) {
+        asunto.value = asuntoBase;
+      }
+    }
+
+    function mostrarEmails() {
+      const cliente = document.getElementById("cliente");
+      const data = cliente.options[cliente.selectedIndex].getAttribute("data-emails");
+      document.getElementById("preview_emails").innerText = data || "Seleccioná un cliente";
     }
   </script>
 </head>
 <body>
   <h1>Enviar Email Personalizado</h1>
-
-  {% if error %}
-    <p style="color:red">{{ error }}</p>
-  {% endif %}
-
   <form method="post">
     {% csrf_token %}
 
-    <!-- Selector de cliente -->
+    <!-- Cliente -->
     <label for="cliente">Cliente:</label><br>
-    <select name="cliente" id="cliente" required>
+    <select name="cliente" id="cliente" onchange="mostrarEmails()" required>
       <option value="">-- Seleccioná un cliente --</option>
       {% for c in clientes %}
-        <option value="{{ c.id }}">{{ c.nombre }} - {{ c.email }}</option>
+        <option value="{{ c.id }}" data-emails="{{ c.lista_emails }}">
+          {{ c.nombre }}
+        </option>
       {% endfor %}
-    </select><br><br>
+    </select><br>
+    <small id="preview_emails" style="font-style:italic; color:gray;">Seleccioná un cliente</small>
+    <br><br>
 
-    <!-- Selector de plantilla (tipo de email) -->
+    <!-- Plantilla -->
     <label for="plantilla">Tipo de Email:</label><br>
-    <select name="plantilla" id="plantilla" onchange="actualizarCuerpo()" required>
+    <select name="plantilla" id="plantilla" onchange="actualizarCuerpoYAsunto()" required>
       <option value="">-- Seleccioná una plantilla --</option>
       {% for p in plantillas %}
-        <option value="{{ p.id }}" data-cuerpo="{{ p.cuerpo_base|escape }}">{{ p.tipo }}</option>
+        <option value="{{ p.id }}" data-cuerpo="{{ p.cuerpo_base|escape }}" data-asunto="{{ p.asunto|escape }}">
+          {{ p.tipo }}
+        </option>
       {% endfor %}
     </select><br><br>
 
-    <!-- Fecha del evento -->
-    <label for="fecha_evento">Fecha del Evento:</label><br>
-    <input type="date" name="fecha_evento" id="fecha_evento" onchange="actualizarCuerpo()" required><br><br>
+    <!-- Fechas -->
+    <label for="fecha_1">Fecha principal:</label><br>
+    <input type="date" name="fecha_1" id="fecha_1" onchange="actualizarCuerpoYAsunto()" required><br><br>
 
-    <!-- Cuerpo editable -->
-    <label for="cuerpo">Cuerpo del Email:</label><br>
+    <label for="fecha_2">Fecha secundaria:</label><br>
+    <input type="date" name="fecha_2" id="fecha_2" onchange="actualizarCuerpoYAsunto()"><br><br>
+
+    <!-- Asunto y cuerpo -->
+    <label for="asunto">Asunto:</label><br>
+    <input type="text" name="asunto" id="asunto" required><br><br>
+
+    <label for="cuerpo">Cuerpo del email:</label><br>
     <textarea name="cuerpo" id="cuerpo" rows="6" cols="60" required></textarea><br><br>
 
-    <input type="submit" value="Guardar / Enviar">
+    <input type="submit" value="Enviar email">
   </form>
-
   <a href="{% url 'home' %}">← Volver</a>
 </body>
 </html>
