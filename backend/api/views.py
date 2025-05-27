@@ -7,8 +7,9 @@ from .models import Nota, mail, Cliente, EmailEnviado, PlantillaEmail
 from django.shortcuts import render, redirect 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login
-
-
+from django.utils import timezone
+from django.core.mail import EmailMultiAlternatives
+from django.core.mail.backends.smtp import EmailBackend
 
 
 class CreateUserView(generics.CreateAPIView):
@@ -49,8 +50,8 @@ def register_view(request):
 
 @login_required
 def home_view(request):
-    notas = Nota.objects.filter(usuario=request.user).order_by('-fecha_creacion')
-    return render(request, 'home.html', {'notas': notas})
+    emails = EmailEnviado.objects.filter(usuario=request.user).order_by('-fecha_envio')[:20]
+    return render(request, 'home.html', {'emails': emails})
 
 @login_required
 def crear_nota_view(request):
@@ -108,41 +109,74 @@ def crear_cliente_view(request):
 
 @login_required
 def crear_email_personalizado(request):
-    clientes = Cliente.objects.all()
-    plantillas = PlantillaEmail.objects.all()
-
     if request.method == 'POST':
         cliente = Cliente.objects.get(id=request.POST['cliente'])
-        plantilla = PlantillaEmail.objects.get(id=request.POST['plantilla'])
-
-        fecha_1 = request.POST['fecha_1']
-        fecha_2 = request.POST['fecha_2']
         asunto = request.POST['asunto']
-        cuerpo = request.POST['cuerpo']
+        cuerpo_html = request.POST['cuerpo']
+        cuerpo_texto = strip_tags(cuerpo_html)  # versión texto plano
+        destino = cliente.email_1  # o una lista dinámica
 
-        # Obtener todos los correos del cliente
-        to_emails = [getattr(cliente, f"email_{i}") for i in range(1, 7) if getattr(cliente, f"email_{i}")]
-        cc_emails = [cliente.cc_1, cliente.cc_2]
-        cc_emails = [c for c in cc_emails if c]
+        # Usar SMTP personalizado del usuario logueado
+        backend = EmailBackend(
+            host='mail.tudominio.com',
+            port=587,
+            username=request.user.smtp_email,
+            password=request.user.smtp_password,
+            use_tls=True,
+            fail_silently=False,
+        )
 
+        email = EmailMultiAlternatives(
+            subject=asunto,
+            body=cuerpo_texto,
+            from_email=request.user.smtp_email,
+            to=[destino],
+            connection=backend
+        )
+        email.attach_alternative(cuerpo_html, "text/html")
+        email.send()
 
-        # Guardar si usás modelo de EmailEnviado
+        # Guardar email en la base si querés
+        EmailEnviado.objects.create(
+            usuario=request.user,
+            cliente=cliente,
+            asunto=asunto,
+            cuerpo=cuerpo_html,
+            enviado=True,
+            fecha_evento=request.POST['fecha_1'],
+            fecha_envio=timezone.now()
+        )
+
         return redirect('home')
 
-    return render(request, 'crear_email_personalizado.html', {
+    # GET
+    clientes = Cliente.objects.all()
+    plantillas = PlantillaEmail.objects.all()
+    return render(request, 'notas/crear_email_personalizado.html', {
         'clientes': clientes,
         'plantillas': plantillas,
     })
+    
 
 
 @login_required
 def crear_plantilla_view(request):
     if request.method == 'POST':
-        tipo = request.POST['tipo']
-        asunto = request.POST['asunto']
-        cuerpo = request.POST['cuerpo_base']
+        tipo = request.POST.get('tipo')
+        asunto = request.POST.get('asunto')
+        cuerpo = request.POST.get('cuerpo_base', '')
 
-        PlantillaEmail.objects.create(tipo=tipo, asunto=asunto, cuerpo_base=cuerpo)
+        if not cuerpo:
+            return render(request, 'crear_plantilla.html', {
+                'error': 'El cuerpo no fue recibido.'
+            })
+
+        PlantillaEmail.objects.create(
+            tipo=tipo,
+            asunto=asunto,
+            cuerpo_base=cuerpo
+        )
         return redirect('home')
 
     return render(request, 'crear_plantilla.html')
+

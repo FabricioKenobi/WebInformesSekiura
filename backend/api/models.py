@@ -60,6 +60,7 @@ class PlantillaEmail(models.Model):
         return self.tipo
     
 class EmailEnviado(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
     plantilla = models.ForeignKey(PlantillaEmail, on_delete=models.SET_NULL, null=True)
     fecha_evento = models.DateField()

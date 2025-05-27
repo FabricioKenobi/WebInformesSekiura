@@ -20,20 +20,18 @@
     </button>
   </form>
 
-  <h2>Mis Notas</h2>
-  <ul>
-    {% for nota in notas %}
-      <li>
-        <strong>{{ nota.titulo }}</strong><br>
-        {{ nota.contenido }}<br>
-        <small>Tipo: {{ nota.tipo }} | Fecha creada: {{ nota.fecha_creacion|date:"d/m/Y H:i" }}</small><br>
-        {% if nota.fecha_programada %}
-          <small>Programada para: {{ nota.fecha_programada|date:"d/m/Y" }}</small><br>
-        {% endif %}
-      </li>
-    {% empty %}
-      <li>No tenés notas todavía.</li>
-    {% endfor %}
-  </ul>
+  <h2>Últimos Emails Enviados</h2>
+<ul>
+  {% for mail in emails %}
+    <li>
+      <strong>📧 {{ mail.asunto }}</strong><br>
+      <em>Para: {{ mail.cliente.nombre }}</em><br>
+      {{ mail.cuerpo|truncatechars:150 }}<br>
+      <small>Enviado el {{ mail.fecha_envio|date:"l d/m/Y H:i" }}</small>
+    </li>
+  {% empty %}
+    <li>No enviaste emails todavía.</li>
+  {% endfor %}
+</ul>
 </body>
 </html>

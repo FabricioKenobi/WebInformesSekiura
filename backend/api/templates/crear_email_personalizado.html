@@ -3,20 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <title>Enviar Email Personalizado</title>
-  <style>
-    textarea, input[type="text"], input[type="date"], select {
-      width: 100%;
-      padding: 6px;
-      margin-bottom: 12px;
-    }
-    pre {
-      background-color: #f5f5f5;
-      padding: 10px;
-      white-space: pre-wrap;
-      border: 1px solid #ddd;
-    }
-  </style>
+
   <script>
+    function formatearFecha(fechaStr) {
+    if (!fechaStr) return "____";
+
+    const fecha = new Date(fechaStr + "T00:00:00");
+    const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+    const diaSemana = dias[fecha.getDay()];
+    const dia = fecha.getDate();
+    const mes = meses[fecha.getMonth()];
+
+    return `${diaSemana} ${dia}/${mes}`;
+  }
     function actualizarVista() {
       const clienteSelect = document.getElementById("cliente");
       const plantillaSelect = document.getElementById("plantilla");
@@ -51,13 +53,13 @@
       // Reemplazar placeholders solo en vista previa
       const asuntoPreview = asuntoInput.value
         .replace(/{cliente}/g, clienteNombre)
-        .replace(/{fecha_1}/g, fecha1 || "____")
-        .replace(/{fecha_2}/g, fecha2 || "____");
+        .replace(/{fecha_1}/g, formatearFecha(fecha1))
+        .replace(/{fecha_2}/g, formatearFecha(fecha2))
 
       const cuerpoPreview = cuerpoInput.value
         .replace(/{cliente}/g, clienteNombre)
-        .replace(/{fecha_1}/g, fecha1 || "____")
-        .replace(/{fecha_2}/g, fecha2 || "____");
+        .replace(/{fecha_1}/g, formatearFecha(fecha1))
+        .replace(/{fecha_2}/g, formatearFecha(fecha2))
 
       previewAsunto.innerText = asuntoPreview;
       previewCuerpo.innerText = cuerpoPreview;
