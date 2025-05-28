@@ -10,6 +10,7 @@ from django.contrib.auth import authenticate, login
 from django.utils import timezone
 from django.core.mail import EmailMultiAlternatives
 from django.core.mail.backends.smtp import EmailBackend
+from django.utils.html import strip_tags
 
 
 class CreateUserView(generics.CreateAPIView):
@@ -107,52 +108,59 @@ def crear_cliente_view(request):
 
     return render(request, 'crear_cliente.html')
 
+from django.template.defaultfilters import date as date_filter
 @login_required
 def crear_email_personalizado(request):
     if request.method == 'POST':
         cliente = Cliente.objects.get(id=request.POST['cliente'])
         asunto = request.POST['asunto']
         cuerpo_html = request.POST['cuerpo']
-        cuerpo_texto = strip_tags(cuerpo_html)  # versión texto plano
-        destino = cliente.email_1  # o una lista dinámica
+        fecha_1 = request.POST.get('fecha_1')
+        fecha_2 = request.POST.get('fecha_2')
 
-        # Usar SMTP personalizado del usuario logueado
-        backend = EmailBackend(
-            host='mail.tudominio.com',
-            port=587,
-            username=request.user.smtp_email,
-            password=request.user.smtp_password,
-            use_tls=True,
-            fail_silently=False,
-        )
+
+        # Convertir a objeto datetime si es necesario
+        from datetime import datetime
+        fecha_1 = datetime.strptime(fecha_1, "%Y-%m-%d")
+        fecha_2 = datetime.strptime(fecha_2, "%Y-%m-%d")
+
+        # Formatear
+        fecha_1_str = date_filter(fecha_1, "l d/M")
+        fecha_2_str = date_filter(fecha_2, "l d/M")
+
+        # Reemplazar los marcadores en el asunto y cuerpo
+        asunto_final = asunto.replace('{cliente}', cliente.nombre)
+        cuerpo_html_final = cuerpo_html.replace('{cliente}', cliente.nombre)
+        cuerpo_html_final = cuerpo_html_final.replace('{fecha_1}', fecha_1_str)
+        cuerpo_html_final = cuerpo_html_final.replace('{fecha_2}', fecha_2_str)
+
+        cuerpo_texto = strip_tags(cuerpo_html_final)  # versión sin HTML
+
+        destino = cliente.email_1
 
         email = EmailMultiAlternatives(
-            subject=asunto,
+            subject=asunto_final,
             body=cuerpo_texto,
-            from_email=request.user.smtp_email,
-            to=[destino],
-            connection=backend
+            to=[destino]
         )
-        email.attach_alternative(cuerpo_html, "text/html")
+        email.attach_alternative(cuerpo_html_final, "text/html")
         email.send()
 
-        # Guardar email en la base si querés
         EmailEnviado.objects.create(
             usuario=request.user,
             cliente=cliente,
-            asunto=asunto,
-            cuerpo=cuerpo_html,
+            asunto=asunto_final,
+            cuerpo=cuerpo_html_final,
             enviado=True,
-            fecha_evento=request.POST['fecha_1'],
+            fecha_evento=fecha_1,
             fecha_envio=timezone.now()
         )
 
         return redirect('home')
 
-    # GET
     clientes = Cliente.objects.all()
     plantillas = PlantillaEmail.objects.all()
-    return render(request, 'notas/crear_email_personalizado.html', {
+    return render(request, 'crear_email_personalizado.html', {
         'clientes': clientes,
         'plantillas': plantillas,
     })
@@ -180,3 +188,18 @@ def crear_plantilla_view(request):
 
     return render(request, 'crear_plantilla.html')
 
+from django.core.mail import send_mail
+from django.http import HttpResponse
+
+def probar_envio_email(request):
+    try:
+        send_mail(
+            subject='Correo de prueba',
+            message='Este es un mensaje de prueba enviado desde Django.',
+            from_email=None,  # Usa DEFAULT_FROM_EMAIL de settings
+            recipient_list=['martin-irun@sekiura.com.py'],
+            fail_silently=False,
+        )
+        return HttpResponse("Correo enviado exitosamente.")
+    except Exception as e:
+        return HttpResponse(f"Error al enviar correo: {str(e)}")

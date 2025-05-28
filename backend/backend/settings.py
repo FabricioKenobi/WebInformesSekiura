@@ -147,3 +147,21 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWS_CREDENTIALS = True
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.sekiura.com.py'  # Ej: smtp.gmail.com o smtp.zoho.com
+EMAIL_PORT = 465  # o 465 si usás SSL
+EMAIL_USE_TLS = False  # True para TLS, False si usás SSL con puerto 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = 'fabricio-ruiz@sekiura.com.py'
+EMAIL_HOST_PASSWORD = 'CvW6Ife$O;42'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+'''
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'fabriciojoel99@gmail.com'
+EMAIL_HOST_PASSWORD = 'osdo lcem sfxg mnpt'
+'''
