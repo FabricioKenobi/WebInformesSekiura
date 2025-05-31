@@ -11,6 +11,7 @@ from django.template.defaultfilters import date as date_filter
 from django.http import HttpResponse
 from .models import Nota, mail, Cliente, EmailEnviado, PlantillaEmail
 from .serializers import UserSerializer
+from email.mime.image import MIMEImage
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -113,6 +114,7 @@ def crear_email_personalizado(request):
         fecha_1 = request.POST.get('fecha_1')
         fecha_2 = request.POST.get('fecha_2')
         archivo = request.FILES.get("archivo_adjunto")
+        firma = request.FILES['firma_adjunta']
 
         from datetime import datetime
         fecha_1 = datetime.strptime(fecha_1, "%Y-%m-%d")
@@ -125,6 +127,7 @@ def crear_email_personalizado(request):
         cuerpo_html_final = cuerpo_html.replace('{cliente}', cliente.nombre)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_1}', fecha_1_str)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_2}', fecha_2_str)
+        cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:imagen_incrustada">')
 
         cuerpo_texto = strip_tags(cuerpo_html_final)
         destino = cliente.email_1
@@ -135,9 +138,15 @@ def crear_email_personalizado(request):
             to=[destino]
         )
         email.attach_alternative(cuerpo_html_final, "text/html")
+        if firma:
+            image = MIMEImage(firma.read())
+            image.add_header('Content-ID', '<imagen_incrustada>')  # El ID entre < >
+            image.add_header('Content-Disposition', 'inline', filename=firma.name)
+            email.attach(image)
 
+        # 3. Modificar el HTML para incluir la imagen
+        
         if archivo:
-            print("Archivo recibido:", archivo.name)
             email.attach(archivo.name, archivo.read(), archivo.content_type)
         email.send()
 
