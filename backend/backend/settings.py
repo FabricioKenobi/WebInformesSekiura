@@ -157,6 +157,9 @@ EMAIL_HOST_USER = 'fabricio-ruiz@sekiura.com.py'
 EMAIL_HOST_PASSWORD = 'CvW6Ife$O;42'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 '''
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'

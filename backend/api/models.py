@@ -68,3 +68,4 @@ class EmailEnviado(models.Model):
     cuerpo = models.TextField()
     enviado = models.BooleanField(default=False)
     fecha_envio = models.DateTimeField(auto_now_add=True)
+    archivo_adjunto = models.FileField(upload_to='adjuntos/', null=True, blank=True)

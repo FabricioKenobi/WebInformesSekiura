@@ -112,6 +112,7 @@ def crear_email_personalizado(request):
         cuerpo_html = request.POST['cuerpo']
         fecha_1 = request.POST.get('fecha_1')
         fecha_2 = request.POST.get('fecha_2')
+        archivo = request.FILES.get("archivo_adjunto")
 
         from datetime import datetime
         fecha_1 = datetime.strptime(fecha_1, "%Y-%m-%d")
@@ -134,6 +135,10 @@ def crear_email_personalizado(request):
             to=[destino]
         )
         email.attach_alternative(cuerpo_html_final, "text/html")
+
+        if archivo:
+            print("Archivo recibido:", archivo.name)
+            email.attach(archivo.name, archivo.read(), archivo.content_type)
         email.send()
 
         EmailEnviado.objects.create(
@@ -143,7 +148,8 @@ def crear_email_personalizado(request):
             cuerpo=cuerpo_html_final,
             enviado=True,
             fecha_evento=fecha_1,
-            fecha_envio=timezone.now()
+            fecha_envio=timezone.now(),
+            archivo_adjunto=archivo
         )
 
         return redirect('home')
