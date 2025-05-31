@@ -1,31 +1,28 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from rest_framework import generics
-from .serializers import UserSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .models import Nota, mail, Cliente, EmailEnviado, PlantillaEmail
-from django.shortcuts import render, redirect 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login
 from django.utils import timezone
-from django.core.mail import EmailMultiAlternatives
-from django.core.mail.backends.smtp import EmailBackend
+from django.core.mail import EmailMultiAlternatives, send_mail
 from django.utils.html import strip_tags
-
+from django.template.defaultfilters import date as date_filter
+from django.http import HttpResponse
+from .models import Nota, mail, Cliente, EmailEnviado, PlantillaEmail
+from .serializers import UserSerializer
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
-
-
 def login_view(request):
     if request.method == 'POST':
         user = authenticate(username=request.POST['username'], password=request.POST['password'])
         if user:
             login(request, user)
-            return redirect('home')  # <- asegurate que esta url exista
+            return redirect('home')
         else:
             return render(request, 'login.html', {'error': 'Credenciales incorrectas'})
     return render(request, 'login.html')
@@ -45,7 +42,7 @@ def register_view(request):
 
         user = User.objects.create_user(username=username, email=email, password=password1)
         user.save()
-        return redirect('login')  # O a una página de bienvenida
+        return redirect('login')
 
     return render(request, 'register.html')
 
@@ -90,10 +87,9 @@ def crear_email_view(request):
             cuerpo=cuerpo,
             usuario=request.user
         )
-        return redirect('home')  # o una página de confirmación
+        return redirect('home')
 
     return render(request, 'crear_mail.html')
-
 
 @login_required
 def crear_cliente_view(request):
@@ -108,7 +104,6 @@ def crear_cliente_view(request):
 
     return render(request, 'crear_cliente.html')
 
-from django.template.defaultfilters import date as date_filter
 @login_required
 def crear_email_personalizado(request):
     if request.method == 'POST':
@@ -118,24 +113,19 @@ def crear_email_personalizado(request):
         fecha_1 = request.POST.get('fecha_1')
         fecha_2 = request.POST.get('fecha_2')
 
-
-        # Convertir a objeto datetime si es necesario
         from datetime import datetime
         fecha_1 = datetime.strptime(fecha_1, "%Y-%m-%d")
         fecha_2 = datetime.strptime(fecha_2, "%Y-%m-%d")
 
-        # Formatear
         fecha_1_str = date_filter(fecha_1, "l d/M")
         fecha_2_str = date_filter(fecha_2, "l d/M")
 
-        # Reemplazar los marcadores en el asunto y cuerpo
         asunto_final = asunto.replace('{cliente}', cliente.nombre)
         cuerpo_html_final = cuerpo_html.replace('{cliente}', cliente.nombre)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_1}', fecha_1_str)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_2}', fecha_2_str)
 
-        cuerpo_texto = strip_tags(cuerpo_html_final)  # versión sin HTML
-
+        cuerpo_texto = strip_tags(cuerpo_html_final)
         destino = cliente.email_1
 
         email = EmailMultiAlternatives(
@@ -164,8 +154,6 @@ def crear_email_personalizado(request):
         'clientes': clientes,
         'plantillas': plantillas,
     })
-    
-
 
 @login_required
 def crear_plantilla_view(request):
@@ -188,15 +176,12 @@ def crear_plantilla_view(request):
 
     return render(request, 'crear_plantilla.html')
 
-from django.core.mail import send_mail
-from django.http import HttpResponse
-
 def probar_envio_email(request):
     try:
         send_mail(
             subject='Correo de prueba',
             message='Este es un mensaje de prueba enviado desde Django.',
-            from_email=None,  # Usa DEFAULT_FROM_EMAIL de settings
+            from_email=None,
             recipient_list=['martin-irun@sekiura.com.py'],
             fail_silently=False,
         )

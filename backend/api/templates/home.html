@@ -1,37 +1,37 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Mis Notas</title>
-</head>
-<body>
-  <h1>Bienvenido, {{ request.user.username }}</h1>
+{% extends 'base.html' %}
 
-  <!-- Botón para crear nueva nota -->
-  <p><a href="{% url 'crear_cliente' %}">➕ Crear cliente</a></p>
-  <p><a href="{% url 'crear_plantilla' %}">➕ Crear plantilla</a></p>
-  <p><a href="{% url 'crear_email_personalizado' %}">➕ Crear nuevo mail personalizado</a></p>
+{% block title %}Inicio - Emails Enviados{% endblock %}
 
-  <!-- Cierre de sesión con método POST (seguro) -->
-  <form method="post" action="{% url 'logout' %}" style="display:inline;">
-    {% csrf_token %}
-    <button type="submit" style="background:none;border:none;color:#00f;text-decoration:underline;cursor:pointer;">
-      Cerrar sesión
-    </button>
-  </form>
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h4">Bienvenido, {{ request.user.username }}</h1>
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-danger btn-sm">Cerrar sesión</button>
+    </form>
+  </div>
 
-  <h2>Últimos Emails Enviados</h2>
-<ul>
-  {% for mail in emails %}
-    <li>
-      <strong>📧 {{ mail.asunto }}</strong><br>
-      <em>Para: {{ mail.cliente.nombre }}</em><br>
-      {{ mail.cuerpo|truncatechars:150 }}<br>
-      <small>Enviado el {{ mail.fecha_envio|date:"l d/m/Y H:i" }}</small>
-    </li>
-  {% empty %}
-    <li>No enviaste emails todavía.</li>
-  {% endfor %}
-</ul>
-</body>
-</html>
+  <!-- Acciones -->
+  <div class="mb-4">
+    <a href="{% url 'crear_cliente' %}" class="btn btn-success me-2">👤 Crear Cliente</a>
+    <a href="{% url 'crear_plantilla' %}" class="btn btn-secondary me-2">📄 Crear Plantilla</a>
+    <a href="{% url 'crear_email_personalizado' %}" class="btn btn-warning me-2">🎯 Email Personalizado</a>
+  </div>
+
+  <h2 class="h5">Últimos Emails Enviados</h2>
+
+  {% if emails %}
+    <div class="list-group">
+      {% for mail in emails %}
+        <div class="list-group-item mb-3 shadow-sm border rounded">
+          <h5 class="mb-1">📧 {{ mail.asunto }}</h5>
+          <p class="mb-1"><strong>Para:</strong> {{ mail.cliente.nombre }}</p>
+          <p class="mb-1">{{ mail.cuerpo|truncatechars:150 }}</p>
+          <small class="text-muted">Enviado el {{ mail.fecha_envio|date:"l d/m/Y H:i" }}</small>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-warning mt-3">No enviaste emails todavía.</div>
+  {% endif %}
+{% endblock %}

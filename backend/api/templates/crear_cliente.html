@@ -1,32 +1,43 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Crear Cliente</title>
-</head>
-<body>
-  <h1>Registrar nuevo cliente</h1>
+{% extends 'base.html' %}
 
-  <form method="post">
-    {% csrf_token %}
+{% block title %}Crear Cliente{% endblock %}
 
-    <label>Nombre del cliente:</label><br>
-    <input type="text" name="nombre" required><br><br>
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <h1 class="h4 mb-4 text-center">Registrar nuevo cliente</h1>
 
-    {% for i in "123456" %}
-      <label>Email {{ i }}:</label><br>
-      <input type="email" name="email_{{ i }}" placeholder="correo{{ i }}@ejemplo.com"><br><br>
-    {% endfor %}
+      <form method="post" class="border p-4 rounded shadow-sm bg-white">
+        {% csrf_token %}
 
-    <label>CC 1:</label><br>
-    <input type="email" name="cc_1" placeholder="cc1@ejemplo.com"><br><br>
+        <div class="mb-3">
+          <label for="nombre" class="form-label">Nombre del cliente:</label>
+          <input type="text" name="nombre" id="nombre" class="form-control" required>
+        </div>
 
-    <label>CC 2:</label><br>
-    <input type="email" name="cc_2" placeholder="cc2@ejemplo.com"><br><br>
+        {% for i in "123456" %}
+          <div class="mb-3">
+            <label for="email_{{ i }}" class="form-label">Email {{ i }}:</label>
+            <input type="email" name="email_{{ i }}" id="email_{{ i }}" placeholder="correo{{ i }}@ejemplo.com" class="form-control">
+          </div>
+        {% endfor %}
 
-    <input type="submit" value="Guardar Cliente">
-  </form>
+        <div class="mb-3">
+          <label for="cc_1" class="form-label">CC 1:</label>
+          <input type="email" name="cc_1" id="cc_1" placeholder="cc1@ejemplo.com" class="form-control">
+        </div>
 
-  <a href="{% url 'home' %}">← Volver</a>
-</body>
-</html>
+        <div class="mb-3">
+          <label for="cc_2" class="form-label">CC 2:</label>
+          <input type="email" name="cc_2" id="cc_2" placeholder="cc2@ejemplo.com" class="form-control">
+        </div>
+
+        <button type="submit" class="btn btn-success w-100">💾 Guardar Cliente</button>
+      </form>
+
+      <div class="mt-3 text-center">
+        <a href="{% url 'home' %}" class="btn btn-link">← Volver</a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

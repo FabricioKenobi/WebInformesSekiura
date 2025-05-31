@@ -1,8 +1,48 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Enviar Email</title>
+{% extends 'base.html' %}
+
+{% block title %}Redactar Email{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <h1 class="h4 mb-4 text-center">📨 Redactar Email</h1>
+
+      {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" class="border p-4 rounded shadow-sm bg-white">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label for="asunto" class="form-label">Asunto:</label>
+          <select name="asunto" id="asunto" class="form-select" onchange="autocompletarCuerpo()" required>
+            <option value="">-- Seleccioná un asunto --</option>
+            <option value="reunión">Reunión</option>
+            <option value="informe">Informe</option>
+            <option value="recordatorio">Recordatorio</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="fecha_evento" class="form-label">Fecha del evento:</label>
+          <input type="date" name="fecha_evento" id="fecha_evento" class="form-control" onchange="autocompletarCuerpo()" required>
+        </div>
+
+        <div class="mb-3">
+          <label for="cuerpo" class="form-label">Cuerpo del email:</label>
+          <textarea name="cuerpo" id="cuerpo" rows="6" class="form-control" required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">📤 Guardar / Enviar</button>
+      </form>
+
+      <div class="mt-3 text-center">
+        <a href="{% url 'home' %}" class="btn btn-link">← Volver</a>
+      </div>
+    </div>
+  </div>
+
   <script>
     function autocompletarCuerpo() {
       const asunto = document.getElementById("asunto").value;
@@ -14,31 +54,4 @@
       }
     }
   </script>
-</head>
-<body>
-  <h1>Redactar Email</h1>
-  {% if error %}
-    <p style="color:red">{{ error }}</p>
-  {% endif %}
-  <form method="post">
-    {% csrf_token %}
-
-    <label for="asunto">Asunto:</label><br>
-    <select name="asunto" id="asunto" onchange="autocompletarCuerpo()">
-      <option value="">-- Seleccioná un asunto --</option>
-      <option value="reunion">Reunión</option>
-      <option value="informe">Informe</option>
-      <option value="recordatorio">Recordatorio</option>
-    </select><br><br>
-
-    <label for="fecha_evento">Fecha del evento:</label><br>
-    <input type="date" name="fecha_evento" id="fecha_evento" onchange="autocompletarCuerpo()"><br><br>
-
-    <label for="cuerpo">Cuerpo:</label><br>
-    <textarea name="cuerpo" id="cuerpo" rows="6" cols="50"></textarea><br><br>
-
-    <input type="submit" value="Guardar / Enviar">
-  </form>
-  <a href="{% url 'home' %}">Volver</a>
-</body>
-</html>
+{% endblock %}

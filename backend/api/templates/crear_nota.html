@@ -1,8 +1,40 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Crear Nota</title>
+{% extends 'base.html' %}
+
+{% block title %}Crear Nota{% endblock %}
+
+{% block content %}
+  <h1 class="h4 mb-4">Nueva Nota</h1>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" class="mb-4">
+    {% csrf_token %}
+
+    <div class="mb-3">
+      <label for="titulo" class="form-label">Título:</label>
+      <input type="text" name="titulo" id="titulo" class="form-control">
+    </div>
+
+    <div class="mb-3">
+      <label for="tipo" class="form-label">Tipo:</label>
+      <select name="tipo" id="tipo" class="form-select" onchange="actualizarContenido()">
+        <option value="">-- Seleccioná un tipo --</option>
+        <option value="personal">Personal</option>
+        <option value="trabajo">Trabajo</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="contenido" class="form-label">Contenido:</label>
+      <textarea name="contenido" id="contenido" rows="5" class="form-control"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-success">💾 Guardar nota</button>
+    <a href="{% url 'home' %}" class="btn btn-secondary ms-2">⬅️ Volver</a>
+  </form>
+
   <script>
     function actualizarContenido() {
       const tipo = document.getElementById("tipo").value;
@@ -17,30 +49,4 @@
       }
     }
   </script>
-</head>
-<body>
-  <h1>Nueva Nota</h1>
-  {% if error %}
-    <p style="color:red">{{ error }}</p>
-  {% endif %}
-  <form method="post">
-    {% csrf_token %}
-
-    <label for="titulo">Título:</label><br>
-    <input type="text" name="titulo" id="titulo"><br><br>
-
-    <label for="tipo">Tipo:</label><br>
-    <select name="tipo" id="tipo" onchange="actualizarContenido()">
-      <option value="">-- Seleccioná un tipo --</option>
-      <option value="personal">Personal</option>
-      <option value="trabajo">Trabajo</option>
-    </select><br><br>
-
-    <label for="contenido">Contenido:</label><br>
-    <textarea name="contenido" id="contenido" rows="5" cols="40"></textarea><br><br>
-
-    <input type="submit" value="Guardar nota">
-  </form>
-  <a href="{% url 'home' %}">Volver</a>
-</body>
-</html>
+{% endblock %}
