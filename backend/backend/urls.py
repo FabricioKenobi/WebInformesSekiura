@@ -22,4 +22,4 @@ urlpatterns = [
     path('crear_cliente/', crear_cliente_view, name='crear_cliente'),
     path('crear_plantilla/', crear_plantilla_view, name='crear_plantilla'),
     path('probar-mail/', probar_envio_email, name='probar_mail'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
