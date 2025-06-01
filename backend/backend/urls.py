@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from api.views import CreateUserView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from api.views import login_view, register_view,home_view, crear_nota_view,crear_email_view, crear_email_personalizado, crear_cliente_view, crear_plantilla_view, probar_envio_email
+from api.views import login_view, register_view,home_view, crear_nota_view,crear_email_view, crear_email_personalizado, crear_cliente_view, crear_plantilla_view, probar_envio_email,configurar_correo
 from django.contrib.auth.views import LogoutView
 from django.conf.urls.static import static
 from django.conf import settings
@@ -25,4 +25,6 @@ urlpatterns = [
     path('crear_cliente/', crear_cliente_view, name='crear_cliente'),
     path('crear_plantilla/', crear_plantilla_view, name='crear_plantilla'),
     path('probar-mail/', probar_envio_email, name='probar_mail'),
+    path('configurar_correo/', configurar_correo, name='configurar_correo'),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

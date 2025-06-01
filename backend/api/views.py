@@ -5,13 +5,15 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login
 from django.utils import timezone
-from django.core.mail import EmailMultiAlternatives, send_mail
+from django.core.mail import EmailMultiAlternatives, send_mail, get_connection
 from django.utils.html import strip_tags
 from django.template.defaultfilters import date as date_filter
 from django.http import HttpResponse
 from .models import Nota, mail, Cliente, EmailEnviado, PlantillaEmail
 from .serializers import UserSerializer
 from email.mime.image import MIMEImage
+from .forms import CredencialesSMTPForm
+from .models import CredencialesSMTP
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -108,6 +110,8 @@ def crear_cliente_view(request):
 @login_required
 def crear_email_personalizado(request):
     if request.method == 'POST':
+        user = request.user
+        creds = user.credenciales_smtp
         cliente = Cliente.objects.get(id=request.POST['cliente'])
         asunto = request.POST['asunto']
         cuerpo_html = request.POST['cuerpo']
@@ -131,11 +135,22 @@ def crear_email_personalizado(request):
 
         cuerpo_texto = strip_tags(cuerpo_html_final)
         destino = cliente.email_1
+        
+        connection = get_connection(
+            host=creds.smtp_host,
+            port=creds.smtp_puerto,
+            username=creds.smtp_user,
+            password=creds.smtp_password,
+            #use_tls=False
+            use_ssl=True
+        )
 
         email = EmailMultiAlternatives(
             subject=asunto_final,
             body=cuerpo_texto,
-            to=[destino]
+            from_email=creds.email_remitente,
+            to=[destino],
+            connection= connection
         )
         email.attach_alternative(cuerpo_html_final, "text/html")
         if firma:
@@ -193,13 +208,45 @@ def crear_plantilla_view(request):
 
 def probar_envio_email(request):
     try:
+        user = request.user
+        creds = user.credenciales_smtp
+        connection = get_connection(
+            host='mail.sekiura.com.py',
+            port=465,
+            username=creds.smtp_user,
+            password=creds.smtp_password,
+            #use_tls=False
+            use_ssl=True
+
+        )
         send_mail(
             subject='Correo de prueba',
             message='Este es un mensaje de prueba enviado desde Django.',
-            from_email=None,
-            recipient_list=['martin-irun@sekiura.com.py'],
+            from_email=creds.email_remitente,
+            recipient_list=['fabriciojoel99@gmail.com'],
             fail_silently=False,
+            connection=connection
         )
         return HttpResponse("Correo enviado exitosamente.")
     except Exception as e:
         return HttpResponse(f"Error al enviar correo: {str(e)}")
+
+
+@login_required
+def configurar_correo(request):
+    try:
+        credenciales = request.user.credenciales_smtp
+    except CredencialesSMTP.DoesNotExist:
+        credenciales = None
+
+    if request.method == 'POST':
+        form = CredencialesSMTPForm(request.POST, instance=credenciales)
+        if form.is_valid():
+            smtp = form.save(commit=False)
+            smtp.user = request.user
+            smtp.save()
+            return redirect('home')  # o a donde quieras
+    else:
+        form = CredencialesSMTPForm(instance=credenciales)
+
+    return render(request, 'configurar_correo.html', {'form': form})

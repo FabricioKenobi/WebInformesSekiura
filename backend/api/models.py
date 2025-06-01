@@ -69,3 +69,11 @@ class EmailEnviado(models.Model):
     enviado = models.BooleanField(default=False)
     fecha_envio = models.DateTimeField(auto_now_add=True)
     archivo_adjunto = models.FileField(upload_to='adjuntos/', null=True, blank=True)
+
+class CredencialesSMTP(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='credenciales_smtp')
+    smtp_host = models.CharField(max_length=255)
+    smtp_puerto = models.IntegerField(default=465)
+    smtp_user = models.EmailField()
+    smtp_password = models.CharField(max_length=255)
+    email_remitente = models.EmailField()
