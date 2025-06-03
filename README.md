@@ -25,6 +25,7 @@ cd WebInformesSekiura
 pip install -r requirements.txt
 
 # 4. Aplicar migraciones de la base de datos
+cd backend
 python manage.py makemigrations
 python manage.py migrate
 
