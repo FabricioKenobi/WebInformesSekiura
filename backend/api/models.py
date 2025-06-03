@@ -74,6 +74,7 @@ class CredencialesSMTP(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='credenciales_smtp')
     smtp_host = models.CharField(max_length=255)
     smtp_puerto = models.IntegerField(default=465)
+    
     smtp_user = models.EmailField()
     smtp_password = models.CharField(max_length=255)
     email_remitente = models.EmailField()
