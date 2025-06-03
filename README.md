@@ -1,7 +1,5 @@
 # WebInformesSekiura
 
-# WebInformesSekiura
-
 Aplicación web desarrollada con Django para la gestión y visualización de informes internos.
 
 ## 🚀 Requisitos
