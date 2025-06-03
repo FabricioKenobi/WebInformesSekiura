@@ -77,3 +77,4 @@ class CredencialesSMTP(models.Model):
     smtp_user = models.EmailField()
     smtp_password = models.CharField(max_length=255)
     email_remitente = models.EmailField()
+    imagen = models.ImageField(upload_to='firmas/', null=True, blank=True)

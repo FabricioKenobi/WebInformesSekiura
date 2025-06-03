@@ -11,6 +11,7 @@ from django.conf import settings
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path('configurar_correo/', configurar_correo, name='configurar_correo'),
     path("api/user/register/", CreateUserView.as_view(), name="register"),
     path("api/token/", TokenObtainPairView.as_view(), name="get_token"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="refresh"),
@@ -25,6 +26,6 @@ urlpatterns = [
     path('crear_cliente/', crear_cliente_view, name='crear_cliente'),
     path('crear_plantilla/', crear_plantilla_view, name='crear_plantilla'),
     path('probar-mail/', probar_envio_email, name='probar_mail'),
-    path('configurar_correo/', configurar_correo, name='configurar_correo'),
+    
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

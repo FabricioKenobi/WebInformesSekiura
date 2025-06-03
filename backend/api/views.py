@@ -20,6 +20,25 @@ class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
+@login_required
+def configurar_correo(request):
+    try:
+        credenciales = request.user.credenciales_smtp
+    except CredencialesSMTP.DoesNotExist:
+        credenciales = None
+
+    if request.method == 'POST':
+        form = CredencialesSMTPForm(request.POST, request.FILES, instance=credenciales)
+        if form.is_valid():
+            smtp = form.save(commit=False)
+            smtp.user = request.user
+            smtp.save()
+            return redirect('home')  # o a donde quieras
+    else:
+        form = CredencialesSMTPForm(instance=credenciales)
+
+    return render(request, 'configurar_correo.html', {'form': form})
+
 def login_view(request):
     if request.method == 'POST':
         user = authenticate(username=request.POST['username'], password=request.POST['password'])
@@ -45,7 +64,7 @@ def register_view(request):
 
         user = User.objects.create_user(username=username, email=email, password=password1)
         user.save()
-        return redirect('login')
+        return redirect('configurar_correo')
 
     return render(request, 'register.html')
 
@@ -118,7 +137,7 @@ def crear_email_personalizado(request):
         fecha_1 = request.POST.get('fecha_1')
         fecha_2 = request.POST.get('fecha_2')
         archivo = request.FILES.get("archivo_adjunto")
-        firma = request.FILES['firma_adjunta']
+        firma = request.user.credenciales_smtp.imagen
 
         from datetime import datetime
         fecha_1 = datetime.strptime(fecha_1, "%Y-%m-%d")
@@ -232,21 +251,3 @@ def probar_envio_email(request):
         return HttpResponse(f"Error al enviar correo: {str(e)}")
 
 
-@login_required
-def configurar_correo(request):
-    try:
-        credenciales = request.user.credenciales_smtp
-    except CredencialesSMTP.DoesNotExist:
-        credenciales = None
-
-    if request.method == 'POST':
-        form = CredencialesSMTPForm(request.POST, instance=credenciales)
-        if form.is_valid():
-            smtp = form.save(commit=False)
-            smtp.user = request.user
-            smtp.save()
-            return redirect('home')  # o a donde quieras
-    else:
-        form = CredencialesSMTPForm(instance=credenciales)
-
-    return render(request, 'configurar_correo.html', {'form': form})

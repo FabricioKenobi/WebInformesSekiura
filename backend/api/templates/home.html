@@ -5,9 +5,9 @@
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h4">Bienvenido, {{ request.user.username }}</h1>
-    <form method="post" action="{% url 'logout' %}">
+    <form method="post" action="{% url 'configurar_correo' %}">
       {% csrf_token %}
-      <button type="submit" class="btn btn-outline-danger btn-sm">Cerrar sesión</button>
+      <button type="submit" class="btn btn-outline-danger btn-sm">Configurar correo</button>
     </form>
   </div>
 
