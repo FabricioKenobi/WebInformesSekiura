@@ -19,20 +19,20 @@
     </button>
   {% endfor %}
 </div>
-
+<div id="seccion_fecha" hidden>
+    <label>Fecha 1:</label>
+    <input type="date" name="fecha_1" id="fecha_1" class="form-control mb-2" onchange="actualizarPreview()">
+        
+    <label>Fecha 2 (opcional):</label>
+    <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" onchange="seleccionarFechas()">
+</div>
 <div id="seccion_previsualizacion" hidden>
   <hr><h2>📄 Vista previa</h2>
   <form method="post" enctype="multipart/form-data" action="{% url 'crear_email_personalizado' %}">
     {% csrf_token %}
     <input type="hidden" name="cliente" id="cliente_id">
     <input type="hidden" name="plantilla" id="plantilla_id">
-
-    <label>Fecha 1:</label>
-    <input type="date" name="fecha_1" id="fecha_1" class="form-control mb-2" onchange="actualizarPreview()">
     
-    <label>Fecha 2 (opcional):</label>
-    <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" onchange="actualizarPreview()">
-
     <label>Asunto:</label>
     <input type="text" name="asunto" id="asunto" class="form-control mb-2" readonly>
     <div id="cuerpo_oculto" hidden>
@@ -67,8 +67,16 @@ function seleccionarCliente(id, nombre, email) {
   actualizarPreview();
 
   document.getElementById("seccion_clientes").hidden = true;
+  document.getElementById("seccion_fecha").hidden = false;
+}
+function seleccionarFechas(id, nombre, email) {
+  
+  actualizarPreview();
+
+  document.getElementById("seccion_fecha").hidden = true;
   document.getElementById("seccion_previsualizacion").hidden = false;
 }
+
 function formatearFecha(fechaStr) {
   if (!fechaStr) return "__/__/____";
   const fecha = new Date(fechaStr);
@@ -76,9 +84,20 @@ function formatearFecha(fechaStr) {
 }
 
 function actualizarPreview() {
-  const cuerpo = document.getElementById("cuerpo").value;
-  const personalizado = cuerpo.replace(/{cliente}/g, cliente_nombre);
-  document.getElementById("quill-content").innerHTML = personalizado;
+    var cuerpo = document.getElementById("cuerpo").value;
+    let asunto = document.getElementById("asunto").value;
+    let fecha1 = formatearFecha(document.getElementById("fecha_1").value);
+    let fecha2 = formatearFecha(document.getElementById("fecha_2").value);
+    asunto = asunto.replaceAll("{cliente}", cliente_nombre)
+                   .replaceAll("{fecha_1}", fecha1)
+                   .replaceAll("{fecha_2}", fecha2);
+    
+    cuerpo = cuerpo.replaceAll("{cliente}", cliente_nombre)
+                   .replaceAll("{fecha_1}", fecha1)
+                   .replaceAll("{fecha_2}", fecha2);
+    document.getElementById("asunto").value = asunto;
+    var personalizado = cuerpo.replace(/{cliente}/g, cliente_nombre);
+    document.getElementById("quill-content").innerHTML = personalizado;
 }
 
 </script>
