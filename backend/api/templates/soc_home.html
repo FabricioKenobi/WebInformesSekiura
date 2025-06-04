@@ -27,26 +27,32 @@
     <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" onchange="seleccionarFechas()">
 </div>
 <div id="seccion_previsualizacion" hidden>
-  <hr><h2>📄 Vista previa</h2>
-  <form method="post" enctype="multipart/form-data" action="{% url 'crear_email_personalizado' %}">
+  
+  
     {% csrf_token %}
     <input type="hidden" name="cliente" id="cliente_id">
     <input type="hidden" name="plantilla" id="plantilla_id">
     
-    <label>Asunto:</label>
-    <input type="text" name="asunto" id="asunto" class="form-control mb-2" readonly>
-    <div id="cuerpo_oculto" hidden>
-        <label>Cuerpo:</label>
-        <textarea name="cuerpo" id="cuerpo" rows="6" class="form-control mb-2" readonly></textarea>
+    
+    <div id="seccion_archivo" hidden>
+        <label>Adjuntar archivo:</label>
+        <input type="file" name="archivo_adjunto" class="form-control mb-3" onchange="archivoAgregado()">
     </div>
-    <label>Adjuntar archivo:</label>
-    <input type="file" name="archivo_adjunto" class="form-control mb-3">
-
-    <div id="quill-preview" class="ql-container ql-snow" style="min-height: 200px;">
-        <div class="ql-editor" id="quill-content"></div>
+    <div id="seccion_texto" hidden>
+        <hr><h2>📄 Vista previa</h2>
+            <label>Asunto:</label>
+            <input type="text" name="asunto" id="asunto" class="form-control mb-2" readonly>
+            <div id="cuerpo_oculto" hidden>
+                <label>Cuerpo:</label>
+                <textarea name="cuerpo" id="cuerpo" rows="6" class="form-control mb-2" readonly></textarea>
+            </div>
+        <div id="quill-preview" class="ql-container ql-snow" style="min-height: 200px;">
+            <div class="ql-editor" id="quill-content"></div>
+            
+        </div>
+        <button type="submit" class="btn btn-success w-100">✉️ Enviar email</button>
     </div>
 
-    <button type="submit" class="btn btn-success w-100">✉️ Enviar email</button>
   </form>
 </div>
 
@@ -75,6 +81,12 @@ function seleccionarFechas(id, nombre, email) {
 
   document.getElementById("seccion_fecha").hidden = true;
   document.getElementById("seccion_previsualizacion").hidden = false;
+  document.getElementById("seccion_archivo").hidden = false;
+
+}
+function archivoAgregado(id, nombre, email){
+    document.getElementById("seccion_archivo").hidden = true;
+    document.getElementById("seccion_texto").hidden = false;
 }
 
 function formatearFecha(fechaStr) {
