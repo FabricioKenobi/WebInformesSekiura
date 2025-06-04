@@ -16,7 +16,8 @@ Sigue estos pasos para clonar el repositorio e iniciar el servidor localmente:
 
 ```bash
 # 1. Clonar el repositorio
-git clone -b mail https://github.com/FabricioKenobi/WebInformesSekiura
+
+git clone https://github.com/FabricioKenobi/WebInformesSekiura
 
 # 2. Entrar al directorio del proyecto
 cd WebInformesSekiura
