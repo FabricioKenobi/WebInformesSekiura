@@ -250,4 +250,10 @@ def probar_envio_email(request):
     except Exception as e:
         return HttpResponse(f"Error al enviar correo: {str(e)}")
 
-
+def soc_home(request):
+    plantillas = PlantillaEmail.objects.all()
+    clientes = Cliente.objects.all()
+    return render(request, 'soc_home.html', {
+        'plantillas': plantillas,
+        'clientes': clientes,
+    })
