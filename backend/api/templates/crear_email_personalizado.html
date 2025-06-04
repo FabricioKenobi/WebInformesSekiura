@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Enviar Email Personalizado{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-10">
+      <h1 class="h4 mb-4 text-center">📧 Enviar Email Personalizado</h1>
+      <form method="post" enctype="multipart/form-data" class="border p-4 rounded shadow-sm bg-white">
+        {% csrf_token %}
+
+        <!-- Cliente -->
+        <div class="mb-3">
+          <label for="cliente" class="form-label">Cliente:</label>
+          <select name="cliente" id="cliente" class="form-select" onchange="actualizarVista()" required>
+            <option value="">-- Seleccioná un cliente --</option>
+            {% for c in clientes %}
+              <option value="{{ c.id }}" data-nombre="{{ c.nombre }}" data-emails="{{ c.lista_emails }}">
+                {{ c.nombre }}
+              </option>
+            {% endfor %}
+          </select>
+          <small id="preview_emails" class="text-muted">Seleccioná un cliente</small>
+        </div>
+
+        <!-- Plantilla -->
+        <div class="mb-3">
+          <label for="plantilla" class="form-label">Tipo de Email:</label>
+          <select name="plantilla" id="plantilla" class="form-select" onchange="actualizarVista()" required>
+            <option value="">-- Seleccioná una plantilla --</option>
+            {% for p in plantillas %}
+              <option value="{{ p.id }}" data-asunto="{{ p.asunto|escape }}" data-cuerpo="{{ p.cuerpo_base|escape }}">
+                {{ p.tipo }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Fechas -->
+        <div class="mb-3">
+          <label for="fecha_1" class="form-label">Fecha principal:</label>
+          <input type="date" name="fecha_1" id="fecha_1" class="form-control" onchange="actualizarVista()" required>
+        </div>
+
+        <div class="mb-3">
+          <label for="fecha_2" class="form-label">Fecha secundaria:</label>
+          <input type="date" name="fecha_2" id="fecha_2" class="form-control" onchange="actualizarVista()">
+        </div>
+
+        <!-- Asunto -->
+        <div class="mb-3">
+          <label for="asunto" class="form-label">Asunto:</label>
+          <input type="text" name="asunto" id="asunto" class="form-control" oninput="actualizarVista()" required>
+        </div>
+
+        <!-- Cuerpo -->
+        <div class="mb-3">
+          <label for="cuerpo" class="form-label">Cuerpo del email:</label>
+          <textarea name="cuerpo" id="cuerpo" rows="6" class="form-control" oninput="actualizarVista()" required></textarea>
+        </div>
+
+        <label>Adjuntar archivo:</label>
+        <input type="file" name="archivo_adjunto">
+
+        
+
+        <button type="submit" class="btn btn-primary w-100">✉️ Enviar Email</button>
+      </form>
+
+      <!-- Vista previa -->
+      <div class="mt-5">
+        <h5>📌 Vista previa del asunto:</h5>
+        <pre id="preview_asunto" class="bg-light p-3 border rounded">...</pre>
+
+        <h5 class="mt-4">📝 Vista previa del cuerpo:</h5>
+        <pre id="preview_cuerpo" class="bg-light p-3 border rounded">...</pre>
+      </div>
+
+      <div class="mt-4 text-center">
+        <a href="{% url 'home' %}" class="btn btn-link">← Volver</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function formatearFecha(fechaStr) {
+      if (!fechaStr) return "____";
+      const fecha = new Date(fechaStr + "T00:00:00");
+      const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+      const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      const diaSemana = dias[fecha.getDay()];
+      const dia = fecha.getDate();
+      const mes = meses[fecha.getMonth()];
+      return `${diaSemana} ${dia}/${mes}`;
+    }
+
+    function actualizarVista() {
+      const clienteSelect = document.getElementById("cliente");
+      const plantillaSelect = document.getElementById("plantilla");
+      const fecha1 = document.getElementById("fecha_1").value;
+      const fecha2 = document.getElementById("fecha_2").value;
+      const asuntoInput = document.getElementById("asunto");
+      const cuerpoInput = document.getElementById("cuerpo");
+      const previewEmails = document.getElementById("preview_emails");
+      const previewAsunto = document.getElementById("preview_asunto");
+      const previewCuerpo = document.getElementById("preview_cuerpo");
+
+      const clienteOption = clienteSelect.options[clienteSelect.selectedIndex];
+      const plantillaOption = plantillaSelect.options[plantillaSelect.selectedIndex];
+
+      const clienteNombre = clienteOption?.getAttribute("data-nombre") || "";
+      const clienteEmails = clienteOption?.getAttribute("data-emails") || "";
+      const plantillaCuerpo = plantillaOption?.getAttribute("data-cuerpo") || "";
+      const plantillaAsunto = plantillaOption?.getAttribute("data-asunto") || "";
+
+      previewEmails.innerText = clienteEmails;
+
+      if (!asuntoInput.value) asuntoInput.value = plantillaAsunto;
+      if (!cuerpoInput.value) cuerpoInput.value = plantillaCuerpo;
+
+      const asuntoPreview = asuntoInput.value
+        .replace(/{cliente}/g, clienteNombre)
+        .replace(/{fecha_1}/g, formatearFecha(fecha1))
+        .replace(/{fecha_2}/g, formatearFecha(fecha2));
+
+      const cuerpoPreview = cuerpoInput.value
+        .replace(/{cliente}/g, clienteNombre)
+        .replace(/{fecha_1}/g, formatearFecha(fecha1))
+        .replace(/{fecha_2}/g, formatearFecha(fecha2));
+
+      previewAsunto.innerText = asuntoPreview;
+      previewCuerpo.innerText = cuerpoPreview;
+    }
+  </script>
+{% endblock %}

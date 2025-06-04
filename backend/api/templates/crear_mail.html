@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Redactar Email{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <h1 class="h4 mb-4 text-center">📨 Redactar Email</h1>
+
+      {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" class="border p-4 rounded shadow-sm bg-white">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label for="asunto" class="form-label">Asunto:</label>
+          <select name="asunto" id="asunto" class="form-select" onchange="autocompletarCuerpo()" required>
+            <option value="">-- Seleccioná un asunto --</option>
+            <option value="reunión">Reunión</option>
+            <option value="informe">Informe</option>
+            <option value="recordatorio">Recordatorio</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="fecha_evento" class="form-label">Fecha del evento:</label>
+          <input type="date" name="fecha_evento" id="fecha_evento" class="form-control" onchange="autocompletarCuerpo()" required>
+        </div>
+
+        <div class="mb-3">
+          <label for="cuerpo" class="form-label">Cuerpo del email:</label>
+          <textarea name="cuerpo" id="cuerpo" rows="6" class="form-control" required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">📤 Guardar / Enviar</button>
+      </form>
+
+      <div class="mt-3 text-center">
+        <a href="{% url 'home' %}" class="btn btn-link">← Volver</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function autocompletarCuerpo() {
+      const asunto = document.getElementById("asunto").value;
+      const fecha = document.getElementById("fecha_evento").value;
+      const cuerpo = document.getElementById("cuerpo");
+
+      if (asunto && fecha) {
+        cuerpo.value = `Estimado/a,\n\nEste mensaje es un ${asunto} programado para el día ${fecha}.\n\nSaludos,\n\nTu app`;
+      }
+    }
+  </script>
+{% endblock %}
