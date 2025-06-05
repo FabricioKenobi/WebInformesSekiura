@@ -27,7 +27,7 @@
         <div class="list-group-item mb-3 shadow-sm border rounded">
           <h5 class="mb-1">📧 {{ mail.asunto }}</h5>
           <p class="mb-1"><strong>Para:</strong> {{ mail.cliente.nombre }}</p>
-          <p class="mb-1">{{ mail.cuerpo|truncatechars:150 }}</p>
+          <!--p class="mb-1">{{ mail.cuerpo|truncatechars:150 }}</p-->
           <small class="text-muted">Enviado el {{ mail.fecha_envio|date:"l d/m/Y H:i" }}</small>
         </div>
       {% endfor %}

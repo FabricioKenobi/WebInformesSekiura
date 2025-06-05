@@ -14,7 +14,7 @@
 <div id="seccion_clientes" hidden>
   <h2>Seleccionar cliente</h2>
   {% for c in clientes %}
-    <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}')">
+    <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}','{{ c.lista_emails }}')">
       {{ c.nombre }}
     </button>
   {% endfor %}
@@ -41,6 +41,12 @@
 
     <div id="seccion_texto" hidden>
       <hr><h2>📄 Vista previa</h2>
+      <div id="preview_emails" class="mt-3 bg-light p-3 border rounded">
+        <strong>📬 Correos:</strong>
+        <ul id="lista_emails" class="mb-0">
+          <li>Seleccioná un cliente</li>
+        </ul>
+      </div>
       <label>Asunto:</label>
       <input type="text" name="asunto" id="asunto" class="form-control mb-2" readonly>
 
@@ -73,13 +79,19 @@ function seleccionarPlantilla(id, asunto, cuerpo) {
   document.getElementById("seccion_clientes").hidden = false;
 }
 
-function seleccionarCliente(id, nombre, email) {
+function seleccionarCliente(id, nombre, email, emails) {
   document.getElementById("cliente_id").value = id;
   cliente_nombre = nombre;
   actualizarPreview();
 
   document.getElementById("seccion_clientes").hidden = true;
   document.getElementById("seccion_fecha").hidden = false;
+
+  const lista = document.getElementById("lista_emails");
+  if (lista) {
+    lista.innerHTML = emails ? emails : "Sin correos previos.";
+    document.getElementById("emails_previos").hidden = false;
+  }
 }
 
 function seleccionarFechas() {

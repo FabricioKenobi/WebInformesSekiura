@@ -114,8 +114,9 @@ def crear_email_personalizado(request):
         cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:imagen_incrustada">')
 
         cuerpo_texto = strip_tags(cuerpo_html_final)
-        destino = cliente.email_1
-        
+        emails = filter(None, [cliente.email_1, cliente.email_2, cliente.email_3,cliente.email_4,cliente.email_5,cliente.email_6,cliente.cc_1,cliente.cc_2])
+        to = list(emails)
+
         connection = get_connection(
             host=creds.smtp_host,
             port=creds.smtp_puerto,
@@ -129,7 +130,7 @@ def crear_email_personalizado(request):
             subject=asunto_final,
             body=cuerpo_texto,
             from_email=creds.email_remitente,
-            to=[destino],
+            to=to,
             connection= connection
         )
         email.attach_alternative(cuerpo_html_final, "text/html")
@@ -157,7 +158,7 @@ def crear_email_personalizado(request):
         )
 
         return redirect('home')
-
+    
     clientes = Cliente.objects.all()
     plantillas = PlantillaEmail.objects.all()
     return render(request, 'soc_home.html', {
