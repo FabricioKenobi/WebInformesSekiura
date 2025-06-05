@@ -9,7 +9,7 @@ from django.core.mail import EmailMultiAlternatives, send_mail, get_connection
 from django.utils.html import strip_tags
 from django.template.defaultfilters import date as date_filter
 from django.http import HttpResponse
-from .models import Nota, mail, Cliente, EmailEnviado, PlantillaEmail
+from .models import  Cliente, EmailEnviado, PlantillaEmail
 from .serializers import UserSerializer
 from email.mime.image import MIMEImage
 from .forms import CredencialesSMTPForm
@@ -73,45 +73,6 @@ def home_view(request):
     emails = EmailEnviado.objects.filter(usuario=request.user).order_by('-fecha_envio')[:20]
     return render(request, 'home.html', {'emails': emails})
 
-@login_required
-def crear_nota_view(request):
-    if request.method == 'POST':
-        titulo = request.POST['titulo']
-        contenido = request.POST['contenido']
-        tipo = request.POST['tipo']
-
-        if not titulo or not contenido or not tipo:
-            return render(request, 'crear_nota.html', {'error': 'Todos los campos son obligatorios'})
-
-        Nota.objects.create(
-            titulo=titulo,
-            contenido=contenido,
-            tipo=tipo,
-            usuario=request.user
-        )
-        return redirect('home')
-
-    return render(request, 'crear_nota.html')
-
-@login_required
-def crear_email_view(request):
-    if request.method == 'POST':
-        asunto = request.POST['asunto']
-        fecha_evento = request.POST['fecha_evento']
-        cuerpo = request.POST['cuerpo']
-
-        if not asunto or not fecha_evento or not cuerpo:
-            return render(request, 'crear_email.html', {'error': 'Todos los campos son obligatorios'})
-
-        mail.objects.create(
-            asunto=asunto,
-            fecha_evento=fecha_evento,
-            cuerpo=cuerpo,
-            usuario=request.user
-        )
-        return redirect('home')
-
-    return render(request, 'crear_mail.html')
 
 @login_required
 def crear_cliente_view(request):
@@ -199,7 +160,7 @@ def crear_email_personalizado(request):
 
     clientes = Cliente.objects.all()
     plantillas = PlantillaEmail.objects.all()
-    return render(request, 'crear_email_personalizado.html', {
+    return render(request, 'soc_home.html', {
         'clientes': clientes,
         'plantillas': plantillas,
     })
@@ -251,3 +212,72 @@ def probar_envio_email(request):
         return HttpResponse(f"Error al enviar correo: {str(e)}")
 
 
+@login_required
+def soc_home(request):
+    if request.method == 'POST':
+        user = request.user
+        creds = user.credenciales_smtp
+
+        cliente = Cliente.objects.get(id=request.POST['cliente'])
+        asunto = request.POST['asunto']
+        cuerpo_html = request.POST['cuerpo_html']
+        
+        archivo = request.FILES.get("archivo_adjunto")
+        firma = request.user.credenciales_smtp.imagen
+
+        from datetime import datetime
+        from django.utils.timezone import now
+        
+        cuerpo_html_final = cuerpo_html.replace('{imagen}', '<img src="cid:imagen_incrustada">')
+
+        cuerpo_texto = strip_tags(cuerpo_html_final)
+        destino = cliente.email_1
+
+        connection = get_connection(
+            host=creds.smtp_host,
+            port=creds.smtp_puerto,
+            username=creds.smtp_user,
+            password=creds.smtp_password,
+            use_ssl=True
+        )
+
+        email = EmailMultiAlternatives(
+            subject=asunto,
+            body=cuerpo_texto,
+            from_email=creds.email_remitente,
+            to=[destino],
+            connection=connection
+        )
+        email.attach_alternative(cuerpo_html_final, "text/html")
+
+        if firma:
+            image = MIMEImage(firma.read())
+            image.add_header('Content-ID', '<imagen_incrustada>')
+            image.add_header('Content-Disposition', 'inline', filename=firma.name)
+            email.attach(image)
+
+        if archivo:
+            email.attach(archivo.name, archivo.read(), archivo.content_type)
+
+        email.send()
+
+        # Guardar en base de datos
+        EmailEnviado.objects.create(
+            usuario=user,
+            cliente=cliente,
+            asunto=asunto,
+            cuerpo=cuerpo_html_final,
+            enviado=True,
+            fecha_evento=now(),
+            fecha_envio=now(),
+            archivo_adjunto=archivo
+        )
+
+        return redirect('home')  # o donde quieras redirigir
+
+    plantillas = PlantillaEmail.objects.all()
+    clientes = Cliente.objects.all()
+    return render(request, 'soc_home.html', {
+        'plantillas': plantillas,
+        'clientes': clientes,
+    })
