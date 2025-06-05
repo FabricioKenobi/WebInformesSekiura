@@ -19,45 +19,51 @@
     </button>
   {% endfor %}
 </div>
+<form method="post" enctype="multipart/form-data">
 <div id="seccion_fecha" hidden>
-    <label>Fecha 1:</label>
-    <input type="date" name="fecha_1" id="fecha_1" class="form-control mb-2" onchange="actualizarPreview()">
-        
-    <label>Fecha 2 (opcional):</label>
-    <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" onchange="seleccionarFechas()">
+  <label>Fecha 1:</label>
+  <input type="date" name="fecha_1" id="fecha_1" class="form-control mb-2" onchange="actualizarPreview()">
+      
+  <label>Fecha 2 (opcional):</label>
+  <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" onchange="seleccionarFechas()">
 </div>
+
 <div id="seccion_previsualizacion" hidden>
-  
   
     {% csrf_token %}
     <input type="hidden" name="cliente" id="cliente_id">
     <input type="hidden" name="plantilla" id="plantilla_id">
     
-    
     <div id="seccion_archivo" hidden>
-        <label>Adjuntar archivo:</label>
-        <input type="file" name="archivo_adjunto" class="form-control mb-3" onchange="archivoAgregado()">
-    </div>
-    <div id="seccion_texto" hidden>
-        <hr><h2>📄 Vista previa</h2>
-            <label>Asunto:</label>
-            <input type="text" name="asunto" id="asunto" class="form-control mb-2" readonly>
-            <div id="cuerpo_oculto" hidden>
-                <label>Cuerpo:</label>
-                <textarea name="cuerpo" id="cuerpo" rows="6" class="form-control mb-2" readonly></textarea>
-            </div>
-        <div id="quill-preview" class="ql-container ql-snow" style="min-height: 200px;">
-            <div class="ql-editor" id="quill-content"></div>
-            
-        </div>
-        <button type="submit" class="btn btn-success w-100">✉️ Enviar email</button>
+      <label>Adjuntar archivo:</label>
+      <input type="file" name="archivo_adjunto" class="form-control mb-3" onchange="archivoAgregado()">
     </div>
 
+    <div id="seccion_texto" hidden>
+      <hr><h2>📄 Vista previa</h2>
+      <label>Asunto:</label>
+      <input type="text" name="asunto" id="asunto" class="form-control mb-2" readonly>
+
+      <div id="cuerpo_oculto" hidden>
+        <label>Cuerpo:</label>
+        <textarea name="cuerpo" id="cuerpo" rows="6" class="form-control mb-2" readonly></textarea>
+      </div>
+
+      <div id="quill-preview" class="ql-container ql-snow" style="min-height: 200px;">
+        <div class="ql-editor" id="quill-content"></div>
+      </div>
+
+      <!-- Campo oculto para cuerpo HTML -->
+      <input type="hidden" name="cuerpo_html" id="cuerpo_html">
+
+      <button type="submit" class="btn btn-success w-100">✉️ Enviar email</button>
+    </div>
   </form>
 </div>
 
 <script>
 let cliente_nombre = "";
+
 function seleccionarPlantilla(id, asunto, cuerpo) {
   document.getElementById("plantilla_id").value = id;
   document.getElementById("asunto").value = asunto;
@@ -75,18 +81,18 @@ function seleccionarCliente(id, nombre, email) {
   document.getElementById("seccion_clientes").hidden = true;
   document.getElementById("seccion_fecha").hidden = false;
 }
-function seleccionarFechas(id, nombre, email) {
-  
+
+function seleccionarFechas() {
   actualizarPreview();
 
   document.getElementById("seccion_fecha").hidden = true;
   document.getElementById("seccion_previsualizacion").hidden = false;
   document.getElementById("seccion_archivo").hidden = false;
-
 }
-function archivoAgregado(id, nombre, email){
-    document.getElementById("seccion_archivo").hidden = true;
-    document.getElementById("seccion_texto").hidden = false;
+
+function archivoAgregado() {
+  document.getElementById("seccion_archivo").hidden = true;
+  document.getElementById("seccion_texto").hidden = false;
 }
 
 function formatearFecha(fechaStr) {
@@ -96,21 +102,27 @@ function formatearFecha(fechaStr) {
 }
 
 function actualizarPreview() {
-    var cuerpo = document.getElementById("cuerpo").value;
-    let asunto = document.getElementById("asunto").value;
-    let fecha1 = formatearFecha(document.getElementById("fecha_1").value);
-    let fecha2 = formatearFecha(document.getElementById("fecha_2").value);
-    asunto = asunto.replaceAll("{cliente}", cliente_nombre)
-                   .replaceAll("{fecha_1}", fecha1)
-                   .replaceAll("{fecha_2}", fecha2);
-    
-    cuerpo = cuerpo.replaceAll("{cliente}", cliente_nombre)
-                   .replaceAll("{fecha_1}", fecha1)
-                   .replaceAll("{fecha_2}", fecha2);
-    document.getElementById("asunto").value = asunto;
-    var personalizado = cuerpo.replace(/{cliente}/g, cliente_nombre);
-    document.getElementById("quill-content").innerHTML = personalizado;
+  var cuerpo = document.getElementById("cuerpo").value;
+  let asunto = document.getElementById("asunto").value;
+  let fecha1 = formatearFecha(document.getElementById("fecha_1").value);
+  let fecha2 = formatearFecha(document.getElementById("fecha_2").value);
+  
+  asunto = asunto.replaceAll("{cliente}", cliente_nombre)
+                 .replaceAll("{fecha_1}", fecha1)
+                 .replaceAll("{fecha_2}", fecha2);
+  
+  cuerpo = cuerpo.replaceAll("{cliente}", cliente_nombre)
+                 .replaceAll("{fecha_1}", fecha1)
+                 .replaceAll("{fecha_2}", fecha2);
+
+  document.getElementById("asunto").value = asunto;
+  document.getElementById("quill-content").innerHTML = cuerpo;
 }
 
+// Captura el HTML antes de enviar
+document.querySelector("form").addEventListener("submit", function () {
+  const contenidoHTML = document.getElementById("quill-content").innerHTML;
+  document.getElementById("cuerpo_html").value = contenidoHTML;
+});
 </script>
 {% endblock %}
