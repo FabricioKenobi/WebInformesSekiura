@@ -99,6 +99,8 @@ def crear_email_personalizado(request):
         fecha_2 = request.POST.get('fecha_2')
         archivo = request.FILES.get("archivo_adjunto")
         firma = request.user.credenciales_smtp.imagen
+        clienteMayus = cliente.nombre.upper()
+
 
         from datetime import datetime
         fecha_1 = datetime.strptime(fecha_1, "%Y-%m-%d")
@@ -107,8 +109,8 @@ def crear_email_personalizado(request):
         fecha_1_str = date_filter(fecha_1, "l d/M")
         fecha_2_str = date_filter(fecha_2, "l d/M")
 
-        asunto_final = asunto.replace('{cliente}', cliente.nombre)
-        cuerpo_html_final = cuerpo_html.replace('{cliente}', cliente.nombre)
+        asunto_final = asunto.replace('{cliente}', clienteMayus)
+        cuerpo_html_final = cuerpo_html.replace('{cliente}', clienteMayus)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_1}', fecha_1_str)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_2}', fecha_2_str)
         cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:imagen_incrustada">')
