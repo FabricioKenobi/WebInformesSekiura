@@ -103,8 +103,16 @@ def crear_email_personalizado(request):
 
 
         from datetime import datetime
-        fecha_1 = datetime.strptime(fecha_1, "%Y-%m-%d")
-        fecha_2 = datetime.strptime(fecha_2, "%Y-%m-%d")
+        
+        fecha_1_dt = datetime.strptime(fecha_1, "%Y-%m-%d") if fecha_1 else None
+        fecha_2_dt = datetime.strptime(fecha_2, "%Y-%m-%d") if fecha_2 else None
+
+        if "diario" in asunto.lower():
+            fecha_1_str = fecha_1_dt.strftime("%-d de %B")  # Ej: 6 de junio
+            fecha_2_str = fecha_2_dt.strftime("%-d de %B") if fecha_2 else ""
+        else:
+            fecha_1_str = fecha_1.strftime("%A %d/%B")  # Ej: viernes 6/jun
+            fecha_2_str = fecha_2.strftime("%A %d/%B") if fecha_2 else ""
 
         fecha_1_str = date_filter(fecha_1, "l d/M")
         fecha_2_str = date_filter(fecha_2, "l d/M")
