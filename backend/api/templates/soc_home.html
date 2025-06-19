@@ -55,9 +55,12 @@
         <textarea name="cuerpo" id="cuerpo" rows="6" class="form-control mb-2" readonly></textarea>
       </div>
 
-      <div id="quill-preview" class="ql-container ql-snow" style="min-height: 200px;">
-        <div class="ql-editor" id="quill-content"></div>
-      </div>
+      <!-- Editor Quill visible y funcional -->
+      <div id="editor" style="height: 300px;" class="bg-white border">{% autoescape off %}{{ cuerpo_html }}{% endautoescape %}</div>
+
+
+      <!-- Editor Quill visible -->
+      
 
       <!-- Campo oculto para cuerpo HTML -->
       <input type="hidden" name="cuerpo_html" id="cuerpo_html">
@@ -69,12 +72,20 @@
 
 <script>
 let cliente_nombre = "";
+let cuerpo_base_original = "";
+
+var quill = new Quill('#editor', {
+  theme: 'snow'
+});
+
+
 
 function seleccionarPlantilla(id, asunto, cuerpo) {
   document.getElementById("plantilla_id").value = id;
   document.getElementById("asunto").value = asunto;
-  document.getElementById("cuerpo").value = cuerpo;
+  cuerpo_base_original = cuerpo; // 👈 Guardamos la plantilla sin editar
 
+   // Cargar valores con placeholders reemplazados
   document.getElementById("seccion_plantillas").hidden = true;
   document.getElementById("seccion_clientes").hidden = false;
 }
@@ -82,6 +93,7 @@ function seleccionarPlantilla(id, asunto, cuerpo) {
 function seleccionarCliente(id, nombre, email, emails) {
   document.getElementById("cliente_id").value = id;
   cliente_nombre = nombre;
+  
   actualizarPreview();
 
   document.getElementById("seccion_clientes").hidden = true;
@@ -90,13 +102,11 @@ function seleccionarCliente(id, nombre, email, emails) {
   const lista = document.getElementById("lista_emails");
   if (lista) {
     lista.innerHTML = emails ? emails : "Sin correos previos.";
-    document.getElementById("emails_previos").hidden = false;
   }
 }
 
 function seleccionarFechas() {
   actualizarPreview();
-
   document.getElementById("seccion_fecha").hidden = true;
   document.getElementById("seccion_previsualizacion").hidden = false;
   document.getElementById("seccion_archivo").hidden = false;
@@ -114,27 +124,50 @@ function formatearFecha(fechaStr) {
 }
 
 function actualizarPreview() {
-  var cuerpo = document.getElementById("cuerpo").value;
   let asunto = document.getElementById("asunto").value;
   let fecha1 = formatearFecha(document.getElementById("fecha_1").value);
   let fecha2 = formatearFecha(document.getElementById("fecha_2").value);
   
-  asunto = asunto.replaceAll("{cliente}", cliente_nombre)
-                 .replaceAll("{fecha_1}", fecha1)
-                 .replaceAll("{fecha_2}", fecha2);
-  
-  cuerpo = cuerpo.replaceAll("{cliente}", cliente_nombre)
-                 .replaceAll("{fecha_1}", fecha1)
-                 .replaceAll("{fecha_2}", fecha2);
 
-  document.getElementById("asunto").value = asunto;
-  document.getElementById("quill-content").innerHTML = cuerpo;
+  let asunto_personalizado = asunto
+    .replaceAll("{cliente}", cliente_nombre)
+    .replaceAll("{fecha_1}", fecha1)
+    .replaceAll("{fecha_2}", fecha2);
+  document.getElementById("asunto").value = asunto_personalizado;
+
+  let cuerpo_personalizado = cuerpo_base_original
+    .replaceAll("{cliente}", cliente_nombre)
+    .replaceAll("{fecha_1}", fecha1)
+    .replaceAll("{fecha_2}", fecha2);
+
+  // ✅ Limpia el contenido anterior y pega nuevo HTML al editor
+  quill.setContents([]);
+  quill.clipboard.dangerouslyPasteHTML(cuerpo_personalizado);
+
+  // Actualizar Quill manteniendo el contenido existente
+    let currentContent = quill.getContents();
+    
+    quill.clipboard.dangerouslyPasteHTML(
+        0, 
+        cuerpo_personalizado,
+        'silent'
+    );
+    // Mantener selección y formato del usuario
+    quill.setContents(currentContent);
+    
+    // Forzar actualización del campo oculto
+    document.getElementById('cuerpo_html').value = quill.root.innerHTML;
+}
+// Actualización más robusta del campo oculto
+function actualizarCampoOculto() {
+    const htmlContent = quill.root.innerHTML;
+    document.getElementById('cuerpo_html').value = htmlContent;
 }
 
-// Captura el HTML antes de enviar
-document.querySelector("form").addEventListener("submit", function () {
-  const contenidoHTML = document.getElementById("quill-content").innerHTML;
-  document.getElementById("cuerpo_html").value = contenidoHTML;
-});
+// Actualizar en 3 momentos clave:
+quill.on('text-change', actualizarCampoOculto);
+document.getElementById('fecha_1').addEventListener('change', actualizarCampoOculto);
+document.getElementById('fecha_2').addEventListener('change', actualizarCampoOculto);
 </script>
+
 {% endblock %}
