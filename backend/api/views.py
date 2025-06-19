@@ -70,7 +70,7 @@ def register_view(request):
 
 @login_required
 def home_view(request):
-    emails = EmailEnviado.objects.filter(usuario=request.user).order_by('-fecha_envio')[:20]
+    emails = EmailEnviado.objects.all().order_by('-fecha_envio')[:20]
     return render(request, 'home.html', {'emails': emails})
 
 
