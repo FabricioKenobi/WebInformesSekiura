@@ -5,7 +5,7 @@
 <div id="seccion_plantillas">
   <h2>Seleccionar plantilla</h2>
   {% for p in plantillas %}
-    <button onclick="seleccionarPlantilla('{{ p.id }}', `{{ p.asunto|escapejs }}`, `{{ p.cuerpo_base|escapejs }}`)">
+    <button onclick="seleccionarPlantilla('{{ p.id }}', `{{ p.asunto|escapejs }}`, `{{ p.cuerpo_base|escapejs }}`,`{{p.tipo}}`)">
       {{ p.tipo }}
     </button>
   {% endfor %}
@@ -24,8 +24,10 @@
   <label>Fecha 1:</label>
   <input type="date" name="fecha_1" id="fecha_1" class="form-control mb-2" onchange="actualizarPreview()">
       
-  <label>Fecha 2 (opcional):</label>
-  <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" onchange="seleccionarFechas()">
+  <label>Fecha 2:</label>
+  <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" onchange="actualizarPreview()">
+  <button type="button" onclick="seleccionarFechas()">next</button>
+  
 </div>
 
 <div id="seccion_previsualizacion" hidden>
@@ -46,6 +48,8 @@
         <ul id="lista_emails" class="mb-0">
           <li>Seleccioná un cliente</li>
         </ul>
+        <div class="mt-2"><strong>📎 Archivo:</strong> <span id="nombre_archivo">Ningún archivo seleccionado</span></div>
+        
       </div>
       <label>Asunto:</label>
       <input type="text" name="asunto" id="asunto" class="form-control mb-2">
@@ -73,27 +77,76 @@
 <script>
 let cliente_nombre = "";
 let cuerpo_base_original = "";
+let tipoPlantilla="";
 
 var quill = new Quill('#editor', {
   theme: 'snow'
 });
 
+function formatearFecha(fechaStr) {
+  if (!fechaStr) return "__/__/____";
+  
+  // Crear la fecha en hora local (sin conversión a UTC)
+  const fecha = new Date(fechaStr);
+  
+  // Usar componentes locales directamente
+  return fecha.toLocaleDateString('es-ES', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'long',
+    timeZone: 'UTC' // Evitar ajustes de zona horaria
+  });
+}
 
-
-function seleccionarPlantilla(id, asunto, cuerpo) {
+function seleccionarPlantilla(id, asunto, cuerpo,tipo) {
   document.getElementById("plantilla_id").value = id;
   document.getElementById("asunto").value = asunto;
   cuerpo_base_original = cuerpo; // 👈 Guardamos la plantilla sin editar
-
+  tipoPlantilla = tipo.toString().toLowerCase().trim();
   
   document.getElementById("seccion_plantillas").hidden = true;
   document.getElementById("seccion_clientes").hidden = false;
 }
 
-function seleccionarCliente(id, nombre, email, emails) {
+function seleccionarCliente(id, nombre, email, emails, plantilla) {
   document.getElementById("cliente_id").value = id;
   cliente_nombre = nombre;
+
+  // Obtener fecha actual ajustada
+  const hoy = new Date();
+  const offset = hoy.getTimezoneOffset();
+  hoy.setMinutes(hoy.getMinutes() - offset);
+  const fechaActual = hoy.toISOString().split('T')[0];
   
+  // Establecer fecha_1 (fecha actual)
+  document.getElementById("fecha_2").value = fechaActual;
+  
+  // Calcular fecha_2 según tipo de plantilla
+  let fecha2 = new Date(hoy); // Copiar fecha actual
+  let diasSumar = 0;
+  let meses = [31,28,31,30,31,30,31,31,30,31,30,31];
+
+  console.log(tipoPlantilla);
+  switch(tipoPlantilla) {
+    case 'diario': // +1 día
+      diasSumar = 1;
+      break;
+    case 'semanal': // +7 días
+      diasSumar = 7;
+      break;
+    case 'mensual': // +30 días
+      diasSumar = 30;
+      break;
+    default:
+      diasSumar = 0;
+  }
+  
+  fecha2.setDate(fecha2.getDate() - diasSumar);
+  const fecha2Formateada = fecha2.toISOString().split('T')[0];
+  
+  // Establecer fecha_2
+  document.getElementById("fecha_1").value = fecha2Formateada;
+
   actualizarPreview();
 
   document.getElementById("seccion_clientes").hidden = true;
@@ -106,6 +159,7 @@ function seleccionarCliente(id, nombre, email, emails) {
 }
 
 function seleccionarFechas() {
+  event.preventDefault();
   actualizarPreview();
   document.getElementById("seccion_fecha").hidden = true;
   document.getElementById("seccion_previsualizacion").hidden = false;
@@ -113,15 +167,20 @@ function seleccionarFechas() {
 }
 
 function archivoAgregado() {
+  const inputArchivo = document.querySelector('input[name="archivo_adjunto"]');
+  const nombreArchivoSpan = document.getElementById('nombre_archivo');
+  
+  // Verificar si se seleccionó un archivo
+  if (inputArchivo.files && inputArchivo.files[0]) {
+    nombreArchivoSpan.textContent = inputArchivo.files[0].name;
+  } else {
+    nombreArchivoSpan.textContent = "Ningún archivo seleccionado";
+  }
+  
   document.getElementById("seccion_archivo").hidden = true;
   document.getElementById("seccion_texto").hidden = false;
 }
 
-function formatearFecha(fechaStr) {
-  if (!fechaStr) return "__/__/____";
-  const fecha = new Date(fechaStr);
-  return fecha.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
-}
 
 function actualizarPreview() {
   let asunto = document.getElementById("asunto").value;
