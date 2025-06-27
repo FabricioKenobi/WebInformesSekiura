@@ -14,6 +14,7 @@ from .serializers import UserSerializer
 from email.mime.image import MIMEImage
 from .forms import CredencialesSMTPForm
 from .models import CredencialesSMTP
+import subprocess
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -313,3 +314,12 @@ def soc_home(request):
         'plantillas': plantillas,
         'clientes': clientes,
     })
+
+def ejecutar_script(request):
+    try:
+        resultado = subprocess.run(['./hola.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        output = resultado.stdout
+        errores = resultado.stderr
+        return HttpResponse(f"<pre>{output}\n{errores}</pre>")
+    except Exception as e:
+        return HttpResponse(f"Error al ejecutar script: {e}")
