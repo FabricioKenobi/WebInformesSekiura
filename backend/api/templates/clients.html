@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Administrar clientes:{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>seleccionar Clientes</h2>
+    <div id="seccion_clientes">
+    <h2>Seleccionar cliente</h2>
+    {% for c in clientes %}
+        <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}','{{ c.lista_emails }}', '{{c.cc_1}}','{{c.cc_2}}')">
+        {{ c.nombre }}
+        </button>
+    {% endfor %}
+    </div>
+</div>
+  <div class="container mt-4">
+    <h2>Configurar Clientes</h2>
+    <form method="post" enctype="multipart/form-data">
+      {% for i in "123456" %}
+          <div class="mb-3">
+            <label for="email_{{ i }}" class="form-label">Email {{ i }}:</label>
+            <input type="email" name="email_{{ i }}" id="email_{{ i }}" placeholder="email_{{i}}@ejemplo.com" value="" class="form-control">
+          </div>
+        {% endfor %}
+
+        <div class="mb-3">
+          <label for="cc_1" class="form-label">CC 1:</label>
+          <input type="email" name="cc_1" id="cc_1" placeholder="cc1@ejemplo.com" class="form-control">
+        </div>
+
+        <div class="mb-3">
+          <label for="cc_2" class="form-label">CC 2:</label>
+          <input type="email" name="cc_2" id="cc_2" placeholder="cc2@ejemplo.com" class="form-control">
+        </div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+    <a href="{% url 'home' %}" class="btn btn-link mt-3">← Volver</a>
+  </div>
+
+<script>
+function seleccionarCliente(id, nombre, email, emails, cc_1, cc_2) {
+  document.getElementById("seccion_clientes").hidden = true;
+  cliente_nombre = nombre;
+  let mails = emails.split(",");
+  console.log(mails);
+  let i = 1;
+  for(let a in mails){
+    if(mails[a].includes('CC: ')){
+      break;
+    }
+    let x = "email_" + i;
+    document.getElementById(x).value = mails[a];
+    i++;
+  }
+  document.getElementById('cc_1').value = cc_1;
+  document.getElementById('cc_2').value = cc_2;
+}
+</script>
+{% endblock %}

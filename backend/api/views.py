@@ -314,3 +314,20 @@ def soc_home(request):
         'plantillas': plantillas,
         'clientes': clientes,
     })
+
+@login_required
+def conf_cliente(request):
+    if request.method == 'POST':
+        nombre = request.POST['nombre']
+        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2']
+        datos = {campo: request.POST.get(campo) for campo in campos}
+
+        cliente = Cliente(nombre=nombre, **datos)
+        cliente.save()
+        return redirect('home')
+
+    
+    clientes = Cliente.objects.all()
+    return render(request, 'clients.html', {
+        'clientes': clientes,
+    })
