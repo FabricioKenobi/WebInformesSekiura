@@ -3,9 +3,10 @@
 {% block title %}Inicio - Emails Enviados{% endblock %}
 
 {% block content %}
+  
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h4">Bienvenido, {{ request.user.username }}</h1>
-    <form method="post" action="{% url 'configurar_correo' %}">
+    <form method="post" action="{% url 'configurar_correo' %} " >
       {% csrf_token %}
       <button type="submit" class="btn btn-outline-danger btn-sm">Configurar correo</button>
     </form>
@@ -35,6 +36,13 @@
             <div class="accordion-body">
               <!-- Contenedor para previsualizar el cuerpo -->
               <div id="quill-preview-{{ forloop.counter }}" class="quill-preview"></div>
+              {% if mail.archivo_adjunto and mail.archivo_adjunto.name %}
+                <a href="{{ mail.archivo_adjunto.url }}" download>
+                  Descargar {{ mail.archivo_adjunto.name|cut:"adjuntos/" }}
+                </a>
+              {% else %}
+                <em>Sin archivo adjunto.</em>
+              {% endif %}
               <p> Enviado: {{mail.fecha_envio}}</p>
             </div>
           </div>
