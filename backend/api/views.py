@@ -14,7 +14,8 @@ from .serializers import UserSerializer
 from email.mime.image import MIMEImage
 from .forms import CredencialesSMTPForm
 from .models import CredencialesSMTP
-import subprocess
+import os
+from django.conf import settings
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -100,7 +101,7 @@ def crear_email_personalizado(request):
         asunto = request.POST['asunto']
         cuerpo_html = request.POST.get("cuerpo_html")
         archivo = request.FILES.get("archivo_adjunto")
-        firma = request.user.credenciales_smtp.imagen if hasattr(request.user.credenciales_smtp, 'imagen') else None
+        
         # Asegurar valores de fechas
         fecha_1_str = request.POST.get('fecha_1', '')
         fecha_2_str = request.POST.get('fecha_2', '')
@@ -124,7 +125,6 @@ def crear_email_personalizado(request):
         else:
             fecha_2_str = ""
 
-        
 
         # Obtener cuerpo HTML directamente del request
         cuerpo_html = request.POST.get("cuerpo_html", "")
@@ -134,12 +134,10 @@ def crear_email_personalizado(request):
         cuerpo_html_final = cuerpo_html.replace('{cliente}', cliente.nombre)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_1}', fecha_1_str)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_2}', fecha_2_str)
+        #cuerpo_html_final = cuerpo_html_final.replace('{firma}', '<img src="../static/img/firma.png"  style="max-width:50%">')
+        cuerpo_html_final = cuerpo_html_final.replace('{firma}', '<img src="cid:firma_incrustada"  style="max-width:30%">')
         
-        if firma and contiene_imagen:
-            cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:imagen_incrustada">')
-        else:
-            # Remover el placeholder si no hay imagen
-            cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '')
+        
         
 
         cuerpo_texto = strip_tags(cuerpo_html_final)
@@ -168,7 +166,7 @@ def crear_email_personalizado(request):
             to=to,
             connection= connection
         )
-
+        
         import re
 
         def quill_gmail_list_fix(html):
@@ -200,12 +198,19 @@ def crear_email_personalizado(request):
             return html
         
         cuerpo_html_final = quill_gmail_list_fix(cuerpo_html_final)
+
+        # Hacerlo multipart/related manualmente
+        email.mixed_subtype = 'related'
+
+        # Adjuntar imagen (firma)
+        firma_path = os.path.join(settings.BASE_DIR, 'api', 'static', 'img', 'firma.png')
+        with open(firma_path, 'rb') as f:
+            img = MIMEImage(f.read(), _subtype='png')
+            img.add_header('Content-ID', '<firma_incrustada>')
+            img.add_header('Content-Disposition', 'inline', filename='firma.png')
+            email.attach(img)
         email.attach_alternative(cuerpo_html_final, "text/html")
-        if firma and contiene_imagen:
-            image = MIMEImage(firma.read())
-            image.add_header('Content-ID', '<imagen_incrustada>')
-            image.add_header('Content-Disposition', 'inline', filename=firma.name)
-            email.attach(image)
+        
 
         # 3. Modificar el HTML para incluir la imagen
         
@@ -299,7 +304,7 @@ def soc_home(request):
         from datetime import datetime
         from django.utils.timezone import now
         
-        cuerpo_html_final = cuerpo_html.replace('{imagen}', '<img src="cid:imagen_incrustada">')
+        cuerpo_html_final = cuerpo_html.replace('{firma}', '<img src="cid:imagen_incrustada">')
 
         cuerpo_texto = strip_tags(cuerpo_html_final)
         destino = cliente.email_1
