@@ -16,6 +16,8 @@ from .forms import CredencialesSMTPForm
 from .models import CredencialesSMTP
 import os
 from django.conf import settings
+from django.utils.dateparse import parse_date
+
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -72,8 +74,21 @@ def register_view(request):
 
 @login_required
 def home_view(request):
-    emails = EmailEnviado.objects.all().order_by('-fecha_envio')
-    return render(request, 'home.html', {'emails': emails})
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+
+    emails = EmailEnviado.objects.all()
+
+    if fecha_inicio:
+        emails = emails.filter(fecha_envio__date__gte=parse_date(fecha_inicio))
+    if fecha_fin:
+        emails = emails.filter(fecha_envio__date__lte=parse_date(fecha_fin))
+
+    emails = emails.order_by('-fecha_envio')
+    
+    return render(request, 'home.html', {
+        'emails': emails,
+    })
 
 
 @login_required
