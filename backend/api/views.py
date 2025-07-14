@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -95,7 +95,7 @@ def home_view(request):
 def crear_cliente_view(request):
     if request.method == 'POST':
         nombre = request.POST['nombre']
-        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2']
+        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2','IPSIEM','FDQ']
         datos = {campo: request.POST.get(campo) for campo in campos}
 
         cliente = Cliente(nombre=nombre, **datos)
@@ -376,16 +376,22 @@ def soc_home(request):
 @login_required
 def conf_cliente(request):
     if request.method == 'POST':
-        nombre = request.POST['nombre']
-        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2']
+        cliente_id = request.POST.get('cliente_id')  # <-- El ID del cliente a actualizar
+        
+        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2','IPSIEM','FDQ']
         datos = {campo: request.POST.get(campo) for campo in campos}
 
-        cliente = Cliente(nombre=nombre, **datos)
+        cliente = get_object_or_404(Cliente, id=cliente_id)  # Si no existe, lanza 404
+        for campo, valor in datos.items():
+            setattr(cliente, campo, valor)  # Asigna dinámicamente cada campo
         cliente.save()
+
         return redirect('home')
 
-    
+    # Mostrar todos los clientes
     clientes = Cliente.objects.all()
     return render(request, 'clients.html', {
         'clientes': clientes,
     })
+
+    
