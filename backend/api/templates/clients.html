@@ -8,7 +8,7 @@
     <div id="seccion_clientes">
     <h2>Seleccionar cliente</h2>
     {% for c in clientes %}
-        <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}','{{ c.lista_emails }}', '{{c.cc_1}}','{{c.cc_2}}','{{c.IPSIEM}}','{{c.FDQ}}')">
+        <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}','{{ c.lista_emails }}', '{{c.cc_1}}','{{c.cc_2}}','{{c.IPSIEM}}','{{c.FQDN}}')">
         {{ c.nombre }}
         </button>
     {% endfor %}
@@ -42,8 +42,8 @@
         </div>
 
         <div class="mb-3">
-          <label for="FDQ" class="form-label">FDQ:</label>
-          <input type="text" name="FDQ" id="FDQ" class="form-control">
+          <label for="FQDN" class="form-label">FQDN:</label>
+          <input type="text" name="FQDN" id="FQDN" class="form-control">
         </div>
         <input type="hidden" name="cliente_id" id="cliente_id" value="">
 
@@ -53,7 +53,7 @@
   </div>
 
 <script>
-function seleccionarCliente(id, nombre, email, emails, cc_1, cc_2, IPSIEM , FDQ) {
+function seleccionarCliente(id, nombre, email, emails, cc_1, cc_2, IPSIEM , FQDN) {
   document.getElementById("seccion_clientes").hidden = true;
   document.getElementById("cliente_id").value = id;
   
@@ -72,7 +72,7 @@ function seleccionarCliente(id, nombre, email, emails, cc_1, cc_2, IPSIEM , FDQ)
   document.getElementById('cc_1').value = cc_1;
   document.getElementById('cc_2').value = cc_2;
   document.getElementById('IPSIEM').value = IPSIEM;
-  document.getElementById('FDQ').value  = FDQ;
+  document.getElementById('FQDN').value  = FQDN;
 }
 </script>
 {% endblock %}
