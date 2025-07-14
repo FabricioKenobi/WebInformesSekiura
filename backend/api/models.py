@@ -12,8 +12,8 @@ class Cliente(models.Model):
     email_6 = models.EmailField(null=True, blank=True)
     cc_1 = models.EmailField(null=True, blank=True)
     cc_2 = models.EmailField(null=True, blank=True)
-    IPSIEM = models.CharField(max_length=20)
-    FDQ = models.CharField(max_length=100)
+    IPSIEM = models.CharField(max_length=50)
+    FQDN = models.CharField(max_length=100)
 
     def lista_emails(self):
         emails = [getattr(self, f"email_{i}") for i in range(1, 7) if getattr(self, f"email_{i}")]

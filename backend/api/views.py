@@ -95,7 +95,7 @@ def home_view(request):
 def crear_cliente_view(request):
     if request.method == 'POST':
         nombre = request.POST['nombre']
-        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2','IPSIEM','FDQ']
+        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2','IPSIEM','FQDN']
         datos = {campo: request.POST.get(campo) for campo in campos}
 
         cliente = Cliente(nombre=nombre, **datos)
@@ -150,7 +150,7 @@ def crear_email_personalizado(request):
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_1}', fecha_1_str)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_2}', fecha_2_str)
         #cuerpo_html_final = cuerpo_html_final.replace('{firma}', '<img src="../static/img/firma.png"  style="max-width:50%">')
-        cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada"  style="max-width:30%">')
+        cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada"  style="max-width:100%">')
         
         
         
@@ -378,7 +378,7 @@ def conf_cliente(request):
     if request.method == 'POST':
         cliente_id = request.POST.get('cliente_id')  # <-- El ID del cliente a actualizar
         
-        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2','IPSIEM','FDQ']
+        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2','IPSIEM','FQDN']
         datos = {campo: request.POST.get(campo) for campo in campos}
 
         cliente = get_object_or_404(Cliente, id=cliente_id)  # Si no existe, lanza 404

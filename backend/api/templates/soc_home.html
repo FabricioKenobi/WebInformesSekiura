@@ -14,7 +14,7 @@
 <div id="seccion_clientes" hidden>
   <h2>Seleccionar cliente</h2>
   {% for c in clientes %}
-    <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}','{{ c.lista_emails }}')">
+    <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}','{{ c.lista_emails }}','{{c.IPSIEM}}')">
       {{ c.nombre }}
     </button>
   {% endfor %}
@@ -78,6 +78,7 @@
 let cliente_nombre = "";
 let cuerpo_base_original = "";
 let tipoPlantilla="";
+let ip ="";
 
 var quill = new Quill('#editor', {
   theme: 'snow'
@@ -108,10 +109,12 @@ function seleccionarPlantilla(id, asunto, cuerpo,tipo) {
   document.getElementById("seccion_clientes").hidden = false;
 }
 
-function seleccionarCliente(id, nombre, email, emails, plantilla) {
+function seleccionarCliente(id, nombre, email, emails,IPSIEM, plantilla) {
+  
   document.getElementById("cliente_id").value = id;
   cliente_nombre = nombre;
-
+  ip = IPSIEM;
+  console.log(ip);
   // Obtener fecha actual ajustada
   const hoy = new Date();
   const offset = hoy.getTimezoneOffset();
@@ -186,18 +189,23 @@ function actualizarPreview() {
   let asunto = document.getElementById("asunto").value;
   let fecha1 = formatearFecha(document.getElementById("fecha_1").value);
   let fecha2 = formatearFecha(document.getElementById("fecha_2").value);
+  let link = "<a href='https://"+ ip; 
+  link += "/app/vulnerability-detection'>link</a>"
   
 
   let asunto_personalizado = asunto
     .replaceAll("{cliente}", cliente_nombre)
     .replaceAll("{fecha_1}", fecha1)
-    .replaceAll("{fecha_2}", fecha2);
+    .replaceAll("{fecha_2}", fecha2)
+    .replaceAll("{link}",link);
+
   document.getElementById("asunto").value = asunto_personalizado;
 
   let cuerpo_personalizado = cuerpo_base_original
     .replaceAll("{cliente}", cliente_nombre)
     .replaceAll("{fecha_1}", fecha1)
-    .replaceAll("{fecha_2}", fecha2);
+    .replaceAll("{fecha_2}", fecha2)
+    .replaceAll("{link}",link);
     
 
   
