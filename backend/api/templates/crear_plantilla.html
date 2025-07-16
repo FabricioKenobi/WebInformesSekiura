@@ -4,13 +4,10 @@
   <meta charset="UTF-8">
   <title>Crear Plantilla</title>
 
-  <!-- QuillJS CSS -->
-  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <!-- CKEditor 5 CDN -->
+  <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
 
   <style>
-    .ql-editor {
-      min-height: 200px;
-    }
     textarea, input[type="text"], select {
       width: 100%;
       padding: 6px;
@@ -31,10 +28,7 @@
     <input type="text" name="asunto" id="asunto" required><br>
 
     <label for="editor">Cuerpo del email (HTML):</label>
-    <div id="editor"></div>
-
-    <!-- Campo oculto que llevará el contenido al backend -->
-    <input type="hidden" name="cuerpo_base" id="cuerpo_base">
+    <textarea id="editor" name="cuerpo_base">{% autoescape off %}{{ cuerpo_base }}{% endautoescape %}</textarea>
 
     <br>
     <input type="submit" value="Guardar plantilla">
@@ -42,16 +36,18 @@
 
   <a href="{% url 'home' %}">← Volver</a>
 
-  <!-- QuillJS Scripts -->
-  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
   <script>
-    const quill = new Quill('#editor', {
-      theme: 'snow'
-    });
+    ClassicEditor
+      .create(document.querySelector('#editor'))
+      .then(editor => {
+        window.miEditor = editor;
+      })
+      .catch(error => {
+        console.error(error);
+      });
 
-    // Al enviar el formulario, copiamos el contenido HTML del editor al input oculto
     document.querySelector('form').addEventListener('submit', function () {
-      document.getElementById('cuerpo_base').value = quill.root.innerHTML;
+      document.getElementById('editor').value = window.miEditor.getData();
     });
   </script>
 </body>

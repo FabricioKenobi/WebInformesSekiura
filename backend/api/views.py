@@ -182,37 +182,7 @@ def crear_email_personalizado(request):
             connection= connection
         )
         
-        import re
 
-        def quill_gmail_list_fix(html):
-            # 1. Fix para <ul> y <ol> sin estilos inline
-            html = re.sub(r'(<ul(?![^>]*style=))', r'<ul style="padding-left:20px;"', html)
-            html = re.sub(r'(<ol(?![^>]*style=))', r'<ol style="padding-left:20px;"', html)
-            
-            # 2. Fix para <li class="ql-indent-x">
-            def indent_li(match):
-                tag = match.group(1)
-                classes = match.group(2)
-                rest = match.group(3)
-                # Busca ql-indent-x
-                m = re.search(r'ql-indent-(\d+)', classes)
-                if m:
-                    level = int(m.group(1))
-                    style = f'margin-left:{level * 20}px;'
-                    # Si ya hay style en el tag, agregar el margin-left al style existente
-                    style_attr = re.search(r'style="([^"]*)"', tag)
-                    if style_attr:
-                        # Agregar al style existente
-                        new_style = style_attr.group(1) + style
-                        tag = re.sub(r'style="[^"]*"', f'style="{new_style}"', tag)
-                    else:
-                        tag = tag[:-1] + f' style="{style}">'
-                return tag + rest
-
-            html = re.sub(r'(<li[^>]*class="([^"]*ql-indent-\d+[^"]*)"([^>]*)>)', indent_li, html)
-            return html
-        
-        cuerpo_html_final = quill_gmail_list_fix(cuerpo_html_final)
 
         # Hacerlo multipart/related manualmente
         email.mixed_subtype = 'related'

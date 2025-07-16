@@ -2,10 +2,13 @@
 {% block title %}Soc Home{% endblock %}
 
 {% block content %}
+<!-- CKEditor 5 CDN -->
+<script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
+
 <div id="seccion_plantillas">
   <h2>Seleccionar plantilla</h2>
   {% for p in plantillas %}
-    <button onclick="seleccionarPlantilla('{{ p.id }}', `{{ p.asunto|escapejs }}`, `{{ p.cuerpo_base|escapejs }}`,`{{p.tipo}}`)">
+    <button onclick="seleccionarPlantilla('{{ p.id }}', `{{ p.asunto|escapejs }}`, `{{ p.cuerpo_base|escapejs }}`, `{{p.tipo}}`)">
       {{ p.tipo }}
     </button>
   {% endfor %}
@@ -19,23 +22,22 @@
     </button>
   {% endfor %}
 </div>
-<form method="post" enctype="multipart/form-data">
-<div id="seccion_fecha" hidden>
-  <label>Fecha 1:</label>
-  <input type="date" name="fecha_1" id="fecha_1" class="form-control mb-2" onchange="actualizarPreview()">
-      
-  <label>Fecha 2:</label>
-  <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" onchange="actualizarPreview()">
-  <button type="button" onclick="seleccionarFechas()">next</button>
-  
-</div>
 
-<div id="seccion_previsualizacion" hidden>
-  
+<form method="post" enctype="multipart/form-data">
+  <div id="seccion_fecha" hidden>
+    <label>Fecha 1:</label>
+    <input type="date" name="fecha_1" id="fecha_1" class="form-control mb-2" onchange="actualizarPreview()">
+    
+    <label>Fecha 2:</label>
+    <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" onchange="actualizarPreview()">
+    <button type="button" onclick="seleccionarFechas()">next</button>
+  </div>
+
+  <div id="seccion_previsualizacion" hidden>
     {% csrf_token %}
     <input type="hidden" name="cliente" id="cliente_id">
     <input type="hidden" name="plantilla" id="plantilla_id">
-    
+
     <div id="seccion_archivo" hidden>
       <label>Adjuntar archivo:</label>
       <input type="file" name="archivo_adjunto" class="form-control mb-3" onchange="archivoAgregado()">
@@ -49,105 +51,67 @@
           <li>Seleccioná un cliente</li>
         </ul>
         <div class="mt-2"><strong>📎 Archivo:</strong> <span id="nombre_archivo">Ningún archivo seleccionado</span></div>
-        
       </div>
+
       <label>Asunto:</label>
       <input type="text" name="asunto" id="asunto" class="form-control mb-2">
 
-      <div id="cuerpo_oculto" hidden>
-        <label>Cuerpo:</label>
-        <textarea name="cuerpo" id="cuerpo" rows="6" class="form-control mb-2" readonly></textarea>
-      </div>
-
-      <!-- Editor Quill visible y funcional -->
-      <div id="editor" style="height: 300px;" class="bg-white border">{% autoescape off %}{{ cuerpo_html }}{% endautoescape %}</div>
-
-
-      <!-- Editor Quill visible -->
-      
-
-      <!-- Campo oculto para cuerpo HTML -->
-      <input type="hidden" name="cuerpo_html" id="cuerpo_html">
+      <label>Cuerpo:</label>
+      <textarea id="editor" name="cuerpo_html">{% autoescape off %}{{ cuerpo_html }}{% endautoescape %}</textarea>
 
       <button type="submit" class="btn btn-success w-100">✉️ Enviar email</button>
     </div>
-  </form>
-</div>
+  </div>
+</form>
 
 <script>
 let cliente_nombre = "";
 let cuerpo_base_original = "";
-let tipoPlantilla="";
-let ip ="";
+let tipoPlantilla = "";
+let ip = "";
 
-var quill = new Quill('#editor', {
-  theme: 'snow'
-});
-
-function formatearFecha(fechaStr) {
-  if (!fechaStr) return "__/__/____";
-  
-  // Crear la fecha en hora local (sin conversión a UTC)
-  const fecha = new Date(fechaStr);
-  
-  // Usar componentes locales directamente
-  return fecha.toLocaleDateString('es-ES', { 
-    weekday: 'long', 
-    day: 'numeric', 
-    month: 'long',
-    timeZone: 'UTC' // Evitar ajustes de zona horaria
+ClassicEditor
+  .create(document.querySelector('#editor'))
+  .then(editor => {
+    window.miEditor = editor;
+  })
+  .catch(error => {
+    console.error('Error al iniciar CKEditor:', error);
   });
-}
 
-function seleccionarPlantilla(id, asunto, cuerpo,tipo) {
+function seleccionarPlantilla(id, asunto, cuerpo, tipo) {
   document.getElementById("plantilla_id").value = id;
   document.getElementById("asunto").value = asunto;
-  cuerpo_base_original = cuerpo; // 👈 Guardamos la plantilla sin editar
-  tipoPlantilla = tipo.toString().toLowerCase().trim();
-  
+  cuerpo_base_original = cuerpo;
+  tipoPlantilla = tipo.toLowerCase().trim();
+
   document.getElementById("seccion_plantillas").hidden = true;
   document.getElementById("seccion_clientes").hidden = false;
 }
 
-function seleccionarCliente(id, nombre, email, emails,IPSIEM, plantilla) {
-  
+function seleccionarCliente(id, nombre, email, emails, IPSIEM) {
   document.getElementById("cliente_id").value = id;
   cliente_nombre = nombre;
   ip = IPSIEM;
-  console.log(ip);
-  // Obtener fecha actual ajustada
+
   const hoy = new Date();
   const offset = hoy.getTimezoneOffset();
   hoy.setMinutes(hoy.getMinutes() - offset);
   const fechaActual = hoy.toISOString().split('T')[0];
-  
-  // Establecer fecha_1 (fecha actual)
   document.getElementById("fecha_2").value = fechaActual;
-  
-  // Calcular fecha_2 según tipo de plantilla
-  let fecha2 = new Date(hoy); // Copiar fecha actual
-  let diasSumar = 0;
-  let meses = [31,28,31,30,31,30,31,31,30,31,30,31];
 
-  console.log(tipoPlantilla);
+  let fecha2 = new Date(hoy);
+  let diasSumar = 0;
+
   switch(tipoPlantilla) {
-    case 'diario': // +1 día
-      diasSumar = 1;
-      break;
-    case 'semanal': // +7 días
-      diasSumar = 7;
-      break;
-    case 'mensual': // +30 días
-      diasSumar = 30;
-      break;
-    default:
-      diasSumar = 0;
+    case 'diario': diasSumar = 1; break;
+    case 'semanal': diasSumar = 7; break;
+    case 'mensual': diasSumar = 30; break;
+    default: diasSumar = 0;
   }
-  
+
   fecha2.setDate(fecha2.getDate() - diasSumar);
   const fecha2Formateada = fecha2.toISOString().split('T')[0];
-  
-  // Establecer fecha_2
   document.getElementById("fecha_1").value = fecha2Formateada;
 
   actualizarPreview();
@@ -156,9 +120,7 @@ function seleccionarCliente(id, nombre, email, emails,IPSIEM, plantilla) {
   document.getElementById("seccion_fecha").hidden = false;
 
   const lista = document.getElementById("lista_emails");
-  if (lista) {
-    lista.innerHTML = emails ? emails : "Sin correos previos.";
-  }
+  lista.innerHTML = emails ? emails : "Sin correos previos.";
 }
 
 function seleccionarFechas() {
@@ -172,32 +134,34 @@ function seleccionarFechas() {
 function archivoAgregado() {
   const inputArchivo = document.querySelector('input[name="archivo_adjunto"]');
   const nombreArchivoSpan = document.getElementById('nombre_archivo');
-  
-  // Verificar si se seleccionó un archivo
+
   if (inputArchivo.files && inputArchivo.files[0]) {
     nombreArchivoSpan.textContent = inputArchivo.files[0].name;
   } else {
     nombreArchivoSpan.textContent = "Ningún archivo seleccionado";
   }
-  
+
   document.getElementById("seccion_archivo").hidden = true;
   document.getElementById("seccion_texto").hidden = false;
 }
 
+function formatearFecha(fechaStr) {
+  if (!fechaStr) return "__/__/____";
+  const fecha = new Date(fechaStr);
+  return fecha.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+}
 
 function actualizarPreview() {
   let asunto = document.getElementById("asunto").value;
   let fecha1 = formatearFecha(document.getElementById("fecha_1").value);
   let fecha2 = formatearFecha(document.getElementById("fecha_2").value);
-  let link = "<a href='https://"+ ip; 
-  link += "/app/vulnerability-detection'>link</a>"
-  
+  let link = "<a href='https://" + ip + "/app/vulnerability-detection'>link</a>";
 
   let asunto_personalizado = asunto
     .replaceAll("{cliente}", cliente_nombre)
     .replaceAll("{fecha_1}", fecha1)
     .replaceAll("{fecha_2}", fecha2)
-    .replaceAll("{link}",link);
+    .replaceAll("{link}", link);
 
   document.getElementById("asunto").value = asunto_personalizado;
 
@@ -205,40 +169,21 @@ function actualizarPreview() {
     .replaceAll("{cliente}", cliente_nombre)
     .replaceAll("{fecha_1}", fecha1)
     .replaceAll("{fecha_2}", fecha2)
-    .replaceAll("{link}",link);
-    
+    .replaceAll("{link}", link);
 
-  
+  // Reemplazar contenido del editor con la plantilla personalizada
+  if (window.miEditor) {
+    window.miEditor.setData(cuerpo_personalizado);
+  }
 
-  // ✅ Limpia el contenido anterior y pega nuevo HTML al editor
-  quill.setContents([]);
-  quill.clipboard.dangerouslyPasteHTML(cuerpo_personalizado);
-
-  // Actualizar Quill manteniendo el contenido existente
-    let currentContent = quill.getContents();
-    
-    quill.clipboard.dangerouslyPasteHTML(
-        0, 
-        cuerpo_personalizado,
-        'silent'
-    );
-    // Mantener selección y formato del usuario
-    quill.setContents(currentContent);
-    
-    // Forzar actualización del campo oculto
-    document.getElementById('cuerpo_html').value = quill.root.innerHTML;
+  // Actualizar el campo oculto
+  document.getElementById('editor').value = cuerpo_personalizado;
 }
 
-// Actualización más robusta del campo oculto
-function actualizarCampoOculto() {
-    const htmlContent = quill.root.innerHTML;
-    document.getElementById('cuerpo_html').value = htmlContent;
-}
-
-// Actualizar en 3 momentos clave:
-quill.on('text-change', actualizarCampoOculto);
-document.getElementById('fecha_1').addEventListener('change', actualizarCampoOculto);
-document.getElementById('fecha_2').addEventListener('change', actualizarCampoOculto);
+document.querySelector('form').addEventListener('submit', function () {
+  if (window.miEditor) {
+    document.getElementById('editor').value = window.miEditor.getData();
+  }
+});
 </script>
-
 {% endblock %}
