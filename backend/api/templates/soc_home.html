@@ -17,7 +17,7 @@
 <div id="seccion_clientes" hidden>
   <h2>Seleccionar cliente</h2>
   {% for c in clientes %}
-    <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}','{{ c.lista_emails }}','{{c.IPSIEM}}')">
+    <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}','{{ c.lista_emails }}','{{c.IPSIEM}}','{{c.FQDN}}')">
       {{ c.nombre }}
     </button>
   {% endfor %}
@@ -31,6 +31,11 @@
     <label>Fecha 2:</label>
     <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" onchange="actualizarPreview()">
     <button type="button" onclick="seleccionarFechas()">next</button>
+  </div>
+  <div id="seccion_mes" hidden>
+    <label>Seleccionar mes:</label>
+    <div id="botones_mes" class="mb-3"></div>
+    <button type="button" onclick="seleccionarMes()">next</button>
   </div>
 
   <div id="seccion_previsualizacion" hidden>
@@ -69,6 +74,7 @@ let cliente_nombre = "";
 let cuerpo_base_original = "";
 let tipoPlantilla = "";
 let ip = "";
+let fqdn= "";
 
 ClassicEditor
   .create(document.querySelector('#editor'))
@@ -88,12 +94,33 @@ function seleccionarPlantilla(id, asunto, cuerpo, tipo) {
   document.getElementById("seccion_plantillas").hidden = true;
   document.getElementById("seccion_clientes").hidden = false;
 }
+if (tipoPlantilla === 'mensual') {
+  document.getElementById("seccion_fecha").hidden = true;
+  document.getElementById("seccion_mes").hidden = false;
 
-function seleccionarCliente(id, nombre, email, emails, IPSIEM) {
+  const contenedor = document.getElementById("botones_mes");
+  contenedor.innerHTML = "";
+
+  const hoy = new Date();
+  for (let i = 0; i < 6; i++) {
+    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const texto = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    const mes = texto.charAt(0).toUpperCase() + texto.slice(1);
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = mes;
+    btn.classList.add("btn", "btn-outline-primary", "m-1");
+    btn.onclick = () => seleccionarMesDirecto(btn);
+    contenedor.appendChild(btn);
+  }
+}
+
+function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN) {
   document.getElementById("cliente_id").value = id;
   cliente_nombre = nombre;
   ip = IPSIEM;
-
+  fqdn = FQDN;
   const hoy = new Date();
   const offset = hoy.getTimezoneOffset();
   hoy.setMinutes(hoy.getMinutes() - offset);
@@ -121,6 +148,35 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM) {
 
   const lista = document.getElementById("lista_emails");
   lista.innerHTML = emails ? emails : "Sin correos previos.";
+  if (tipoPlantilla === 'mensual') {
+    document.getElementById("seccion_fecha").hidden = true;
+    document.getElementById("seccion_mes").hidden = false;
+
+    const contenedor = document.getElementById("botones_mes");
+    contenedor.innerHTML = "";
+
+    const hoy = new Date();
+    for (let i = 0; i < 6; i++) {
+      const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      const texto = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      const mes = texto.charAt(0).toUpperCase() + texto.slice(1);
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = mes;
+      btn.classList.add("btn", "btn-outline-primary", "m-1");
+      btn.onclick = () => seleccionarMesDirecto(btn);
+      contenedor.appendChild(btn);
+    }
+  }
+
+}
+let mesSeleccionado = "";
+
+function seleccionarMesDirecto(boton) {
+  document.querySelectorAll('#botones_mes button').forEach(b => b.classList.remove("active"));
+  boton.classList.add("active");
+  mesSeleccionado = boton.textContent;
 }
 
 function seleccionarFechas() {
@@ -131,6 +187,17 @@ function seleccionarFechas() {
   document.getElementById("seccion_archivo").hidden = false;
 }
 
+function seleccionarMes() {
+  if (!mesSeleccionado) {
+    alert("Seleccioná un mes.");
+    return;
+  }
+
+  actualizarPreview();
+  document.getElementById("seccion_mes").hidden = true;
+  document.getElementById("seccion_previsualizacion").hidden = false;
+  document.getElementById("seccion_archivo").hidden = false;
+}
 function archivoAgregado() {
   const inputArchivo = document.querySelector('input[name="archivo_adjunto"]');
   const nombreArchivoSpan = document.getElementById('nombre_archivo');
@@ -155,7 +222,8 @@ function actualizarPreview() {
   let asunto = document.getElementById("asunto").value;
   let fecha1 = formatearFecha(document.getElementById("fecha_1").value);
   let fecha2 = formatearFecha(document.getElementById("fecha_2").value);
-  let link = "<a href='https://" + ip + "/app/vulnerability-detection'>link</a>";
+  let link = "<a href='https://" + ip + "/app/vulnerability-detection'>"+"https://"+ip+"/app/vulnerability-detection"+"</a>";
+  let fqdnlink = "<a href='https://" + fqdn + "/app/vulnerability-detection'>"+"https://"+fqdn+"/app/vulnerability-detection"+"</a>";
 
   let asunto_personalizado = asunto
     .replaceAll("{cliente}", cliente_nombre)
@@ -169,7 +237,9 @@ function actualizarPreview() {
     .replaceAll("{cliente}", cliente_nombre)
     .replaceAll("{fecha_1}", fecha1)
     .replaceAll("{fecha_2}", fecha2)
-    .replaceAll("{link}", link);
+    .replaceAll("{mes}",mesSeleccionado)
+    .replaceAll("{link}", link)
+    .replaceAll("{fqdn}",fqdnlink);
 
   // Reemplazar contenido del editor con la plantilla personalizada
   if (window.miEditor) {
