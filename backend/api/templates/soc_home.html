@@ -78,8 +78,7 @@ let fqdn= "";
 let codeDiario = "";
 let codeMes = "";
 let codeSemanal="";
-let dia1 = new Date();
-let dia2 = new Date();
+
  
 
 ClassicEditor
@@ -135,19 +134,16 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, sem
   hoy.setMinutes(hoy.getMinutes() - offset);
   const fechaActual = hoy.toISOString().split('T')[0];
   document.getElementById("fecha_2").value = fechaActual;
-  let di1 = new Date();
-  let di2 = new Date()
+  
   let fecha2 = new Date(hoy);
   let diasSumar = 0;
-  di1.setDate( fecha2.getDate() - 1);
-  switch(tipoPlantilla) {
-    case 'diario': diasSumar = 1; di2.setDate(di1.getDate() - 1);break;
-    case 'semanal': diasSumar = 7; di2.setDate(di1.getDate() - 8); break;
-    case 'mensual': diasSumar = 30; di2.setDate(di1.getDate() - 31); break;
-    default: diasSumar = 0;
-  }
-  dia2 = new Date(di2);
-  dia1 = new Date(di1);
+
+  
+  if (tipoPlantilla.includes('diario')) diasSumar = 1;
+  if (tipoPlantilla.includes('semanal')) diasSumar = 7;
+  if (tipoPlantilla.includes('mensual')) diasSumar = 30;
+    
+  
   fecha2.setDate(fecha2.getDate() - diasSumar);
   const fecha2Formateada = fecha2.toISOString().split('T')[0];
   document.getElementById("fecha_1").value = fecha2Formateada;
