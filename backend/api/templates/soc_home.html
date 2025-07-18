@@ -137,13 +137,12 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, sem
   
   let fecha2 = new Date(hoy);
   let diasSumar = 0;
-  di1.setDate( fecha2.getDate() - 1);
-  switch(tipoPlantilla) {
-    case 'diario': diasSumar = 1;break;
-    case 'semanal': diasSumar = 7; break;
-    case 'mensual': diasSumar = 30; break;
-    default: diasSumar = 0;
-  }
+
+  
+  if (tipoPlantilla.includes('diario')) diasSumar = 1;
+  if (tipoPlantilla.includes('semanal')) diasSumar = 7;
+  if (tipoPlantilla.includes('mensual')) diasSumar = 30;
+    
   
   fecha2.setDate(fecha2.getDate() - diasSumar);
   const fecha2Formateada = fecha2.toISOString().split('T')[0];
