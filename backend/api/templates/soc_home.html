@@ -17,7 +17,7 @@
 <div id="seccion_clientes" hidden>
   <h2>Seleccionar cliente</h2>
   {% for c in clientes %}
-    <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}','{{ c.lista_emails }}','{{c.IPSIEM}}','{{c.FQDN}}')">
+    <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}','{{ c.lista_emails }}','{{c.IPSIEM}}','{{c.FQDN}}', '{{c.diario}}','{{c.semanal}}','{{c.mensual}}')">
       {{ c.nombre }}
     </button>
   {% endfor %}
@@ -75,6 +75,12 @@ let cuerpo_base_original = "";
 let tipoPlantilla = "";
 let ip = "";
 let fqdn= "";
+let codeDiario = "";
+let codeMes = "";
+let codeSemanal="";
+let dia1 = new Date();
+let dia2 = new Date();
+ 
 
 ClassicEditor
   .create(document.querySelector('#editor'))
@@ -116,27 +122,32 @@ if (tipoPlantilla === 'mensual') {
   }
 }
 
-function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN) {
+function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, semanal, mensual) {
   document.getElementById("cliente_id").value = id;
   cliente_nombre = nombre;
   ip = IPSIEM;
   fqdn = FQDN;
+  codeDiario = diario;
+  codeSemanal = semanal;
+  codeMes = mensual;
   const hoy = new Date();
   const offset = hoy.getTimezoneOffset();
   hoy.setMinutes(hoy.getMinutes() - offset);
   const fechaActual = hoy.toISOString().split('T')[0];
   document.getElementById("fecha_2").value = fechaActual;
-
+  let di1 = new Date();
+  let di2 = new Date()
   let fecha2 = new Date(hoy);
   let diasSumar = 0;
-
+  di1.setDate( fecha2.getDate() - 1);
   switch(tipoPlantilla) {
-    case 'diario': diasSumar = 1; break;
-    case 'semanal': diasSumar = 7; break;
-    case 'mensual': diasSumar = 30; break;
+    case 'diario': diasSumar = 1; di2.setDate(di1.getDate() - 1);break;
+    case 'semanal': diasSumar = 7; di2.setDate(di1.getDate() - 8); break;
+    case 'mensual': diasSumar = 30; di2.setDate(di1.getDate() - 31); break;
     default: diasSumar = 0;
   }
-
+  dia2 = new Date(di2);
+  dia1 = new Date(di1);
   fecha2.setDate(fecha2.getDate() - diasSumar);
   const fecha2Formateada = fecha2.toISOString().split('T')[0];
   document.getElementById("fecha_1").value = fecha2Formateada;
@@ -149,7 +160,7 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN) {
   const lista = document.getElementById("lista_emails");
   lista.innerHTML = emails ? emails : "Sin correos previos.";
   if (tipoPlantilla === 'mensual') {
-    document.getElementById("seccion_fecha").hidden = true;
+    document.getElementById("seccion_fecha").hidden = false;
     document.getElementById("seccion_mes").hidden = false;
 
     const contenedor = document.getElementById("botones_mes");
@@ -220,10 +231,22 @@ function formatearFecha(fechaStr) {
 
 function actualizarPreview() {
   let asunto = document.getElementById("asunto").value;
-  let fecha1 = formatearFecha(document.getElementById("fecha_1").value);
-  let fecha2 = formatearFecha(document.getElementById("fecha_2").value);
+  let fecha_1 = document.getElementById("fecha_1").value;
+  let fecha1 = formatearFecha(fecha_1);
+  
+  let fecha_2 = document.getElementById("fecha_2").value;
+  let fecha2 = formatearFecha(fecha_2);
+  
+
+
   let link = "<a href='https://" + ip + "/app/vulnerability-detection'>"+"https://"+ip+"/app/vulnerability-detection"+"</a>";
   let fqdnlink = "<a href='https://" + fqdn + "/app/vulnerability-detection'>"+"https://"+fqdn+"/app/vulnerability-detection"+"</a>";
+ 
+  let ini = `(from:'${fecha_1}T03:00:00.000Z',to:'${fecha_2}T02:59:59.000Z')`;
+  let encodedIni = encodeURIComponent(ini);
+  let informeDiario = `<a href="https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})">Informe Diario</a>`;
+  let informeSemanal = `<a href="https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})">Informe Semanal</a>`;
+  let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})">Informe Mensual</a>`;
 
   let asunto_personalizado = asunto
     .replaceAll("{cliente}", cliente_nombre)
@@ -240,7 +263,11 @@ function actualizarPreview() {
     .replaceAll("{mes}",mesSeleccionado)
     .replaceAll("{link}", link)
     .replaceAll("{fqdn}",fqdnlink);
-
+    
+  cuerpo_personalizado = cuerpo_base_original
+  .replaceAll("{informeDiario}",informeDiario)
+  .replaceAll("{informeSemanal}",informeSemanal)
+  .replaceAll("{informeMensual}",informeMensual);
   // Reemplazar contenido del editor con la plantilla personalizada
   if (window.miEditor) {
     window.miEditor.setData(cuerpo_personalizado);
