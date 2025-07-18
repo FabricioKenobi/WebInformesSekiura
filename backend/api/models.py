@@ -12,8 +12,11 @@ class Cliente(models.Model):
     email_6 = models.EmailField(null=True, blank=True)
     cc_1 = models.EmailField(null=True, blank=True)
     cc_2 = models.EmailField(null=True, blank=True)
-    IPSIEM = models.CharField(max_length=50)
-    FQDN = models.CharField(max_length=100)
+    IPSIEM = models.CharField(max_length=200, null=True, blank=True)
+    FQDN = models.CharField(max_length=200, null=True, blank=True)
+    diario = models.CharField(max_length=200, null=True, blank=True)
+    semanal = models.CharField(max_length=200, null=True, blank=True)
+    mensual = models.CharField(max_length=200, null=True, blank=True)
 
     def lista_emails(self):
         emails = [getattr(self, f"email_{i}") for i in range(1, 7) if getattr(self, f"email_{i}")]

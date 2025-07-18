@@ -95,7 +95,7 @@ def home_view(request):
 def crear_cliente_view(request):
     if request.method == 'POST':
         nombre = request.POST['nombre']
-        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2','IPSIEM','FQDN']
+        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2','IPSIEM','FQDN','diario','semanal','mensual']
         datos = {campo: request.POST.get(campo) for campo in campos}
 
         cliente = Cliente(nombre=nombre, **datos)
@@ -348,7 +348,7 @@ def conf_cliente(request):
     if request.method == 'POST':
         cliente_id = request.POST.get('cliente_id')  # <-- El ID del cliente a actualizar
         
-        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2','IPSIEM','FQDN']
+        campos = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'email_6', 'cc_1', 'cc_2','IPSIEM','FQDN','diario','semanal','mensual']
         datos = {campo: request.POST.get(campo) for campo in campos}
 
         cliente = get_object_or_404(Cliente, id=cliente_id)  # Si no existe, lanza 404

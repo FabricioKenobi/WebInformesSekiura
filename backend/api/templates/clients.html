@@ -8,7 +8,7 @@
     <div id="seccion_clientes">
     <h2>Seleccionar cliente</h2>
     {% for c in clientes %}
-        <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}','{{ c.lista_emails }}', '{{c.cc_1}}','{{c.cc_2}}','{{c.IPSIEM}}','{{c.FQDN}}')">
+        <button onclick="seleccionarCliente('{{ c.id }}', '{{ c.nombre }}', '{{ c.email_1 }}','{{ c.lista_emails }}', '{{c.cc_1}}','{{c.cc_2}}','{{c.IPSIEM}}','{{c.FQDN}}','{{c.diario}}','{{c.semanal}}','{{c.mensual}}')">
         {{ c.nombre }}
         </button>
     {% endfor %}
@@ -45,6 +45,18 @@
           <label for="FQDN" class="form-label">FQDN:</label>
           <input type="text" name="FQDN" id="FQDN" class="form-control">
         </div>
+         <div class="mb-3">
+          <label for="diario" class="form-label">diario:</label>
+          <input type="text" name="diario" id="diario" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label for="semanal" class="form-label">semanal:</label>
+          <input type="text" name="semanal" id="semanal" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label for="mensual" class="form-label">mensual:</label>
+          <input type="text" name="mensual" id="mensual" class="form-control">
+        </div>
         <input type="hidden" name="cliente_id" id="cliente_id" value="">
 
       <button type="submit" class="btn btn-primary">Guardar</button>
@@ -53,7 +65,7 @@
   </div>
 
 <script>
-function seleccionarCliente(id, nombre, email, emails, cc_1, cc_2, IPSIEM , FQDN) {
+function seleccionarCliente(id, nombre, email, emails, cc_1, cc_2, IPSIEM , FQDN,diario, semanal, mensual ) {
   document.getElementById("seccion_clientes").hidden = true;
   document.getElementById("cliente_id").value = id;
   
@@ -73,6 +85,9 @@ function seleccionarCliente(id, nombre, email, emails, cc_1, cc_2, IPSIEM , FQDN
   document.getElementById('cc_2').value = cc_2;
   document.getElementById('IPSIEM').value = IPSIEM;
   document.getElementById('FQDN').value  = FQDN;
+  document.getElementById('diario').value  = diario;
+  document.getElementById('semanal').value  = semanal;
+  document.getElementById('mensual').value  = mensual;
 }
 </script>
 {% endblock %}
