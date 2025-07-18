@@ -155,7 +155,7 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, sem
 
   const lista = document.getElementById("lista_emails");
   lista.innerHTML = emails ? emails : "Sin correos previos.";
-  if (tipoPlantilla === 'mensual') {
+  if (tipoPlantilla.includes('mensual')) {
     document.getElementById("seccion_fecha").hidden = false;
     document.getElementById("seccion_mes").hidden = false;
 
