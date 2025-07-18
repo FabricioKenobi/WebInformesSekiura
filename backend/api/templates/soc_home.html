@@ -258,12 +258,10 @@ function actualizarPreview() {
     .replaceAll("{fecha_2}", fecha2)
     .replaceAll("{mes}",mesSeleccionado)
     .replaceAll("{link}", link)
-    .replaceAll("{fqdn}",fqdnlink);
-    
-  cuerpo_personalizado = cuerpo_base_original
-  .replaceAll("{informeDiario}",informeDiario)
-  .replaceAll("{informeSemanal}",informeSemanal)
-  .replaceAll("{informeMensual}",informeMensual);
+    .replaceAll("{fqdn}",fqdnlink)
+    .replaceAll("{informeDiario}",informeDiario)
+    .replaceAll("{informeSemanal}",informeSemanal)
+    .replaceAll("{informeMensual}",informeMensual);
   // Reemplazar contenido del editor con la plantilla personalizada
   if (window.miEditor) {
     window.miEditor.setData(cuerpo_personalizado);
