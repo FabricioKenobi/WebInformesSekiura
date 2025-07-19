@@ -123,6 +123,19 @@ if (tipoPlantilla === 'mensual') {
 
 function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, semanal, mensual) {
   document.getElementById("cliente_id").value = id;
+
+  fetch('/ejecutar-comando/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: JSON.stringify({ cliente_id: id })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log("Comando ejecutado:", data.output || data.error);
+  });
   cliente_nombre = nombre;
   ip = IPSIEM;
   fqdn = FQDN;
@@ -240,9 +253,9 @@ function actualizarPreview() {
  
   let ini = `(from:'${fecha_1}T03:00:00.000Z',to:'${fecha_2}T02:59:59.000Z')`;
   let encodedIni = encodeURIComponent(ini);
-  let informeDiario = `<a href="https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})">Informe Diario</a>`;
-  let informeSemanal = `<a href="https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})">Informe Semanal</a>`;
-  let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})">Informe Mensual</a>`;
+  let informeDiario = `<a href="https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Diario</a>`;
+  let informeSemanal = `<a href="https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Semanal</a>`;
+  let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
 
   let asunto_personalizado = asunto
     .replaceAll("{cliente}", cliente_nombre)
