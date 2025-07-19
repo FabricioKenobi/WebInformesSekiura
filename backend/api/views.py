@@ -378,7 +378,14 @@ def ejecutar_comando_cliente(request):
             
             # Ejecutar el comando en bash (ejemplo)
             resultado = subprocess.run(
-                [f'/usr/local/bin/opensearch-reporting-cli --url "{informe}" --auth basic --credentials "sekiura-reports:Sekiura2025*" --format pdf --filename nombre'],
+            [
+                '/usr/local/bin/opensearch-reporting-cli',
+                '--url', informe,
+                '--auth', 'basic',
+                '--credentials', 'sekiura-reports:Sekiura2025*',
+                '--format', 'pdf',
+                '--filename', 'nombre'
+            ],
                 capture_output=True, text=True, check=True
             )
             
