@@ -375,7 +375,7 @@ def ejecutar_comando_cliente(request):
         try:
             data = json.loads(request.body)
             informe = data.get('informe')
-            
+            print(informe)
 
             if not informe:
                 return JsonResponse({'ok': False, 'error': 'Falta el informe'})
