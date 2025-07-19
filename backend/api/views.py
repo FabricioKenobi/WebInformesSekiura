@@ -374,11 +374,11 @@ def ejecutar_comando_cliente(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            cliente_id = data.get('cliente_id')
+            informe = data.get('informe')
             
             # Ejecutar el comando en bash (ejemplo)
             resultado = subprocess.run(
-                ['echo', f'Cliente seleccionado: {cliente_id}'],
+                [f'/usr/local/bin/opensearch-reporting-cli --url "{informe}" --auth basic --credentials "sekiura-reports:Sekiura2025*" --format pdf --filename nombre'],
                 capture_output=True, text=True, check=True
             )
             
