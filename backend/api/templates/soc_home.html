@@ -246,33 +246,33 @@ function actualizarPreview() {
   let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
   let informe = "";
   let nombre = "";
-  
-  if(tipoPlantilla.includes('diario')){
-    informe = `https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-    nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
-  }else if(tipoPlantilla.includes('semanal')){
-    informe = `https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-    nombreArch = cliente_nombre+`-Informe-Ejecutivo-Semanal-`+fecha_2;
-  }else if(tipoPlantilla.includes('mensual')){
-    informe = `https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-    nombreArch = cliente_nombre+`-Informe-Ejecutivo-Mensual-`+fecha_2;
-  }
-  fetch('/ejecutar-comando/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': '{{ csrf_token }}'
-    },
-    body: JSON.stringify({ 
-      informe: informe,
-      nombreArch : nombreArch 
+  if(tipoPlantilla.includes(proto)){
+    if(tipoPlantilla.includes('diario')){
+      informe = `https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
+    }else if(tipoPlantilla.includes('semanal')){
+      informe = `https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Semanal-`+fecha_2;
+    }else if(tipoPlantilla.includes('mensual')){
+      informe = `https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Mensual-`+fecha_2;
+    }
+    fetch('/ejecutar-comando/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ 
+        informe: informe,
+        nombreArch : nombreArch 
+      })
     })
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log("Comando ejecutado:", data.output || data.error);
-  });
-  
+    .then(response => response.json())
+    .then(data => {
+      console.log("Comando ejecutado:", data.output || data.error);
+    });
+  }
   let asunto_personalizado = asunto
     .replaceAll("{cliente}", cliente_nombre)
     .replaceAll("{fecha_1}", fecha1)
