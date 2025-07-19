@@ -375,6 +375,7 @@ def ejecutar_comando_cliente(request):
         try:
             data = json.loads(request.body)
             informe = data.get('informe')
+            nombreArch = data.get('nombreArch')
             print(informe)
 
             if not informe:
@@ -387,7 +388,7 @@ def ejecutar_comando_cliente(request):
                 '--auth', 'basic',
                 '--credentials', 'sekiura-reports:Sekiura2025*',
                 '--format', 'pdf',
-                '--filename', 'nombre'
+                '--filename', nombreArch
             ],
                 capture_output=True, text=True, check=True
             )

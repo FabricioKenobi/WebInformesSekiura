@@ -244,20 +244,27 @@ function actualizarPreview() {
   let informeSemanal = `<a href="https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Semanal</a>`;
   let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
   let informe = "";
-  if(tipoPlantilla.includes('diario'))
+  let nombre = "";
+  if(tipoPlantilla.includes('diario')){
     informe = `https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-  else if(tipoPlantilla.includes('semanal'))
+    nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
+  }else if(tipoPlantilla.includes('semanal')){
     informe = `https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-  else if(tipoPlantilla.includes('mensual'))
+    nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
+  }else if(tipoPlantilla.includes('mensual')){
     informe = `https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-
+    nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
+  }
   fetch('/ejecutar-comando/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-CSRFToken': '{{ csrf_token }}'
     },
-    body: JSON.stringify({ informe: informe })
+    body: JSON.stringify({ 
+      informe: informe,
+      nombreArch : nombreArch 
+    })
   })
   .then(response => response.json())
   .then(data => {
