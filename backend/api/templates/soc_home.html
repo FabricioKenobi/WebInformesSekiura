@@ -63,7 +63,11 @@
 
       <label>Cuerpo:</label>
       <textarea id="editor" name="cuerpo_html">{% autoescape off %}{{ cuerpo_html }}{% endautoescape %}</textarea>
-
+      <button type="submit" id="btn-enviar" class="btn btn-success w-100" disabled>✉️ Enviar email</button>
+      <div id="spinner-pdf" class="text-center mt-2" hidden>
+        <span class="spinner-border text-primary" role="status"></span>
+        <p>Generando PDF...</p>
+      </div>
       <button type="submit" class="btn btn-success w-100">✉️ Enviar email</button>
     </div>
   </div>
@@ -78,7 +82,42 @@ let fqdn= "";
 let codeDiario = "";
 let codeMes = "";
 let codeSemanal="";
+async function generarPDFyHabilitarEnvio(cliente_id, informe_url) {
+  const spinner = document.getElementById("spinner-pdf");
+  const btnEnviar = document.getElementById("btn-enviar");
 
+  spinner.hidden = false;
+  btnEnviar.disabled = true;
+
+  try {
+    const response = await fetch('/generar-reporte/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        cliente_id: cliente_id,
+        informe: informe_url
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.ok) {
+      console.log("✅ PDF generado:", data.filename);
+      btnEnviar.disabled = false;
+    } else {
+      console.error("❌ Error al generar PDF:", data.error);
+      alert("Ocurrió un error al generar el PDF. Intentá nuevamente.");
+    }
+  } catch (e) {
+    alert("Error de red o servidor al generar PDF.");
+    console.error(e);
+  } finally {
+    spinner.hidden = true;
+  }
+}
  
 
 ClassicEditor
@@ -257,21 +296,8 @@ function actualizarPreview() {
       informe = `https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
       nombreArch = cliente_nombre+`-Informe-Ejecutivo-Mensual-`+fecha_2;
     }
-    fetch('/ejecutar-comando/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': '{{ csrf_token }}'
-      },
-      body: JSON.stringify({ 
-        informe: informe,
-        nombreArch : nombreArch 
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      console.log("Comando ejecutado:", data.output || data.error);
-    });
+    generarPDFyHabilitarEnvio(informe, nombreArch);
+    
   }
   let asunto_personalizado = asunto
     .replaceAll("{cliente}", cliente_nombre)

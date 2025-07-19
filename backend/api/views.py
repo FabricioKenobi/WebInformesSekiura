@@ -123,6 +123,7 @@ def crear_email_personalizado(request):
 
         contiene_imagen = '{imagen}' in cuerpo_html
         
+        
         # Convertir fechas (manejar valores vacíos)
         fecha_1 = None
         fecha_2 = None
