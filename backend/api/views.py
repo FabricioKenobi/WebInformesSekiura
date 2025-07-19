@@ -150,7 +150,7 @@ def crear_email_personalizado(request):
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_1}', fecha_1_str)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_2}', fecha_2_str)
         #cuerpo_html_final = cuerpo_html_final.replace('{firma}', '<img src="../static/img/firma.png"  style="max-width:50%">')
-        cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada"  style="max-width:100%">')
+        #cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada"  style="max-width:100%">')
         
         
         
@@ -289,7 +289,7 @@ def soc_home(request):
         from datetime import datetime
         from django.utils.timezone import now
         
-        cuerpo_html_final = cuerpo_html.replace('{firma}', '<img src="cid:imagen_incrustada">')
+        #cuerpo_html_final = cuerpo_html.replace('{firma}', '<img src="cid:imagen_incrustada">')
 
         cuerpo_texto = strip_tags(cuerpo_html_final)
         destino = cliente.email_1

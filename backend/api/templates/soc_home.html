@@ -246,7 +246,7 @@ function actualizarPreview() {
   let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
   let informe = "";
   let nombre = "";
-  if(tipoPlantilla.includes(proto)){
+  if(tipoPlantilla.includes("proto")){
     if(tipoPlantilla.includes('diario')){
       informe = `https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
       nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
