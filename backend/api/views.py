@@ -363,5 +363,27 @@ def conf_cliente(request):
     return render(request, 'clients.html', {
         'clientes': clientes,
     })
+from django.views.decorators.csrf import csrf_exempt
+import subprocess
+import json
+from django.http import JsonResponse
 
-    
+@csrf_exempt
+@login_required
+def ejecutar_comando_cliente(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            cliente_id = data.get('cliente_id')
+            
+            # Ejecutar el comando en bash (ejemplo)
+            resultado = subprocess.run(
+                ['echo', f'Cliente seleccionado: {cliente_id}'],
+                capture_output=True, text=True, check=True
+            )
+            
+
+            return JsonResponse({'ok': True, 'output': resultado.stdout})
+        except Exception as e:
+            return JsonResponse({'ok': False, 'error': str(e)})
+    return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
