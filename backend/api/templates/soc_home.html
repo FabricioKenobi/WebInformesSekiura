@@ -252,10 +252,10 @@ function actualizarPreview() {
       nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
     }else if(tipoPlantilla.includes('semanal')){
       informe = `https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
+      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Semanal-`+fecha_2;
     }else if(tipoPlantilla.includes('mensual')){
       informe = `https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
+      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Mensual-`+fecha_2;
     }
     fetch('/ejecutar-comando/', {
       method: 'POST',
