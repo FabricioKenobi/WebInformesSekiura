@@ -376,6 +376,9 @@ def ejecutar_comando_cliente(request):
             data = json.loads(request.body)
             informe = data.get('informe')
             
+
+            if not informe:
+                return JsonResponse({'ok': False, 'error': 'Falta el informe'})
             # Ejecutar el comando en bash (ejemplo)
             resultado = subprocess.run(
             [
