@@ -289,7 +289,7 @@ def soc_home(request):
         from datetime import datetime
         from django.utils.timezone import now
         
-        #cuerpo_html_final = cuerpo_html.replace('{firma}', '<img src="cid:imagen_incrustada">')
+        cuerpo_html_final = cuerpo_html.replace('{firma}', '<img src="cid:imagen_incrustada">')
 
         cuerpo_texto = strip_tags(cuerpo_html_final)
         destino = cliente.email_1
@@ -376,10 +376,11 @@ def ejecutar_comando_cliente(request):
             data = json.loads(request.body)
             informe = data.get('informe')
             nombreArch = data.get('nombreArch')
+            bandera = data.get('bandera')
             print(informe)
 
-            if not informe:
-                return JsonResponse({'ok': False, 'error': 'Falta el informe'})
+            if not bandera:
+                return JsonResponse({'ok': False, 'error': 'No es tipo proto'})
             # Ejecutar el comando en bash (ejemplo)
             resultado = subprocess.run(
             [

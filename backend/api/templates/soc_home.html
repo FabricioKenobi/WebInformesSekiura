@@ -200,13 +200,14 @@ function seleccionarMes() {
     return;
   }
 
-  actualizarPreview();
+  
   document.getElementById("seccion_fecha").hidden = true;
   document.getElementById("seccion_mes").hidden = true;
   document.getElementById("seccion_previsualizacion").hidden = false;
   document.getElementById("seccion_archivo").hidden = false;
 }
 function archivoAgregado() {
+  actualizarPreview();
   const inputArchivo = document.querySelector('input[name="archivo_adjunto"]');
   const nombreArchivoSpan = document.getElementById('nombre_archivo');
 
@@ -246,7 +247,7 @@ function actualizarPreview() {
   let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
   let informe = "";
   let nombre = "";
-  if(tipoPlantilla.includes("proto")){
+  if(tipoPlantilla.endsWith('proto')){
     if(tipoPlantilla.includes('diario')){
       informe = `https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
       nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
