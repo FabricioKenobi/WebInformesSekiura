@@ -150,7 +150,6 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, sem
   const fecha2Formateada = fecha2.toISOString().split('T')[0];
   document.getElementById("fecha_1").value = fecha2Formateada;
 
-  actualizarPreview();
 
   document.getElementById("seccion_clientes").hidden = true;
   document.getElementById("seccion_fecha").hidden = false;
@@ -190,7 +189,6 @@ function seleccionarMesDirecto(boton) {
 
 function seleccionarFechas() {
   event.preventDefault();
-  actualizarPreview();
   document.getElementById("seccion_fecha").hidden = true;
   document.getElementById("seccion_previsualizacion").hidden = false;
   document.getElementById("seccion_archivo").hidden = false;
