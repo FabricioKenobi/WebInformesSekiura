@@ -243,13 +243,13 @@ function actualizarPreview() {
   let informeDiario = `<a href="https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Diario</a>`;
   let informeSemanal = `<a href="https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Semanal</a>`;
   let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
-
+  let informe = "";
   if(tipoPlantilla.includes('diario'))
     informe = `https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
   else if(tipoPlantilla.includes('semanal'))
-    href=`https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+    informe = `https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
   else if(tipoPlantilla.includes('mensual'))
-    href=`https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+    informe = `https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
 
   fetch('/ejecutar-comando/', {
     method: 'POST',
