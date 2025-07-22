@@ -63,13 +63,8 @@
 
       <label>Cuerpo:</label>
       <textarea id="editor" name="cuerpo_html">{% autoescape off %}{{ cuerpo_html }}{% endautoescape %}</textarea>
-      
-      <button type="submit" id="btn-enviar" class="btn btn-success w-100" disabled>✉️ Enviar email</button>
-      <div id="spinner-pdf" class="text-center mt-2" hidden>
-        <span class="spinner-border text-primary" role="status"></span>
-        <p>Generando PDF...</p>
-      </div>
-      <button type="submit" class="btn btn-success w-100">✉️ Enviar email</button>
+    
+      <button type="submit" id="enviar" class="btn btn-success w-100" hidden>✉️ Enviar email</button>
     </div>
   </div>
 </form>
@@ -252,7 +247,7 @@ function actualizarPreview() {
   let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
   let informe = "";
   let nombre = "";
-  if(tipoPlantilla.endsWith('proto')){
+  if(tipoPlantilla.includes('proto')){
     if(tipoPlantilla.includes('diario')){
       informe = `https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
       nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
@@ -277,6 +272,7 @@ function actualizarPreview() {
     .then(response => response.json())
     .then(data => {
       console.log("Comando ejecutado:", data.output || data.error);
+      document.getElementById("enviar").hidden = false;
     });
   }
   let asunto_personalizado = asunto

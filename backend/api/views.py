@@ -150,10 +150,7 @@ def crear_email_personalizado(request):
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_1}', fecha_1_str)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_2}', fecha_2_str)
         #cuerpo_html_final = cuerpo_html_final.replace('{firma}', '<img src="../static/img/firma.png"  style="max-width:50%">')
-        #cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada"  style="max-width:100%">')
-        
-        
-        
+        cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada"  style="max-width:100%">')
 
         cuerpo_texto = strip_tags(cuerpo_html_final)
         emails = filter(None, [cliente.email_1, cliente.email_2, cliente.email_3,cliente.email_4,cliente.email_5,cliente.email_6,cliente.cc_1,cliente.cc_2])
@@ -198,9 +195,13 @@ def crear_email_personalizado(request):
         
 
         # 3. Modificar el HTML para incluir la imagen
-        
+        print(informe)
         if archivo:
             email.attach(archivo.name, archivo.read(), archivo.content_type)
+        output_path = os.path.join("../", informe+ ".pdf")
+        if os.path.exists(output_path):
+            with open(output_path, 'rb') as f:
+                email.attach(informe + ".pdf", f.read(), 'application/pdf')
         try:
             email.send()
         except Exception as e:
@@ -368,22 +369,23 @@ import subprocess
 import json
 from django.http import JsonResponse
 
+informe = ""
+
 @csrf_exempt
 @login_required
 def ejecutar_comando_cliente(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            global informe
             informe = data.get('informe')
             nombreArch = data.get('nombreArch')
-            bandera = data.get('bandera')
-            print(informe)
-
-            if not bandera:
-                return JsonResponse({'ok': False, 'error': 'No es tipo proto'})
+            
+        
             # Ejecutar el comando en bash (ejemplo)
             resultado = subprocess.run(
             [
+                #"cmd", "/c", "ping google.com"
                 '/usr/local/bin/opensearch-reporting-cli',
                 '--url', informe,
                 '--auth', 'basic',
