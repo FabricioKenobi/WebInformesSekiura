@@ -166,7 +166,7 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, sem
     const contenedor = document.getElementById("botones_mes");
     contenedor.innerHTML = "";
 
-    const hoy = new Date();
+    
     for (let i = 0; i < 6; i++) {
       const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
       const texto = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
