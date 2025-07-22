@@ -141,7 +141,7 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, sem
   let fecha2 = new Date(hoy);
   let diasSumar = 0;
   
-  fechatemp = fecha2;
+
   
   if (tipoPlantilla.includes('diario')) diasSumar = 1;
   if (tipoPlantilla.includes('semanal')) diasSumar = 7;
@@ -149,6 +149,7 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, sem
     
   
   fecha2.setDate(fecha2.getDate() - diasSumar);
+  fechatemp = fecha2;
   const fecha2Formateada = fecha2.toISOString().split('T')[0];
   document.getElementById("fecha_1").value = fecha2Formateada;
 
