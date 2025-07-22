@@ -199,15 +199,15 @@ def crear_email_personalizado(request):
         
 
         carpeta = "/home/hermes/WebInformesSekiura/backend/"
-        patron = f"{cliente.nombre}-Informe_*.pdf"
+        patron = f"{cliente.nombre}-Informe-Ejecutivo-*"
         archivos = glob.glob(os.path.join(carpeta, patron))
 
         if archivos:
             archivo_pdf = max(archivos, key=os.path.getmtime)
             with open(archivo_pdf, 'rb') as f:
                 email.attach(os.path.basename(archivo_pdf), f.read(), 'application/pdf')
-        if archivo:
-            email.attach(archivo.name, archivo.read(), archivo.content_type)
+        #if archivo:
+        #    email.attach(archivo.name, archivo.read(), archivo.content_type)
         try:
             email.send()
         except Exception as e:
