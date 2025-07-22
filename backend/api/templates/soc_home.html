@@ -79,7 +79,7 @@ let fqdn= "";
 let codeDiario = "";
 let codeMes = "";
 let codeSemanal="";
-
+let fechatemp = new Date();
  
 
 ClassicEditor
@@ -140,7 +140,8 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, sem
   
   let fecha2 = new Date(hoy);
   let diasSumar = 0;
-  let fechatemp = fecha2;
+  
+  fechatemp = fecha2;
   
   if (tipoPlantilla.includes('diario')) diasSumar = 1;
   if (tipoPlantilla.includes('semanal')) diasSumar = 7;
