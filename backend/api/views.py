@@ -150,10 +150,7 @@ def crear_email_personalizado(request):
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_1}', fecha_1_str)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_2}', fecha_2_str)
         #cuerpo_html_final = cuerpo_html_final.replace('{firma}', '<img src="../static/img/firma.png"  style="max-width:50%">')
-        #cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada"  style="max-width:100%">')
-        
-        
-        
+        cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada"  style="max-width:100%">')
 
         cuerpo_texto = strip_tags(cuerpo_html_final)
         emails = filter(None, [cliente.email_1, cliente.email_2, cliente.email_3,cliente.email_4,cliente.email_5,cliente.email_6,cliente.cc_1,cliente.cc_2])
@@ -201,7 +198,7 @@ def crear_email_personalizado(request):
         print(informe)
         if archivo:
             email.attach(archivo.name, archivo.read(), archivo.content_type)
-        output_path = os.path.join("/", informe+ ".pdf")
+        output_path = os.path.join("../", informe+ ".pdf")
         if os.path.exists(output_path):
             with open(output_path, 'rb') as f:
                 email.attach(informe + ".pdf", f.read(), 'application/pdf')
