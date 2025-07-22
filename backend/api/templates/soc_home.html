@@ -63,8 +63,8 @@
 
       <label>Cuerpo:</label>
       <textarea id="editor" name="cuerpo_html">{% autoescape off %}{{ cuerpo_html }}{% endautoescape %}</textarea>
-
-      <button type="submit" class="btn btn-success w-100">✉️ Enviar email</button>
+    
+      <button type="submit" id="enviar" class="btn btn-success w-100" hidden>✉️ Enviar email</button>
     </div>
   </div>
 </form>
@@ -100,7 +100,7 @@ function seleccionarPlantilla(id, asunto, cuerpo, tipo) {
   document.getElementById("seccion_clientes").hidden = false;
 }
 if (tipoPlantilla === 'mensual') {
-  document.getElementById("seccion_fecha").hidden = true;
+  document.getElementById("seccion_fecha").hidden = false;
   document.getElementById("seccion_mes").hidden = false;
 
   const contenedor = document.getElementById("botones_mes");
@@ -124,18 +124,7 @@ if (tipoPlantilla === 'mensual') {
 function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, semanal, mensual) {
   document.getElementById("cliente_id").value = id;
 
-  fetch('/ejecutar-comando/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': '{{ csrf_token }}'
-    },
-    body: JSON.stringify({ cliente_id: id })
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log("Comando ejecutado:", data.output || data.error);
-  });
+  
   cliente_nombre = nombre;
   ip = IPSIEM;
   fqdn = FQDN;
@@ -161,7 +150,6 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, sem
   const fecha2Formateada = fecha2.toISOString().split('T')[0];
   document.getElementById("fecha_1").value = fecha2Formateada;
 
-  actualizarPreview();
 
   document.getElementById("seccion_clientes").hidden = true;
   document.getElementById("seccion_fecha").hidden = false;
@@ -201,7 +189,6 @@ function seleccionarMesDirecto(boton) {
 
 function seleccionarFechas() {
   event.preventDefault();
-  actualizarPreview();
   document.getElementById("seccion_fecha").hidden = true;
   document.getElementById("seccion_previsualizacion").hidden = false;
   document.getElementById("seccion_archivo").hidden = false;
@@ -213,12 +200,14 @@ function seleccionarMes() {
     return;
   }
 
-  actualizarPreview();
+  
+  document.getElementById("seccion_fecha").hidden = true;
   document.getElementById("seccion_mes").hidden = true;
   document.getElementById("seccion_previsualizacion").hidden = false;
   document.getElementById("seccion_archivo").hidden = false;
 }
 function archivoAgregado() {
+  actualizarPreview();
   const inputArchivo = document.querySelector('input[name="archivo_adjunto"]');
   const nombreArchivoSpan = document.getElementById('nombre_archivo');
 
@@ -256,7 +245,36 @@ function actualizarPreview() {
   let informeDiario = `<a href="https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Diario</a>`;
   let informeSemanal = `<a href="https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Semanal</a>`;
   let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
-
+  let informe = "";
+  let nombre = "";
+  if(tipoPlantilla.includes('proto')){
+    if(tipoPlantilla.includes('diario')){
+      informe = `https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
+    }else if(tipoPlantilla.includes('semanal')){
+      informe = `https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Semanal-`+fecha_2;
+    }else if(tipoPlantilla.includes('mensual')){
+      informe = `https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Mensual-`+fecha_2;
+    }
+    fetch('/ejecutar-comando/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ 
+        informe: informe,
+        nombreArch : nombreArch 
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log("Comando ejecutado:", data.output || data.error);
+      document.getElementById("enviar").hidden = false;
+    });
+  }
   let asunto_personalizado = asunto
     .replaceAll("{cliente}", cliente_nombre)
     .replaceAll("{fecha_1}", fecha1)

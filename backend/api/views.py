@@ -150,7 +150,7 @@ def crear_email_personalizado(request):
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_1}', fecha_1_str)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_2}', fecha_2_str)
         #cuerpo_html_final = cuerpo_html_final.replace('{firma}', '<img src="../static/img/firma.png"  style="max-width:50%">')
-        cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada"  style="max-width:100%">')
+        #cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada"  style="max-width:100%">')
         
         
         
@@ -198,9 +198,13 @@ def crear_email_personalizado(request):
         
 
         # 3. Modificar el HTML para incluir la imagen
-        
+        print(informe)
         if archivo:
             email.attach(archivo.name, archivo.read(), archivo.content_type)
+        output_path = os.path.join("/backend/", informe+ ".pdf")
+        if os.path.exists(output_path):
+            with open(output_path, 'rb') as f:
+                email.attach(informe + ".pdf", f.read(), 'application/pdf')
         try:
             email.send()
         except Exception as e:
@@ -368,17 +372,30 @@ import subprocess
 import json
 from django.http import JsonResponse
 
+informe = ""
+
 @csrf_exempt
 @login_required
 def ejecutar_comando_cliente(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            cliente_id = data.get('cliente_id')
+            global informe
+            informe = data.get('informe')
+            nombreArch = data.get('nombreArch')
             
+        
             # Ejecutar el comando en bash (ejemplo)
             resultado = subprocess.run(
-                ['echo', f'Cliente seleccionado: {cliente_id}'],
+            [
+                "cmd", "/c", "ping google.com"
+                #'/usr/local/bin/opensearch-reporting-cli',
+                #'--url', informe,
+                #'--auth', 'basic',
+                #'--credentials', 'sekiura-reports:Sekiura2025*',
+                #'--format', 'pdf',
+                #'--filename', nombreArch
+            ],
                 capture_output=True, text=True, check=True
             )
             
