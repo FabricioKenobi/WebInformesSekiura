@@ -206,13 +206,13 @@ def crear_email_personalizado(request):
             archivo_pdf = max(archivos, key=os.path.getmtime)
             with open(archivo_pdf, 'rb') as f:
                 email.attach(os.path.basename(archivo_pdf), f.read(), 'application/pdf')
-        #if archivo:
-        #    email.attach(archivo.name, archivo.read(), archivo.content_type)
+        if archivo:
+            email.attach(archivo.name, archivo.read(), archivo.content_type)
         try:
             email.send()
         except Exception as e:
             print("Error al enviar correo:", e)
-
+       
         EmailEnviado.objects.create(
             usuario=request.user,
             cliente=cliente,
@@ -221,8 +221,15 @@ def crear_email_personalizado(request):
             enviado=True,
             fecha_evento=timezone.now(),
             fecha_envio=timezone.now(),
-            archivo_adjunto=archivo
+            #archivo_adjunto=archivo
+            archivo_adjunto = archivo_pdf
         )
+        if archivo_pdf:
+            try:
+                os.remove(archivo_pdf)
+                print(f"Archivo {archivo_pdf} eliminado correctamente.")
+            except Exception as e:
+                print(f"No se pudo eliminar el archivo {archivo_pdf}:", e)
 
         return redirect('home')
     
