@@ -140,7 +140,7 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, sem
   
   let fecha2 = new Date(hoy);
   let diasSumar = 0;
-
+  let fechatemp = fecha2;
   
   if (tipoPlantilla.includes('diario')) diasSumar = 1;
   if (tipoPlantilla.includes('semanal')) diasSumar = 7;
@@ -236,8 +236,8 @@ function actualizarPreview() {
   let fecha1 = formatearFecha(fecha_1);
   
   let fecha_2 = document.getElementById("fecha_2").value;
-  let fechatemp = new Date();
-  fechatemp.setDate(fecha_2.getDate()-1);
+  let fechatemp1 = new Date();
+  fechatemp1.setDate(fechatemp.getDate()-1);
   let fecha2 = formatearFecha(fechatemp);
   
 
