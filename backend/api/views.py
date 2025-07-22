@@ -195,13 +195,19 @@ def crear_email_personalizado(request):
         
 
         # 3. Modificar el HTML para incluir la imagen
-        print(informe)
+        import glob
+        import os
+
+        carpeta = "/home/hermes/WebInformesSekiura/backend/"
+        patron = f"{cliente.nombre}-Informe_*.pdf"
+        archivos = glob.glob(os.path.join(carpeta, patron))
+
+        if archivos:
+            archivo_pdf = max(archivos, key=os.path.getmtime)
+            with open(archivo_pdf, 'rb') as f:
+                email.attach(os.path.basename(archivo_pdf), f.read(), 'application/pdf')
         if archivo:
             email.attach(archivo.name, archivo.read(), archivo.content_type)
-        output_path = os.path.join("/home/hermes/WebInformesSekiura/backend/", informe+ ".pdf")
-        if os.path.exists(output_path):
-            with open(output_path, 'rb') as f:
-                email.attach(informe + ".pdf", f.read(), 'application/pdf')
         try:
             email.send()
         except Exception as e:
