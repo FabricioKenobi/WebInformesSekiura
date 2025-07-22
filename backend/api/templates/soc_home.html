@@ -236,7 +236,9 @@ function actualizarPreview() {
   let fecha1 = formatearFecha(fecha_1);
   
   let fecha_2 = document.getElementById("fecha_2").value;
-  let fecha2 = formatearFecha(fecha_2);
+  let fechatemp = new Date();
+  fechatemp.setDate(fecha_2.getDate()-1);
+  let fecha2 = formatearFecha(fechatemp);
   
 
 
