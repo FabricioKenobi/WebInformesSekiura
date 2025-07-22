@@ -229,7 +229,8 @@ function formatearFecha(fechaStr) {
   const fecha = new Date(fechaStr);
   let texto = fecha.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' , timeZone: 'UTC' });
   // Capitaliza cada palabra
-  return texto.replace(/\b\w/g, l => l.toUpperCase());
+  texto = texto.replace(/\b\w/g, l => l.toUpperCase());
+  return texto.replaceAll('De','de');
 }
 
 function actualizarPreview() {
