@@ -206,8 +206,8 @@ def crear_email_personalizado(request):
             archivo_pdf = max(archivos, key=os.path.getmtime)
             with open(archivo_pdf, 'rb') as f:
                 email.attach(os.path.basename(archivo_pdf), f.read(), 'application/pdf')
-        if archivo:
-            email.attach(archivo.name, archivo.read(), archivo.content_type)
+        #if archivo:
+        #    email.attach(archivo.name, archivo.read(), archivo.content_type)
         try:
             email.send()
         except Exception as e:
