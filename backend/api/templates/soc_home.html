@@ -225,7 +225,9 @@ function archivoAgregado() {
 function formatearFecha(fechaStr) {
   if (!fechaStr) return "__/__/____";
   const fecha = new Date(fechaStr);
-  return fecha.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  let texto = fecha.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' , timeZone: 'UTC' });
+  // Capitaliza cada palabra
+  return texto.replace(/\b\w/g, l => l.toUpperCase());
 }
 
 function actualizarPreview() {
