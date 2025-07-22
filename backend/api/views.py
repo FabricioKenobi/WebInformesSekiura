@@ -198,7 +198,7 @@ def crear_email_personalizado(request):
         print(informe)
         if archivo:
             email.attach(archivo.name, archivo.read(), archivo.content_type)
-        output_path = os.path.join("../", informe+ ".pdf")
+        output_path = os.path.join("/home/hermes/WebInformesSekiura/backend/", informe+ ".pdf")
         if os.path.exists(output_path):
             with open(output_path, 'rb') as f:
                 email.attach(informe + ".pdf", f.read(), 'application/pdf')
