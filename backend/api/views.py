@@ -388,13 +388,13 @@ def ejecutar_comando_cliente(request):
             # Ejecutar el comando en bash (ejemplo)
             resultado = subprocess.run(
             [
-                "cmd", "/c", "ping google.com"
-                #'/usr/local/bin/opensearch-reporting-cli',
-                #'--url', informe,
-                #'--auth', 'basic',
-                #'--credentials', 'sekiura-reports:Sekiura2025*',
-                #'--format', 'pdf',
-                #'--filename', nombreArch
+                #"cmd", "/c", "ping google.com"
+                '/usr/local/bin/opensearch-reporting-cli',
+                '--url', informe,
+                '--auth', 'basic',
+                '--credentials', 'sekiura-reports:Sekiura2025*',
+                '--format', 'pdf',
+                '--filename', nombreArch
             ],
                 capture_output=True, text=True, check=True
             )
