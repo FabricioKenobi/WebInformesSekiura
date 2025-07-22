@@ -196,7 +196,7 @@ def crear_email_personalizado(request):
 
         # 3. Modificar el HTML para incluir la imagen
         import glob
-        import os
+        
 
         carpeta = "/home/hermes/WebInformesSekiura/backend/"
         patron = f"{cliente.nombre}-Informe_*.pdf"
