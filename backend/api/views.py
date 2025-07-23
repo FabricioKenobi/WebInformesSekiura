@@ -405,17 +405,16 @@ def ejecutar_comando_cliente(request):
                     'error': 'URL no especificada'
                 }, status=400)
 
-            # Asegurar nombre único para el archivo
-            timestamp = int(time.time())
+            # Generar nombre de archivo único con timestamp
+            timestamp = int(time.time())  # <-- Ahora time está definido
             nombre_base = os.path.splitext(nombre_archivo)[0] if nombre_archivo else 'informe'
             nombre_archivo = f"{nombre_base}_{timestamp}.pdf"
             
-            # Directorio para PDFs
+            # Resto del código permanece igual...
             carpeta_pdf = os.path.join(settings.MEDIA_ROOT, 'informes_pdf')
             os.makedirs(carpeta_pdf, exist_ok=True)
             ruta_pdf = os.path.join(carpeta_pdf, nombre_archivo)
             
-            # Eliminar archivo existente si hay
             if os.path.exists(ruta_pdf):
                 try:
                     os.remove(ruta_pdf)
@@ -425,10 +424,6 @@ def ejecutar_comando_cliente(request):
                         'error': f"No se pudo eliminar archivo existente: {str(e)}"
                     })
 
-            # Configurar entorno para Node.js
-            env = os.environ.copy()
-            env['NODE_NO_WARNINGS'] = '1'
-            
             # Ejecutar comando
             try:
                 resultado = subprocess.run(
@@ -439,18 +434,17 @@ def ejecutar_comando_cliente(request):
                         '--credentials', 'sekiura-reports:Sekiura2025*',
                         '--format', 'pdf',
                         '--filename', ruta_pdf,
-                        '--overwrite',  # Asegurar sobrescritura
+                        '--overwrite',
                         '--timeout', '300'
                     ],
                     capture_output=True,
                     text=True,
-                    timeout=600,
-                    env=env
+                    timeout=600
                 )
             except subprocess.TimeoutExpired:
                 return JsonResponse({
                     'ok': False,
-                    'error': 'Tiempo de espera agotado'
+                    'error': 'Tiempo de espera agotado (10 minutos)'
                 })
 
             # Verificar generación del PDF
@@ -461,15 +455,13 @@ def ejecutar_comando_cliente(request):
                     'download_url': f'/descargar-pdf/{nombre_archivo}'
                 })
             else:
-                error_msg = "Error al generar PDF:\n"
+                error_msg = "Error al generar PDF"
                 if resultado.stderr:
-                    error_msg += resultado.stderr
-                if "File with same name already exists" in error_msg:
-                    error_msg += "\nSolución: Se ha intentado sobrescribir pero falló. Intente nuevamente."
+                    error_msg += f": {resultado.stderr}"
                 
                 return JsonResponse({
                     'ok': False,
-                    'error': error_msg.strip()
+                    'error': error_msg
                 })
 
         except Exception as e:
@@ -477,6 +469,7 @@ def ejecutar_comando_cliente(request):
                 'ok': False,
                 'error': f"Error inesperado: {str(e)}"
             }, status=500)
+        
 from django.http import JsonResponse, FileResponse, Http404
 @login_required
 def descargar_pdf(request, archivo_nombre):

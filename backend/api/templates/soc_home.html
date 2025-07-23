@@ -178,25 +178,16 @@ function formatearFecha(fechaStr) {
 }
 
 async function regenInforme() {
-    if (!informe) {
-        mostrarError('No se ha configurado la URL del dashboard');
-        return;
-    }
-
     const btnRegen = document.getElementById("regen");
     const regenText = document.getElementById("regen-text");
     const regenSpinner = document.getElementById("regen-spinner");
     
-    // Estado de carga
-    btnRegen.disabled = true;
-    regenText.textContent = "Generando PDF...";
-    regenSpinner.hidden = false;
-
     try {
-        // Agregar timestamp para nombre único
-        const timestamp = new Date().getTime();
-        const nombreArchUnico = `${nombreArch.replace('.pdf', '')}_${timestamp}.pdf`;
-        
+        // Estado de carga
+        btnRegen.disabled = true;
+        regenText.textContent = "Generando PDF...";
+        regenSpinner.hidden = false;
+
         const response = await fetch('/ejecutar-comando/', {
             method: 'POST',
             headers: {
@@ -205,44 +196,27 @@ async function regenInforme() {
             },
             body: JSON.stringify({ 
                 informe: informe,
-                nombreArch: nombreArchUnico
+                nombreArch: nombreArch 
             })
         });
 
         const data = await response.json();
 
-        if (!response.ok) {
-            let errorMsg = data.error || "Error en el servidor";
-            
-            // Manejo específico de errores conocidos
-            if (errorMsg.includes("File with same name already exists")) {
-                errorMsg = "Error: Archivo duplicado. Por favor intente nuevamente.";
-            } else if (errorMsg.includes("exit is not a function")) {
-                errorMsg = "Error interno al generar el PDF. Contacte al administrador.";
-            }
-            
-            throw new Error(errorMsg);
+        if (!response.ok || !data.ok) {
+            throw new Error(data.error || "Error al generar el PDF");
         }
 
-        if (data.ok) {
-            // Descargar automáticamente
-            const link = document.createElement('a');
-            link.href = data.download_url;
-            link.download = nombreArchUnico;
-            document.body.appendChild(link);
-            link.click();
-            
-            // Eliminar el enlace después de la descarga
-            setTimeout(() => {
-                document.body.removeChild(link);
-                
-                // Habilitar botón de enviar
-                document.getElementById("enviar").hidden = false;
-                
-                // Actualizar nombreArch para el próximo uso
-                nombreArch = nombreArchUnico;
-            }, 100);
-        }
+        // Descargar automáticamente
+        const link = document.createElement('a');
+        link.href = data.download_url;
+        link.download = data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Habilitar botón de enviar
+        document.getElementById("enviar").hidden = false;
+        
     } catch (error) {
         console.error("Error completo:", error);
         mostrarError(error.message);
@@ -254,25 +228,10 @@ async function regenInforme() {
 }
 
 function mostrarError(mensaje) {
-    // Implementación mejorada de notificación
-    const notification = document.createElement('div');
-    notification.className = 'alert alert-danger';
-    notification.style.position = 'fixed';
-    notification.style.top = '20px';
-    notification.style.right = '20px';
-    notification.style.zIndex = '10000';
-    notification.style.maxWidth = '400px';
-    notification.innerHTML = `
-        <strong>Error!</strong> ${mensaje}
-        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-    `;
-    document.body.appendChild(notification);
-    
-    // Auto-eliminar después de 10 segundos
-    setTimeout(() => {
-        notification.remove();
-    }, 10000);
+    // Implementa tu lógica para mostrar errores al usuario
+    alert(mensaje);
 }
+
 function actualizarPreview() {
   let asunto = document.getElementById("asunto").value;
   let fecha_1 = document.getElementById("fecha_1").value;
