@@ -397,6 +397,19 @@ def ejecutar_comando_cliente(request):
             informe_url = data.get('informe')
             nombre_archivo = data.get('nombreArch')
             
+            # Validación de parámetros
+            if not informe_url:
+                return JsonResponse({
+                    'ok': False, 
+                    'error': 'URL no especificada'
+                }, status=400)
+                
+            if not nombre_archivo:
+                return JsonResponse({
+                    'ok': False, 
+                    'error': 'Nombre de archivo no especificado'
+                }, status=400)
+            
             # Asegurar que el nombre del archivo termine en .pdf
             if not nombre_archivo.endswith('.pdf'):
                 nombre_archivo += '.pdf'
@@ -414,7 +427,7 @@ def ejecutar_comando_cliente(request):
                     '--auth', 'basic',
                     '--credentials', 'sekiura-reports:Sekiura2025*',
                     '--format', 'pdf',
-                    '--filename', ruta_pdf  # Guardar directamente en la ruta especificada
+                    '--filename', ruta_pdf
                 ],
                 capture_output=True, text=True, check=True
             )
@@ -447,11 +460,7 @@ def ejecutar_comando_cliente(request):
         'ok': False, 
         'error': 'Método no permitido'
     }, status=405)
-
-from django.http import FileResponse, Http404
-from django.conf import settings
-import os
-
+from django.http import JsonResponse, FileResponse, Http404
 @login_required
 def descargar_pdf(request, archivo_nombre):
     # Prevenir directory traversal

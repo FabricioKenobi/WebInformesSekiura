@@ -30,12 +30,7 @@
     
     <label>Fecha 2:</label>
     <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" onchange="actualizarPreview()">
-    <button type="button" onclick="seleccionarFechas()">next</button>
-  </div>
-  <div id="seccion_mes" hidden>
-    <label>Seleccionar mes:</label>
-    <div id="botones_mes" class="mb-3"></div>
-    <button type="button" onclick="seleccionarMes()">next</button>
+    <button type="button" onclick="seleccionarFechas()">Continuar</button>
   </div>
 
   <div id="seccion_previsualizacion" hidden>
@@ -43,13 +38,12 @@
     <input type="hidden" name="cliente" id="cliente_id">
     <input type="hidden" name="plantilla" id="plantilla_id">
 
-    <div id="seccion_archivo" hidden>
+    <div id="seccion_archivo">
       <label>Adjuntar archivo:</label>
       <input type="file" name="archivo_adjunto" class="form-control mb-3" onchange="archivoAgregado()">
-      <button type="button" onclick="archivoAgregado()"> next</button>
     </div>
 
-    <div id="seccion_texto" hidden>
+    <div id="seccion_texto">
       <hr><h2>📄 Vista previa</h2>
       <div id="preview_emails" class="mt-3 bg-light p-3 border rounded">
         <strong>📬 Correos:</strong>
@@ -64,30 +58,41 @@
 
       <label>Cuerpo:</label>
       <textarea id="editor" name="cuerpo_html">{% autoescape off %}{{ cuerpo_html }}{% endautoescape %}</textarea>
-      <a id="dashboard" href="">ver informe</a>
-      <button id="regen" type="button" onclick="regenInforme()" class="btn btn-primary">
-        <span id="regen-text">Re-hacer informe</span>
-        <span id="regen-spinner" class="spinner-border spinner-border-sm" hidden></span>
-      </button>
-      <button type="submit" id="enviar" class="btn btn-success w-100" hidden>✉️ Enviar email</button>
+      
+      <div class="mt-3">
+        <button id="regen" type="button" onclick="regenInforme()" class="btn btn-primary">
+          <span id="regen-text">Generar Informe PDF</span>
+          <span id="regen-spinner" class="spinner-border spinner-border-sm" hidden></span>
+        </button>
+        <a id="dashboard" href="#" target="_blank" class="btn btn-secondary ml-2">Ver Dashboard</a>
+      </div>
+      
+      <button type="submit" id="enviar" class="btn btn-success w-100 mt-3" hidden>✉️ Enviar email</button>
     </div>
   </div>
 </form>
+
+<style>
+.spinner-border {
+    vertical-align: middle;
+    margin-left: 5px;
+}
+</style>
 
 <script>
 let cliente_nombre = "";
 let cuerpo_base_original = "";
 let tipoPlantilla = "";
 let ip = "";
-let fqdn= "";
+let fqdn = "";
 let codeDiario = "";
 let codeMes = "";
-let codeSemanal="";
+let codeSemanal = "";
 let fechatemp = new Date();
 let informe = "";
 let nombreArch = "";
- 
 
+// Inicializar CKEditor
 ClassicEditor
   .create(document.querySelector('#editor'))
   .then(editor => {
@@ -106,38 +111,16 @@ function seleccionarPlantilla(id, asunto, cuerpo, tipo) {
   document.getElementById("seccion_plantillas").hidden = true;
   document.getElementById("seccion_clientes").hidden = false;
 }
-if (tipoPlantilla === 'mensual') {
-  document.getElementById("seccion_fecha").hidden = false;
-  document.getElementById("seccion_mes").hidden = false;
-
-  const contenedor = document.getElementById("botones_mes");
-  contenedor.innerHTML = "";
-
-  const hoy = new Date();
-  for (let i = 0; i < 6; i++) {
-    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-    const texto = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-    const mes = texto.charAt(0).toUpperCase() + texto.slice(1);
-
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = mes;
-    btn.classList.add("btn", "btn-outline-primary", "m-1");
-    btn.onclick = () => seleccionarMesDirecto(btn);
-    contenedor.appendChild(btn);
-  }
-}
 
 function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, semanal, mensual) {
   document.getElementById("cliente_id").value = id;
-
-  
   cliente_nombre = nombre;
   ip = IPSIEM;
   fqdn = FQDN;
   codeDiario = diario;
   codeSemanal = semanal;
   codeMes = mensual;
+  
   const hoy = new Date();
   const offset = hoy.getTimezoneOffset();
   hoy.setMinutes(hoy.getMinutes() - offset);
@@ -148,75 +131,29 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, sem
   let diasSumar = 0;
   fechatemp = hoy;
 
-  
   if (tipoPlantilla.includes('diario')) diasSumar = 1;
   if (tipoPlantilla.includes('semanal')) diasSumar = 7;
   if (tipoPlantilla.includes('mensual')) diasSumar = 30;
     
-  
   fecha2.setDate(fecha2.getDate() - diasSumar);
-  
   const fecha2Formateada = fecha2.toISOString().split('T')[0];
   document.getElementById("fecha_1").value = fecha2Formateada;
-
 
   document.getElementById("seccion_clientes").hidden = true;
   document.getElementById("seccion_fecha").hidden = false;
 
   const lista = document.getElementById("lista_emails");
   lista.innerHTML = emails ? emails : "Sin correos previos.";
-  if (tipoPlantilla.includes('mensual')) {
-    document.getElementById("seccion_fecha").hidden = false;
-    document.getElementById("seccion_mes").hidden = false;
-
-    const contenedor = document.getElementById("botones_mes");
-    contenedor.innerHTML = "";
-
-    
-    for (let i = 0; i < 6; i++) {
-      const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-      const texto = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-      const mes = texto.charAt(0).toUpperCase() + texto.slice(1);
-
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.textContent = mes;
-      btn.classList.add("btn", "btn-outline-primary", "m-1");
-      btn.onclick = () => seleccionarMesDirecto(btn);
-      contenedor.appendChild(btn);
-    }
-  }
-
-}
-let mesSeleccionado = "";
-
-function seleccionarMesDirecto(boton) {
-  document.querySelectorAll('#botones_mes button').forEach(b => b.classList.remove("active"));
-  boton.classList.add("active");
-  mesSeleccionado = boton.textContent;
 }
 
 function seleccionarFechas() {
   event.preventDefault();
   document.getElementById("seccion_fecha").hidden = true;
   document.getElementById("seccion_previsualizacion").hidden = false;
-  document.getElementById("seccion_archivo").hidden = false;
-}
-
-function seleccionarMes() {
-  if (!mesSeleccionado) {
-    alert("Seleccioná un mes.");
-    return;
-  }
-
-  
-  document.getElementById("seccion_fecha").hidden = true;
-  document.getElementById("seccion_mes").hidden = true;
-  document.getElementById("seccion_previsualizacion").hidden = false;
-  document.getElementById("seccion_archivo").hidden = false;
-}
-function archivoAgregado() {
   actualizarPreview();
+}
+
+function archivoAgregado() {
   const inputArchivo = document.querySelector('input[name="archivo_adjunto"]');
   const nombreArchivoSpan = document.getElementById('nombre_archivo');
 
@@ -225,23 +162,38 @@ function archivoAgregado() {
   } else {
     nombreArchivoSpan.textContent = "Ningún archivo seleccionado";
   }
-
-  document.getElementById("seccion_archivo").hidden = true;
-  document.getElementById("seccion_texto").hidden = false;
 }
 
 function formatearFecha(fechaStr) {
   if (!fechaStr) return "__/__/____";
   const fecha = new Date(fechaStr);
-  let texto = fecha.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' , timeZone: 'UTC' });
-  // Capitaliza cada palabra
-  texto = texto.replace(/\b\w/g, l => l.toUpperCase());
-  return texto.replaceAll('De','de');
+  let texto = fecha.toLocaleDateString('es-ES', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric', 
+    timeZone: 'UTC' 
+  });
+  return texto.replace(/\b\w/g, l => l.toUpperCase()).replaceAll('De','de');
 }
+
 function regenInforme() {
+    // Verificar que la URL es válida
+    if (!informe || !informe.startsWith('http')) {
+        alert('Error: La URL del dashboard no es válida. Por favor, selecciona un cliente primero.');
+        return;
+    }
+
     const btnRegen = document.getElementById("regen");
-    btnRegen.disabled = true;
-    btnRegen.textContent = "Generando...";
+    const regenText = document.getElementById("regen-text");
+    const regenSpinner = document.getElementById("regen-spinner");
+    
+    // Deshabilitar el botón y mostrar estado de carga
+    if (btnRegen) btnRegen.disabled = true;
+    if (regenText) regenText.textContent = "Generando...";
+    if (regenSpinner) regenSpinner.hidden = false;
+    
+    console.log('Enviando a backend:', { informe, nombreArch });
     
     fetch('/ejecutar-comando/', {
         method: 'POST',
@@ -254,28 +206,32 @@ function regenInforme() {
             nombreArch: nombreArch 
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.ok) {
             if (data.download_url) {
                 // Descargar automáticamente
                 window.location.href = data.download_url;
-                
-                // También podrías mostrar un mensaje de éxito
-                alert("Informe generado correctamente. La descarga comenzará automáticamente.");
             }
             document.getElementById("enviar").hidden = false;
         } else {
-            alert("Error al generar el informe: " + (data.error || "Error desconocido"));
+            throw new Error(data.error || "Error al generar el informe");
         }
     })
     .catch(error => {
         console.error("Error:", error);
-        alert("Error al comunicarse con el servidor");
+        alert(error.message);
     })
     .finally(() => {
-        btnRegen.disabled = false;
-        btnRegen.textContent = "Re-hacer informe";
+        // Restaurar el estado del botón
+        if (btnRegen) btnRegen.disabled = false;
+        if (regenText) regenText.textContent = "Generar Informe PDF";
+        if (regenSpinner) regenSpinner.hidden = true;
     });
 }
 
@@ -285,40 +241,38 @@ function actualizarPreview() {
   let fecha1 = formatearFecha(fecha_1);
   
   let fecha_2 = document.getElementById("fecha_2").value;
-  let fechatemp1 = new Date();
-  fechatemp1.setDate(fechatemp.getDate()-1);
-  let fecha2 = formatearFecha(fechatemp1);
-  
+  let fechatemp1 = new Date(fecha_2);
+  fechatemp1.setDate(fechatemp1.getDate()-1);
+  let fecha2 = formatearFecha(fecha_2);
 
-
-  let link = "<a href='https://" + ip + "/app/vulnerability-detection'>"+"https://"+ip+"/app/vulnerability-detection"+"</a>";
-  let fqdnlink = "<a href='https://" + fqdn + "/app/vulnerability-detection'>"+"https://"+fqdn+"/app/vulnerability-detection"+"</a>";
+  let link = `<a href="https://${ip}/app/vulnerability-detection">https://${ip}/app/vulnerability-detection</a>`;
+  let fqdnlink = `<a href="https://${fqdn}/app/vulnerability-detection">https://${fqdn}/app/vulnerability-detection</a>`;
  
   let ini = `(from:'${fecha_1}T03:00:00.000Z',to:'${fecha_2}T02:59:59.000Z')`;
   let encodedIni = encodeURIComponent(ini);
-  let informeDiario = `<a href="https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Diario</a>`;
-  let informeSemanal = `<a href="https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Semanal</a>`;
-  let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
-  let informe = "";
-  let nombre = "";
-   if(tipoPlantilla.includes('proto')){
-        if(tipoPlantilla.includes('diario')){
-            informe = `https://${ip}/app/dashboards#/view/${codeDiario}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-            nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Diario-${fecha_2}.pdf`;
-        } else if(tipoPlantilla.includes('semanal')){
-            informe = `https://${ip}/app/dashboards#/view/${codeSemanal}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-            nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Semanal-${fecha_2}.pdf`;
-        } else if(tipoPlantilla.includes('mensual')){
-            informe = `https://${ip}/app/dashboards#/view/${codeMes}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-            nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Mensual-${fecha_2}.pdf`;
-        }
-        
-        // Mostrar estado de carga
-        document.getElementById('regen-text').textContent = "Generando informe...";
-        document.getElementById('regen-spinner').hidden = false;
-        
-        regenInforme();
+  
+  let informeDiario = `<a href="https://${ip}/app/dashboards#/view/${codeDiario}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)" target="_blank">Informe Diario</a>`;
+  let informeSemanal = `<a href="https://${ip}/app/dashboards#/view/${codeSemanal}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)" target="_blank">Informe Semanal</a>`;
+  let informeMensual = `<a href="https://${ip}/app/dashboards#/view/${codeMes}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)" target="_blank">Informe Mensual</a>`;
+  
+  if(tipoPlantilla.includes('proto')){
+      if(tipoPlantilla.includes('diario')){
+          informe = `https://${ip}/app/dashboards#/view/${codeDiario}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+          nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Diario-${fecha_2}.pdf`;
+      } else if(tipoPlantilla.includes('semanal')){
+          informe = `https://${ip}/app/dashboards#/view/${codeSemanal}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+          nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Semanal-${fecha_2}.pdf`;
+      } else if(tipoPlantilla.includes('mensual')){
+          informe = `https://${ip}/app/dashboards#/view/${codeMes}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+          nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Mensual-${fecha_2}.pdf`;
+      }
+      
+      const dashboardLink = document.getElementById('dashboard');
+      if (dashboardLink) {
+          dashboardLink.href = informe;
+      }
   }
+
   let asunto_personalizado = asunto
     .replaceAll("{cliente}", cliente_nombre)
     .replaceAll("{fecha_1}", fecha1)
@@ -331,14 +285,12 @@ function actualizarPreview() {
     .replaceAll("{cliente}", cliente_nombre)
     .replaceAll("{fecha_1}", fecha1)
     .replaceAll("{fecha_2}", fecha2)
-    .replaceAll("{mes}",mesSeleccionado)
     .replaceAll("{link}", link)
-    .replaceAll("{fqdn}",fqdnlink)
-    .replaceAll("{informeDiario}",informeDiario)
-    .replaceAll("{informeSemanal}",informeSemanal)
-    .replaceAll("{informeMensual}",informeMensual);
-  const refer = document.getElementById('dashboard');
-  refer.setAttribute('href',informe);
+    .replaceAll("{fqdn}", fqdnlink)
+    .replaceAll("{informeDiario}", informeDiario)
+    .replaceAll("{informeSemanal}", informeSemanal)
+    .replaceAll("{informeMensual}", informeMensual);
+
   // Reemplazar contenido del editor con la plantilla personalizada
   if (window.miEditor) {
     window.miEditor.setData(cuerpo_personalizado);
