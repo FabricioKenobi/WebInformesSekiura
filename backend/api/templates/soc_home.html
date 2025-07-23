@@ -78,7 +78,19 @@
     margin-left: 5px;
 }
 </style>
-
+<style>
+.loader {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 20px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    border-radius: 5px;
+    z-index: 1000;
+}
+</style>
 <script>
 let cliente_nombre = "";
 let cuerpo_base_original = "";
@@ -177,82 +189,48 @@ function formatearFecha(fechaStr) {
   return texto.replace(/\b\w/g, l => l.toUpperCase()).replaceAll('De','de');
 }
 
-async function regenInforme() {
+function regenInforme() {
     const btnRegen = document.getElementById("regen");
-    const regenText = document.getElementById("regen-text");
-    const regenSpinner = document.getElementById("regen-spinner");
+    if (btnRegen) btnRegen.disabled = true;
     
-    // Validación previa
-    if (!informe) {
-        mostrarError('No se ha configurado la URL del dashboard');
-        return;
-    }
-
-    // Estado de carga
-    btnRegen.disabled = true;
-    regenText.textContent = "Generando PDF...";
-    regenSpinner.hidden = false;
-
-    try {
-        // Generar nombre único con timestamp
-        const timestamp = Date.now();
-        const nombreArchUnico = `${nombreArch.replace('.pdf', '')}_${timestamp}.pdf`;
-        
-        const response = await fetch('/ejecutar-comando/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ 
-                informe: informe,
-                nombreArch: nombreArchUnico
-            })
-        });
-
-        const data = await response.json();
-
+    // Mostrar loader
+    const loader = document.createElement('div');
+    loader.innerHTML = '<div class="loader">Generando PDF...</div>';
+    document.body.appendChild(loader);
+    
+    fetch('/ejecutar-comando/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ 
+            informe: informe,
+            nombreArch: nombreArch 
+        })
+    })
+    .then(response => {
         if (!response.ok) {
-            let errorMsg = data.error || "Error en el servidor";
-            
-            // Manejo específico de errores conocidos
-            if (data.details?.stderr?.includes("File with same name already exists")) {
-                errorMsg = "Error: Conflicto con archivo existente. Por favor intente nuevamente.";
-            } else if (data.details?.stderr?.includes("exit is not a function")) {
-                errorMsg = "Error interno del sistema. Contacte al administrador.";
-            }
-            
-            throw new Error(errorMsg);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-
+        return response.json();
+    })
+    .then(data => {
         if (data.ok) {
-            // Método confiable para descargar el archivo
-            const downloadFrame = document.createElement('iframe');
-            downloadFrame.src = data.download_url;
-            downloadFrame.style.display = 'none';
-            document.body.appendChild(downloadFrame);
-            
-            // Limpieza después de 30 segundos
-            setTimeout(() => {
-                if (document.body.contains(downloadFrame)) {
-                    document.body.removeChild(downloadFrame);
-                }
-            }, 30000);
-            
-            // Habilitar botón de enviar
-            document.getElementById("enviar").hidden = false;
-            
-            // Mostrar notificación de éxito
-            mostrarExito(`Informe generado correctamente: ${data.filename}`);
+            // Forzar recarga para evitar problemas de caché
+            window.location.href = data.download_url + '?t=' + new Date().getTime();
+        } else {
+            throw new Error(data.error || "Error desconocido al generar el PDF");
         }
-    } catch (error) {
-        console.error("Error completo:", error);
-        mostrarError(error.message);
-    } finally {
-        btnRegen.disabled = false;
-        regenText.textContent = "Generar Informe PDF";
-        regenSpinner.hidden = true;
-    }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert(`Error al generar el informe: ${error.message}`);
+    })
+    .finally(() => {
+        if (btnRegen) btnRegen.disabled = false;
+        document.body.removeChild(loader);
+    });
 }
 
 // Funciones auxiliares para mostrar mensajes

@@ -398,101 +398,56 @@ def ejecutar_comando_cliente(request):
             informe_url = data.get('informe')
             nombre_archivo = data.get('nombreArch')
             
-            # Validación de parámetros
-            if not informe_url:
-                return JsonResponse({
-                    'ok': False, 
-                    'error': 'URL no especificada'
-                }, status=400)
-
-            # Generar nombre de archivo único con hash
-            import hashlib
-            timestamp_hash = hashlib.md5(str(time.time()).encode()).hexdigest()[:8]
-            nombre_base = os.path.splitext(nombre_archivo)[0] if nombre_archivo else 'informe'
-            nombre_archivo = f"{nombre_base}_{timestamp_hash}.pdf"
+            # Validar y limpiar el nombre del archivo
+            nombre_archivo = nombre_archivo.replace(' ', '_') + '.pdf'
+            nombre_archivo = ''.join(c for c in nombre_archivo if c.isalnum() or c in ('_', '-', '.'))
             
-            # Directorio para PDFs con permisos
-            carpeta_pdf = os.path.join(settings.MEDIA_ROOT, 'informes_pdf')
-            os.makedirs(carpeta_pdf, exist_ok=True)
-            ruta_pdf = os.path.join(carpeta_pdf, nombre_archivo)
+            # Directorio específico para los informes
+            informe_dir = os.path.join(settings.BASE_DIR, 'generated_reports')
+            os.makedirs(informe_dir, exist_ok=True)
+            ruta_completa = os.path.join(informe_dir, nombre_archivo)
             
-            # Limpieza previa de archivos temporales
-            try:
-                if os.path.exists(ruta_pdf):
-                    os.remove(ruta_pdf)
-            except Exception as e:
-                print(f"Error limpiando archivo existente: {e}")
-
-            # Configuración de entorno para Node.js
-            env = os.environ.copy()
-            env['NODE_NO_WARNINGS'] = '1'  # Suprimir advertencias AWS
+            # Ejecutar el comando
+            resultado = subprocess.run(
+                [
+                    '/usr/local/bin/opensearch-reporting-cli',
+                    '--url', informe_url,
+                    '--auth', 'basic',
+                    '--credentials', 'sekiura-reports:Sekiura2025*',
+                    '--format', 'pdf',
+                    '--filename', ruta_completa,
+                    '--timeout', '300'  # Aumentar timeout a 5 minutos
+                ],
+                capture_output=True, text=True, check=True
+            )
             
-            # Ejecutar comando con manejo mejorado
-            try:
-                resultado = subprocess.run(
-                    [
-                        '/usr/local/bin/opensearch-reporting-cli',
-                        '--url', informe_url,
-                        '--auth', 'basic',
-                        '--credentials', 'sekiura-reports:Sekiura2025*',
-                        '--format', 'pdf',
-                        '--filename', ruta_pdf,
-                        '--timeout', '300',
-                        '--no-sandbox'  # Opción importante para entornos headless
-                    ],
-                    capture_output=True,
-                    text=True,
-                    timeout=600,
-                    env=env,
-                    check=True  # Para capturar mejor los errores
-                )
-            except subprocess.CalledProcessError as e:
-                error_msg = f"Error en el comando (code {e.returncode}): {e.stderr}"
-                return JsonResponse({
-                    'ok': False,
-                    'error': error_msg,
-                    'details': {
-                        'stdout': e.stdout,
-                        'stderr': e.stderr,
-                        'cmd': e.cmd
-                    }
-                })
-            except subprocess.TimeoutExpired:
-                return JsonResponse({
-                    'ok': False,
-                    'error': 'Tiempo de espera agotado (10 minutos)'
-                })
-
-            # Verificación robusta del PDF generado
-            if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 2048:  # Mínimo 2KB
+            # Verificar que el archivo se creó
+            if os.path.exists(ruta_completa):
                 return JsonResponse({
                     'ok': True,
                     'filename': nombre_archivo,
-                    'download_url': f'/media/informes_pdf/{nombre_archivo}',
-                    'size': os.path.getsize(ruta_pdf)
+                    'path': ruta_completa,
+                    'download_url': f'/descargar-pdf/{nombre_archivo}'
                 })
             else:
-                error_msg = "El PDF no se generó correctamente"
-                if os.path.exists(ruta_pdf):
-                    error_msg += f" (tamaño: {os.path.getsize(ruta_pdf)} bytes)"
-                
                 return JsonResponse({
                     'ok': False,
-                    'error': error_msg,
-                    'details': {
-                        'stdout': resultado.stdout,
-                        'stderr': resultado.stderr,
-                        'file_exists': os.path.exists(ruta_pdf),
-                        'file_size': os.path.getsize(ruta_pdf) if os.path.exists(ruta_pdf) else 0
-                    }
+                    'error': 'El comando se ejecutó pero no se generó el PDF',
+                    'output': resultado.stdout,
+                    'error_output': resultado.stderr
                 })
-
+                
+        except subprocess.CalledProcessError as e:
+            return JsonResponse({
+                'ok': False,
+                'error': f"Error en el comando: {e.stderr}",
+                'output': e.stdout
+            })
         except Exception as e:
             return JsonResponse({
                 'ok': False,
-                'error': f"Error inesperado: {str(e)}",
-                'type': type(e).__name__
-            }, status=500)
+                'error': str(e)
+            })
         
 from django.http import JsonResponse, FileResponse, Http404
 
@@ -500,19 +455,25 @@ from django.http import JsonResponse, FileResponse, Http404
 def descargar_pdf(request, archivo_nombre):
     # Prevenir directory traversal
     archivo_nombre = os.path.basename(archivo_nombre)
-    ruta_pdf = os.path.join(settings.BASE_DIR, 'generated_pdfs', archivo_nombre)
+    informe_dir = os.path.join(settings.BASE_DIR, 'generated_reports')
+    ruta_pdf = os.path.join(informe_dir, archivo_nombre)
     
     try:
-        # Verificar que el archivo existe y es un PDF
-        if not os.path.exists(ruta_pdf) or not archivo_nombre.lower().endswith('.pdf'):
-            raise Http404("Archivo no encontrado")
-            
-        response = FileResponse(
-            open(ruta_pdf, 'rb'), 
-            content_type='application/pdf'
-        )
-        response['Content-Disposition'] = f'attachment; filename="{archivo_nombre}"'
-        return response
+        # Esperar un momento si el archivo acaba de crearse
+        import time
+        timeout = 5  # segundos
+        while not os.path.exists(ruta_pdf) and timeout > 0:
+            time.sleep(0.5)
+            timeout -= 0.5
         
-    except FileNotFoundError:
-        raise Http404("El archivo no existe")   
+        if not os.path.exists(ruta_pdf):
+            raise Http404("El archivo no existe o no se ha generado completamente")
+            
+        return FileResponse(
+            open(ruta_pdf, 'rb'),
+            content_type='application/pdf',
+            as_attachment=True,
+            filename=archivo_nombre
+        )
+    except Exception as e:
+        raise Http404(f"No se pudo descargar el archivo: {str(e)}")
