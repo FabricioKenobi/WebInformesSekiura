@@ -29,4 +29,4 @@ urlpatterns = [
     path('ejecutar-comando/', ejecutar_comando_cliente, name='ejecutar_comando_cliente'),
     path('descargar-pdf/<str:archivo_nombre>/', descargar_pdf, name='descargar_pdf')
 
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -478,23 +478,22 @@ def ejecutar_comando_cliente(request):
             }, status=500)
         
 from django.http import JsonResponse, FileResponse, Http404
+
 @login_required
 def descargar_pdf(request, archivo_nombre):
     # Prevenir directory traversal
     archivo_nombre = os.path.basename(archivo_nombre)
-    ruta_pdf = os.path.join(settings.BASE_DIR, 'generated_pdfs', archivo_nombre)
-    
+    ruta_pdf = os.path.join(settings.MEDIA_ROOT, 'informes_pdf', archivo_nombre)
+
     try:
         # Verificar que el archivo existe y es un PDF
         if not os.path.exists(ruta_pdf) or not archivo_nombre.lower().endswith('.pdf'):
             raise Http404("Archivo no encontrado")
-            
         response = FileResponse(
-            open(ruta_pdf, 'rb'), 
+            open(ruta_pdf, 'rb'),
             content_type='application/pdf'
         )
         response['Content-Disposition'] = f'attachment; filename="{archivo_nombre}"'
         return response
-        
     except FileNotFoundError:
         raise Http404("El archivo no existe")
