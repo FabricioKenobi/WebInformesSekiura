@@ -320,7 +320,7 @@ function actualizarPreview() {
     .replaceAll("{informeDiario}",informeDiario)
     .replaceAll("{informeSemanal}",informeSemanal)
     .replaceAll("{informeMensual}",informeMensual);
-  const refer = Document.getElementById('dashboard');
+  const refer = document.getElementById('dashboard');
   refer.setAttribute('href',informe);
   // Reemplazar contenido del editor con la plantilla personalizada
   if (window.miEditor) {
