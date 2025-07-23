@@ -177,7 +177,7 @@ function formatearFecha(fechaStr) {
   return texto.replace(/\b\w/g, l => l.toUpperCase()).replaceAll('De','de');
 }
 
-function regenInforme() {
+async function regenInforme() {
     if (!informe) {
         mostrarError('No se ha configurado la URL del dashboard');
         return;
@@ -192,68 +192,78 @@ function regenInforme() {
     regenText.textContent = "Generando PDF...";
     regenSpinner.hidden = false;
 
-    // Datos para el request
-    const payload = {
-        informe: informe,
-        nombreArch: nombreArch
-    };
+    try {
+        const response = await fetch('/ejecutar-comando/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                informe: informe,
+                nombreArch: nombreArch
+            })
+        });
 
-    console.log("Enviando datos:", payload);
+        const data = await response.json();
 
-    fetch('/ejecutar-comando/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(response => {
         if (!response.ok) {
-            return response.json().then(err => Promise.reject(err));
+            throw new Error(data.error || "Error en el servidor");
         }
-        return response.json();
-    })
-    .then(data => {
+
         if (data.ok) {
-            if (data.download_url) {
-                // Forzar descarga
-                const link = document.createElement('a');
-                link.href = data.download_url;
-                link.download = nombreArch;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                // Habilitar botón de enviar
-                document.getElementById("enviar").hidden = false;
-            }
+            // Descargar automáticamente
+            const link = document.createElement('a');
+            link.href = data.download_url;
+            link.download = nombreArch;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Habilitar botón de enviar
+            document.getElementById("enviar").hidden = false;
         } else {
-            throw new Error(data.error || "Error desconocido al generar PDF");
+            throw new Error(data.error || "Error al generar PDF");
         }
-    })
-    .catch(error => {
-        console.error("Error:", error);
-        mostrarError(`Error al generar el informe: ${error.message}`);
+    } catch (error) {
+        console.error("Error completo:", error);
         
-        // Mostrar detalles técnicos en consola
-        if (error.response) {
-            error.response.json().then(details => {
-                console.log("Detalles del error:", details);
-            });
+        let mensajeError = "Error al generar el informe";
+        if (error.message.includes("Fetching the arguments values")) {
+            mensajeError += "\nPosible problema de conexión con OpenSearch";
+        } else if (error.message.includes("NOTE: The AWS SDK for JavaScript")) {
+            mensajeError += "\nAdvertencia de AWS SDK (puede ignorarse)";
+        } else {
+            mensajeError += `: ${error.message}`;
         }
-    })
-    .finally(() => {
+        
+        mostrarError(mensajeError);
+    } finally {
         btnRegen.disabled = false;
         regenText.textContent = "Generar Informe PDF";
         regenSpinner.hidden = true;
-    });
+    }
 }
 
 function mostrarError(mensaje) {
-    // Puedes implementar un sistema de notificaciones más elegante
-    alert(mensaje);
-    console.error(mensaje);
+    // Implementación mejorada de notificación
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+    errorDiv.style.position = 'fixed';
+    errorDiv.style.top = '20px';
+    errorDiv.style.right = '20px';
+    errorDiv.style.zIndex = '1000';
+    errorDiv.style.maxWidth = '400px';
+    errorDiv.innerHTML = `
+        <strong>Error!</strong> ${mensaje.replace(/\n/g, '<br>')}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(errorDiv);
+    
+    // Auto-eliminar después de 10 segundos
+    setTimeout(() => {
+        errorDiv.remove();
+    }, 10000);
 }
 
 function actualizarPreview() {

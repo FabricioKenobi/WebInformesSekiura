@@ -397,25 +397,29 @@ def ejecutar_comando_cliente(request):
             informe_url = data.get('informe')
             nombre_archivo = data.get('nombreArch')
             
-            # Validación mejorada
-            if not informe_url or not nombre_archivo:
+            # Validación mejorada de la URL
+            if not informe_url or not informe_url.startswith('https://'):
                 return JsonResponse({
                     'ok': False, 
-                    'error': 'Faltan parámetros requeridos (URL o nombre de archivo)'
+                    'error': 'URL no válida o no proporcionada'
                 }, status=400)
 
-            # Asegurar extensión .pdf
-            nombre_archivo = nombre_archivo if nombre_archivo.endswith('.pdf') else f"{nombre_archivo}.pdf"
+            # Preparar nombre de archivo
+            nombre_archivo = f"{nombre_archivo}.pdf" if not nombre_archivo.endswith('.pdf') else nombre_archivo
             
-            # Directorio para PDFs con permisos
+            # Directorio para PDFs
             carpeta_pdf = os.path.join(settings.MEDIA_ROOT, 'informes_pdf')
             os.makedirs(carpeta_pdf, exist_ok=True)
             ruta_pdf = os.path.join(carpeta_pdf, nombre_archivo)
             
-            # Eliminar PDF existente si hay
+            # Eliminar archivo existente si existe
             if os.path.exists(ruta_pdf):
                 os.remove(ruta_pdf)
 
+            # Comando con variables de entorno para Node.js
+            env = os.environ.copy()
+            env['NODE_NO_WARNINGS'] = '1'  # Suprimir advertencias de AWS SDK
+            
             # Ejecutar comando con timeout
             try:
                 resultado = subprocess.run(
@@ -426,50 +430,50 @@ def ejecutar_comando_cliente(request):
                         '--credentials', 'sekiura-reports:Sekiura2025*',
                         '--format', 'pdf',
                         '--filename', ruta_pdf,
-                        '--timeout', '120'  # 2 minutos de timeout
+                        '--timeout', '300'  # 5 minutos
                     ],
                     capture_output=True,
                     text=True,
-                    timeout=300  # 5 minutos máximo
+                    timeout=600,  # 10 minutos máximo
+                    env=env
                 )
             except subprocess.TimeoutExpired:
                 return JsonResponse({
                     'ok': False,
-                    'error': 'El comando excedió el tiempo máximo de ejecución'
+                    'error': 'Tiempo de espera agotado (10 minutos)'
                 })
 
             # Verificación robusta del PDF generado
-            if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 0:
-                # Registrar éxito
-                print(f"PDF generado correctamente en: {ruta_pdf}")
+            if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 1024:  # Al menos 1KB
                 return JsonResponse({
                     'ok': True,
                     'filename': nombre_archivo,
-                    'download_url': f'/descargar-pdf/{nombre_archivo}',
+                    'download_url': f'/media/informes_pdf/{nombre_archivo}',
                     'size': os.path.getsize(ruta_pdf)
                 })
             else:
-                # Log detallado del error
-                error_msg = "El comando no generó el PDF esperado. "
+                # Analizar salida para diagnóstico
+                error_msg = "Error al generar PDF:\n"
+                if resultado.stdout:
+                    error_msg += f"STDOUT: {resultado.stdout}\n"
                 if resultado.stderr:
-                    error_msg += f"Error: {resultado.stderr}"
-                else:
-                    error_msg += "No se recibió mensaje de error."
+                    error_msg += f"STDERR: {resultado.stderr}\n"
                 
-                print(error_msg)
                 return JsonResponse({
                     'ok': False,
                     'error': error_msg,
-                    'stdout': resultado.stdout,
-                    'stderr': resultado.stderr
+                    'detalles': {
+                        'url_usada': informe_url,
+                        'ruta_pdf': ruta_pdf,
+                        'comando_ejecutado': ' '.join(resultado.args)
+                    }
                 })
 
         except Exception as e:
-            error_msg = f"Error inesperado: {str(e)}"
-            print(error_msg)
             return JsonResponse({
                 'ok': False,
-                'error': error_msg
+                'error': f"Error inesperado: {str(e)}",
+                'tipo_error': type(e).__name__
             }, status=500)
 from django.http import JsonResponse, FileResponse, Http404
 @login_required
