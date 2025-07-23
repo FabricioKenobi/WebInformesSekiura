@@ -191,13 +191,11 @@ function formatearFecha(fechaStr) {
 
 function regenInforme() {
     const btnRegen = document.getElementById("regen");
-    if (btnRegen) btnRegen.disabled = true;
-    
-    // Mostrar loader
-    const loader = document.createElement('div');
-    loader.innerHTML = '<div class="loader">Generando PDF...</div>';
-    document.body.appendChild(loader);
-    
+    if (btnRegen) {
+        btnRegen.disabled = true;
+        btnRegen.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generando...';
+    }
+
     fetch('/ejecutar-comando/', {
         method: 'POST',
         headers: {
@@ -211,25 +209,30 @@ function regenInforme() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`Error HTTP: ${response.status}`);
         }
         return response.json();
     })
     .then(data => {
         if (data.ok) {
-            // Forzar recarga para evitar problemas de caché
-            window.location.href = data.download_url + '?t=' + new Date().getTime();
+            // Forzar descarga con timestamp para evitar caché
+            const downloadUrl = data.download_url + '?t=' + new Date().getTime();
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.click();
         } else {
-            throw new Error(data.error || "Error desconocido al generar el PDF");
+            throw new Error(data.error || "Error desconocido al generar PDF");
         }
     })
     .catch(error => {
-        console.error("Error:", error);
-        alert(`Error al generar el informe: ${error.message}`);
+        console.error("Error al generar informe:", error);
+        alert(`Error al generar el informe:\n${error.message}`);
     })
     .finally(() => {
-        if (btnRegen) btnRegen.disabled = false;
-        document.body.removeChild(loader);
+        if (btnRegen) {
+            btnRegen.disabled = false;
+            btnRegen.textContent = "Re-hacer informe";
+        }
     });
 }
 
