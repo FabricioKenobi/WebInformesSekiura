@@ -177,74 +177,113 @@ function formatearFecha(fechaStr) {
   return texto.replace(/\b\w/g, l => l.toUpperCase()).replaceAll('De','de');
 }
 
-function regenInforme() {
+async function regenInforme() {
     const btnRegen = document.getElementById("regen");
     const regenText = document.getElementById("regen-text");
     const regenSpinner = document.getElementById("regen-spinner");
     
-    // Deshabilitar el botón y mostrar estado de carga
-    if (btnRegen) btnRegen.disabled = true;
-    if (regenText) regenText.textContent = "Generando...";
-    if (regenSpinner) regenSpinner.hidden = false;
-    
-    fetch('/ejecutar-comando/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({ 
-            informe: informe,
-            nombreArch: nombreArch 
-        })
-    })
-    .then(response => {
+    // Validación previa
+    if (!informe) {
+        mostrarError('No se ha configurado la URL del dashboard');
+        return;
+    }
+
+    // Estado de carga
+    btnRegen.disabled = true;
+    regenText.textContent = "Generando PDF...";
+    regenSpinner.hidden = false;
+
+    try {
+        // Generar nombre único con timestamp
+        const timestamp = Date.now();
+        const nombreArchUnico = `${nombreArch.replace('.pdf', '')}_${timestamp}.pdf`;
+        
+        const response = await fetch('/ejecutar-comando/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ 
+                informe: informe,
+                nombreArch: nombreArchUnico
+            })
+        });
+
+        const data = await response.json();
+
         if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.ok) {
-            if (data.download_url) {
-                // Forzar la descarga en una nueva pestaña
-                const downloadWindow = window.open(data.download_url, '_blank');
-                if (!downloadWindow) {
-                    alert('El navegador bloqueó la ventana emergente. Por favor, permite ventanas emergentes para este sitio.');
-                }
+            let errorMsg = data.error || "Error en el servidor";
+            
+            // Manejo específico de errores conocidos
+            if (data.details?.stderr?.includes("File with same name already exists")) {
+                errorMsg = "Error: Conflicto con archivo existente. Por favor intente nuevamente.";
+            } else if (data.details?.stderr?.includes("exit is not a function")) {
+                errorMsg = "Error interno del sistema. Contacte al administrador.";
             }
-            document.getElementById("enviar").hidden = false;
-        } else {
-            throw new Error(data.error || "Error desconocido al generar el PDF");
+            
+            throw new Error(errorMsg);
         }
-    })
-    .catch(error => {
-        console.error("Error:", error);
-        alert(`Error al generar el informe: ${error.message}`);
-    })
-    .finally(() => {
-        // Restaurar el estado del botón
-        if (btnRegen) btnRegen.disabled = false;
-        if (regenText) regenText.textContent = "Re-hacer informe";
-        if (regenSpinner) regenSpinner.hidden = true;
-    });
+
+        if (data.ok) {
+            // Método confiable para descargar el archivo
+            const downloadFrame = document.createElement('iframe');
+            downloadFrame.src = data.download_url;
+            downloadFrame.style.display = 'none';
+            document.body.appendChild(downloadFrame);
+            
+            // Limpieza después de 30 segundos
+            setTimeout(() => {
+                if (document.body.contains(downloadFrame)) {
+                    document.body.removeChild(downloadFrame);
+                }
+            }, 30000);
+            
+            // Habilitar botón de enviar
+            document.getElementById("enviar").hidden = false;
+            
+            // Mostrar notificación de éxito
+            mostrarExito(`Informe generado correctamente: ${data.filename}`);
+        }
+    } catch (error) {
+        console.error("Error completo:", error);
+        mostrarError(error.message);
+    } finally {
+        btnRegen.disabled = false;
+        regenText.textContent = "Generar Informe PDF";
+        regenSpinner.hidden = true;
+    }
 }
 
+// Funciones auxiliares para mostrar mensajes
 function mostrarError(mensaje) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'alert alert-danger';
-    errorDiv.style.position = 'fixed';
-    errorDiv.style.top = '20px';
-    errorDiv.style.right = '20px';
-    errorDiv.style.zIndex = '1000';
-    errorDiv.style.maxWidth = '400px';
-    errorDiv.innerHTML = `
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+    alertDiv.style.position = 'fixed';
+    alertDiv.style.top = '20px';
+    alertDiv.style.right = '20px';
+    alertDiv.style.zIndex = '10000';
+    alertDiv.innerHTML = `
         <strong>Error!</strong> ${mensaje}
         <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
     `;
-    document.body.appendChild(errorDiv);
-    
-    setTimeout(() => errorDiv.remove(), 10000);
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 10000);
+}
+
+function mostrarExito(mensaje) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+    alertDiv.style.position = 'fixed';
+    alertDiv.style.top = '20px';
+    alertDiv.style.right = '20px';
+    alertDiv.style.zIndex = '10000';
+    alertDiv.innerHTML = `
+        <strong>Éxito!</strong> ${mensaje}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
 }
 
 function mostrarExito(mensaje) {

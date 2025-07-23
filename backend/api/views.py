@@ -398,66 +398,101 @@ def ejecutar_comando_cliente(request):
             informe_url = data.get('informe')
             nombre_archivo = data.get('nombreArch')
             
-            # Asegurar que el nombre del archivo termine en .pdf
-            if not nombre_archivo.endswith('.pdf'):
-                nombre_archivo += '.pdf'
+            # Validación de parámetros
+            if not informe_url:
+                return JsonResponse({
+                    'ok': False, 
+                    'error': 'URL no especificada'
+                }, status=400)
+
+            # Generar nombre de archivo único con hash
+            import hashlib
+            timestamp_hash = hashlib.md5(str(time.time()).encode()).hexdigest()[:8]
+            nombre_base = os.path.splitext(nombre_archivo)[0] if nombre_archivo else 'informe'
+            nombre_archivo = f"{nombre_base}_{timestamp_hash}.pdf"
             
-            # Ruta específica para los PDFs generados
-            carpeta_pdf = os.path.join(settings.BASE_DIR, 'generated_pdfs')
+            # Directorio para PDFs con permisos
+            carpeta_pdf = os.path.join(settings.MEDIA_ROOT, 'informes_pdf')
             os.makedirs(carpeta_pdf, exist_ok=True)
             ruta_pdf = os.path.join(carpeta_pdf, nombre_archivo)
             
-            # Eliminar archivo existente si hay uno
-            if os.path.exists(ruta_pdf):
-                os.remove(ruta_pdf)
-            
-            # Ejecutar el comando
-            resultado = subprocess.run(
-                [
-                    '/usr/local/bin/opensearch-reporting-cli',
-                    '--url', informe_url,
-                    '--auth', 'basic',
-                    '--credentials', 'sekiura-reports:Sekiura2025*',
-                    '--format', 'pdf',
-                    '--filename', ruta_pdf  # Guardar directamente en la ruta especificada
-                ],
-                capture_output=True, text=True, check=True
-            )
-            
-            # Esperar y verificar que el archivo existe
-            max_intentos = 5
-            for i in range(max_intentos):
+            # Limpieza previa de archivos temporales
+            try:
                 if os.path.exists(ruta_pdf):
-                    return JsonResponse({
-                        'ok': True, 
-                        'output': resultado.stdout,
-                        'filename': nombre_archivo,
-                        'download_url': f'/descargar-pdf/{nombre_archivo}'
-                    })
-                time.sleep(1)  # Esperar 1 segundo entre intentos
+                    os.remove(ruta_pdf)
+            except Exception as e:
+                print(f"Error limpiando archivo existente: {e}")
+
+            # Configuración de entorno para Node.js
+            env = os.environ.copy()
+            env['NODE_NO_WARNINGS'] = '1'  # Suprimir advertencias AWS
             
-            return JsonResponse({
-                'ok': False, 
-                'error': 'El comando se ejecutó pero no se generó el PDF',
-                'output': resultado.stdout,
-                'stderr': resultado.stderr
-            })
+            # Ejecutar comando con manejo mejorado
+            try:
+                resultado = subprocess.run(
+                    [
+                        '/usr/local/bin/opensearch-reporting-cli',
+                        '--url', informe_url,
+                        '--auth', 'basic',
+                        '--credentials', 'sekiura-reports:Sekiura2025*',
+                        '--format', 'pdf',
+                        '--filename', ruta_pdf,
+                        '--timeout', '300',
+                        '--no-sandbox'  # Opción importante para entornos headless
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=600,
+                    env=env,
+                    check=True  # Para capturar mejor los errores
+                )
+            except subprocess.CalledProcessError as e:
+                error_msg = f"Error en el comando (code {e.returncode}): {e.stderr}"
+                return JsonResponse({
+                    'ok': False,
+                    'error': error_msg,
+                    'details': {
+                        'stdout': e.stdout,
+                        'stderr': e.stderr,
+                        'cmd': e.cmd
+                    }
+                })
+            except subprocess.TimeoutExpired:
+                return JsonResponse({
+                    'ok': False,
+                    'error': 'Tiempo de espera agotado (10 minutos)'
+                })
+
+            # Verificación robusta del PDF generado
+            if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 2048:  # Mínimo 2KB
+                return JsonResponse({
+                    'ok': True,
+                    'filename': nombre_archivo,
+                    'download_url': f'/media/informes_pdf/{nombre_archivo}',
+                    'size': os.path.getsize(ruta_pdf)
+                })
+            else:
+                error_msg = "El PDF no se generó correctamente"
+                if os.path.exists(ruta_pdf):
+                    error_msg += f" (tamaño: {os.path.getsize(ruta_pdf)} bytes)"
                 
-        except subprocess.CalledProcessError as e:
-            return JsonResponse({
-                'ok': False, 
-                'error': f"Error en el comando: {e.stderr}",
-                'output': e.stdout
-            })
+                return JsonResponse({
+                    'ok': False,
+                    'error': error_msg,
+                    'details': {
+                        'stdout': resultado.stdout,
+                        'stderr': resultado.stderr,
+                        'file_exists': os.path.exists(ruta_pdf),
+                        'file_size': os.path.getsize(ruta_pdf) if os.path.exists(ruta_pdf) else 0
+                    }
+                })
+
         except Exception as e:
             return JsonResponse({
-                'ok': False, 
-                'error': str(e)
-            })
-    return JsonResponse({
-        'ok': False, 
-        'error': 'Método no permitido'
-    }, status=405)
+                'ok': False,
+                'error': f"Error inesperado: {str(e)}",
+                'type': type(e).__name__
+            }, status=500)
         
 from django.http import JsonResponse, FileResponse, Http404
 
