@@ -385,6 +385,7 @@ from django.views.decorators.csrf import csrf_exempt
 import subprocess
 import json
 from django.http import JsonResponse
+import time  # <-- Añade esta importación
 
 informe = ""
 
