@@ -65,7 +65,10 @@
       <label>Cuerpo:</label>
       <textarea id="editor" name="cuerpo_html">{% autoescape off %}{{ cuerpo_html }}{% endautoescape %}</textarea>
       <a id="dashboard" href="">ver informe</a>
-      <button id="regen" onclick="regenInforme()">Re-hacer informe</button>
+      <button id="regen" type="button" onclick="regenInforme()" class="btn btn-primary">
+        <span id="regen-text">Re-hacer informe</span>
+        <span id="regen-spinner" class="spinner-border spinner-border-sm" hidden></span>
+      </button>
       <button type="submit" id="enviar" class="btn btn-success w-100" hidden>✉️ Enviar email</button>
     </div>
   </div>
