@@ -414,7 +414,7 @@ def ejecutar_comando_cliente(request):
                 '--format', 'pdf',
                 '--filename', ruta_pdf,
                 '--timeout', '900',  # 15 minutos de timeout
-                '--debug'  # Modo debug para más información
+                #'--debug'  # Modo debug para más información
             ]
             
             # Ejecutar comando con entorno completo
