@@ -177,86 +177,57 @@ function formatearFecha(fechaStr) {
   return texto.replace(/\b\w/g, l => l.toUpperCase()).replaceAll('De','de');
 }
 
-async function regenInforme() {
+function regenInforme() {
     const btnRegen = document.getElementById("regen");
     const regenText = document.getElementById("regen-text");
     const regenSpinner = document.getElementById("regen-spinner");
-    let data = null;
-
-    // Validación previa
-    if (!informe) {
-        mostrarError('No se ha configurado la URL del dashboard');
-        return;
-    }
-
-    // Estado de carga
-    btnRegen.disabled = true;
-    regenText.textContent = "Generando PDF...";
-    regenSpinner.hidden = false;
-
-    try {
-        // Nombre único para el archivo
-        const timestamp = new Date().getTime();
-        const nombreArchUnico = `${nombreArch.replace('.pdf', '')}_${timestamp}.pdf`;
-        
-        const response = await fetch('/ejecutar-comando/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ 
-                informe: informe,
-                nombreArch: nombreArchUnico
-            })
-        });
-
-        data = await response.json();
-
+    
+    // Deshabilitar el botón y mostrar estado de carga
+    if (btnRegen) btnRegen.disabled = true;
+    if (regenText) regenText.textContent = "Generando...";
+    if (regenSpinner) regenSpinner.hidden = false;
+    
+    fetch('/ejecutar-comando/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ 
+            informe: informe,
+            nombreArch: nombreArch 
+        })
+    })
+    .then(response => {
         if (!response.ok) {
-            throw new Error(data.error || "Error en el servidor");
+            throw new Error(`Error HTTP: ${response.status}`);
         }
-
+        return response.json();
+    })
+    .then(data => {
         if (data.ok) {
-            // Verificar que la URL de descarga es válida
-            if (!data.download_url) {
-                throw new Error("El servidor no proporcionó URL de descarga");
+            if (data.download_url) {
+                // Forzar la descarga en una nueva pestaña
+                const downloadWindow = window.open(data.download_url, '_blank');
+                if (!downloadWindow) {
+                    alert('El navegador bloqueó la ventana emergente. Por favor, permite ventanas emergentes para este sitio.');
+                }
             }
-
-            // Crear iframe invisible para la descarga
-            const iframe = document.createElement('iframe');
-            iframe.src = data.download_url;
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
-            
-            // Opcional: Eliminar el iframe después de un tiempo
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-            }, 30000);
-            
-            // Habilitar botón de enviar
             document.getElementById("enviar").hidden = false;
-            
-            // Mostrar mensaje de éxito
-            mostrarExito(`Informe generado correctamente: ${data.filename}`);
         } else {
-            throw new Error(data.error || "Error al generar PDF");
+            throw new Error(data.error || "Error desconocido al generar el PDF");
         }
-    } catch (error) {
-        console.error("Error completo:", error);
-        
-        // Manejo específico de errores conocidos
-        let mensajeError = error.message;
-        if (error.message.includes("The report is downloaded") && !data?.ok) {
-            mensajeError = "El PDF se generó pero hubo un problema al recuperarlo";
-        }
-        
-        mostrarError(mensajeError);
-    } finally {
-        btnRegen.disabled = false;
-        regenText.textContent = "Generar Informe PDF";
-        regenSpinner.hidden = true;
-    }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert(`Error al generar el informe: ${error.message}`);
+    })
+    .finally(() => {
+        // Restaurar el estado del botón
+        if (btnRegen) btnRegen.disabled = false;
+        if (regenText) regenText.textContent = "Re-hacer informe";
+        if (regenSpinner) regenSpinner.hidden = true;
+    });
 }
 
 function mostrarError(mensaje) {

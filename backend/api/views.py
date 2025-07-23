@@ -398,84 +398,66 @@ def ejecutar_comando_cliente(request):
             informe_url = data.get('informe')
             nombre_archivo = data.get('nombreArch')
             
-            # Validación mejorada de URL
-            if not informe_url or not informe_url.startswith('https://'):
-                return JsonResponse({
-                    'ok': False, 
-                    'error': 'URL no válida o no proporcionada'
-                }, status=400)
-
-            # Generar nombre de archivo único
-            timestamp = int(time.time())
-            nombre_base = os.path.splitext(nombre_archivo)[0] if nombre_archivo else 'informe'
-            nombre_archivo = f"{nombre_base}_{timestamp}.pdf"
+            # Asegurar que el nombre del archivo termine en .pdf
+            if not nombre_archivo.endswith('.pdf'):
+                nombre_archivo += '.pdf'
             
-            # Directorio para PDFs
-            carpeta_pdf = os.path.join(settings.MEDIA_ROOT, 'informes_pdf')
+            # Ruta específica para los PDFs generados
+            carpeta_pdf = os.path.join(settings.BASE_DIR, 'generated_pdfs')
             os.makedirs(carpeta_pdf, exist_ok=True)
             ruta_pdf = os.path.join(carpeta_pdf, nombre_archivo)
             
-            # Eliminar archivo existente si hay
+            # Eliminar archivo existente si hay uno
             if os.path.exists(ruta_pdf):
                 os.remove(ruta_pdf)
-
-            # Configurar entorno para Node.js
-            env = os.environ.copy()
-            env['NODE_NO_WARNINGS'] = '1'  # Suprimir advertencias de AWS SDK
             
-            # Ejecutar comando
-            try:
-                resultado = subprocess.run(
-                    [
-                        '/usr/local/bin/opensearch-reporting-cli',
-                        '--url', informe_url,
-                        '--auth', 'basic',
-                        '--credentials', 'sekiura-reports:Sekiura2025*',
-                        '--format', 'pdf',
-                        '--filename', ruta_pdf,
-                        '--timeout', '300'
-                    ],
-                    capture_output=True,
-                    text=True,
-                    timeout=600,
-                    env=env
-                )
-            except subprocess.TimeoutExpired:
-                return JsonResponse({
-                    'ok': False,
-                    'error': 'Tiempo de espera agotado (10 minutos)'
-                })
-
-            # Verificación robusta del PDF generado
-            if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 1024:  # Al menos 1KB
-                return JsonResponse({
-                    'ok': True,
-                    'filename': nombre_archivo,
-                    'download_url': f'/media/informes_pdf/{nombre_archivo}',
-                    'size': os.path.getsize(ruta_pdf)
-                })
-            else:
-                error_msg = "El PDF no se generó correctamente"
-                if resultado.stdout:
-                    error_msg += f"\nSalida: {resultado.stdout}"
-                if resultado.stderr:
-                    error_msg += f"\nError: {resultado.stderr}"
+            # Ejecutar el comando
+            resultado = subprocess.run(
+                [
+                    '/usr/local/bin/opensearch-reporting-cli',
+                    '--url', informe_url,
+                    '--auth', 'basic',
+                    '--credentials', 'sekiura-reports:Sekiura2025*',
+                    '--format', 'pdf',
+                    '--filename', ruta_pdf  # Guardar directamente en la ruta especificada
+                ],
+                capture_output=True, text=True, check=True
+            )
+            
+            # Esperar y verificar que el archivo existe
+            max_intentos = 5
+            for i in range(max_intentos):
+                if os.path.exists(ruta_pdf):
+                    return JsonResponse({
+                        'ok': True, 
+                        'output': resultado.stdout,
+                        'filename': nombre_archivo,
+                        'download_url': f'/descargar-pdf/{nombre_archivo}'
+                    })
+                time.sleep(1)  # Esperar 1 segundo entre intentos
+            
+            return JsonResponse({
+                'ok': False, 
+                'error': 'El comando se ejecutó pero no se generó el PDF',
+                'output': resultado.stdout,
+                'stderr': resultado.stderr
+            })
                 
-                return JsonResponse({
-                    'ok': False,
-                    'error': error_msg,
-                    'detalles': {
-                        'ruta_pdf': ruta_pdf,
-                        'tamaño': os.path.getsize(ruta_pdf) if os.path.exists(ruta_pdf) else 0
-                    }
-                })
-
+        except subprocess.CalledProcessError as e:
+            return JsonResponse({
+                'ok': False, 
+                'error': f"Error en el comando: {e.stderr}",
+                'output': e.stdout
+            })
         except Exception as e:
             return JsonResponse({
-                'ok': False,
-                'error': f"Error inesperado: {str(e)}",
-                'tipo': type(e).__name__
-            }, status=500)
+                'ok': False, 
+                'error': str(e)
+            })
+    return JsonResponse({
+        'ok': False, 
+        'error': 'Método no permitido'
+    }, status=405)
         
 from django.http import JsonResponse, FileResponse, Http404
 
@@ -483,17 +465,19 @@ from django.http import JsonResponse, FileResponse, Http404
 def descargar_pdf(request, archivo_nombre):
     # Prevenir directory traversal
     archivo_nombre = os.path.basename(archivo_nombre)
-    ruta_pdf = os.path.join(settings.MEDIA_ROOT, 'informes_pdf', archivo_nombre)
-
+    ruta_pdf = os.path.join(settings.BASE_DIR, 'generated_pdfs', archivo_nombre)
+    
     try:
         # Verificar que el archivo existe y es un PDF
         if not os.path.exists(ruta_pdf) or not archivo_nombre.lower().endswith('.pdf'):
             raise Http404("Archivo no encontrado")
+            
         response = FileResponse(
-            open(ruta_pdf, 'rb'),
+            open(ruta_pdf, 'rb'), 
             content_type='application/pdf'
         )
         response['Content-Disposition'] = f'attachment; filename="{archivo_nombre}"'
         return response
+        
     except FileNotFoundError:
         raise Http404("El archivo no existe")
