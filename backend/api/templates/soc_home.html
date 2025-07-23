@@ -193,51 +193,59 @@ async function regenInforme() {
     regenSpinner.hidden = false;
 
     try {
+        // Agregar timestamp para nombre único
+        const timestamp = new Date().getTime();
+        const nombreArchUnico = `${nombreArch.replace('.pdf', '')}_${timestamp}.pdf`;
+        
         const response = await fetch('/ejecutar-comando/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            body: JSON.stringify({
+            body: JSON.stringify({ 
                 informe: informe,
-                nombreArch: nombreArch
+                nombreArch: nombreArchUnico
             })
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || "Error en el servidor");
+            let errorMsg = data.error || "Error en el servidor";
+            
+            // Manejo específico de errores conocidos
+            if (errorMsg.includes("File with same name already exists")) {
+                errorMsg = "Error: Archivo duplicado. Por favor intente nuevamente.";
+            } else if (errorMsg.includes("exit is not a function")) {
+                errorMsg = "Error interno al generar el PDF. Contacte al administrador.";
+            }
+            
+            throw new Error(errorMsg);
         }
 
         if (data.ok) {
             // Descargar automáticamente
             const link = document.createElement('a');
             link.href = data.download_url;
-            link.download = nombreArch;
+            link.download = nombreArchUnico;
             document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
             
-            // Habilitar botón de enviar
-            document.getElementById("enviar").hidden = false;
-        } else {
-            throw new Error(data.error || "Error al generar PDF");
+            // Eliminar el enlace después de la descarga
+            setTimeout(() => {
+                document.body.removeChild(link);
+                
+                // Habilitar botón de enviar
+                document.getElementById("enviar").hidden = false;
+                
+                // Actualizar nombreArch para el próximo uso
+                nombreArch = nombreArchUnico;
+            }, 100);
         }
     } catch (error) {
         console.error("Error completo:", error);
-        
-        let mensajeError = "Error al generar el informe";
-        if (error.message.includes("Fetching the arguments values")) {
-            mensajeError += "\nPosible problema de conexión con OpenSearch";
-        } else if (error.message.includes("NOTE: The AWS SDK for JavaScript")) {
-            mensajeError += "\nAdvertencia de AWS SDK (puede ignorarse)";
-        } else {
-            mensajeError += `: ${error.message}`;
-        }
-        
-        mostrarError(mensajeError);
+        mostrarError(error.message);
     } finally {
         btnRegen.disabled = false;
         regenText.textContent = "Generar Informe PDF";
@@ -247,25 +255,24 @@ async function regenInforme() {
 
 function mostrarError(mensaje) {
     // Implementación mejorada de notificación
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'alert alert-danger alert-dismissible fade show';
-    errorDiv.style.position = 'fixed';
-    errorDiv.style.top = '20px';
-    errorDiv.style.right = '20px';
-    errorDiv.style.zIndex = '1000';
-    errorDiv.style.maxWidth = '400px';
-    errorDiv.innerHTML = `
-        <strong>Error!</strong> ${mensaje.replace(/\n/g, '<br>')}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-danger';
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '10000';
+    notification.style.maxWidth = '400px';
+    notification.innerHTML = `
+        <strong>Error!</strong> ${mensaje}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
     `;
-    document.body.appendChild(errorDiv);
+    document.body.appendChild(notification);
     
     // Auto-eliminar después de 10 segundos
     setTimeout(() => {
-        errorDiv.remove();
+        notification.remove();
     }, 10000);
 }
-
 function actualizarPreview() {
   let asunto = document.getElementById("asunto").value;
   let fecha_1 = document.getElementById("fecha_1").value;

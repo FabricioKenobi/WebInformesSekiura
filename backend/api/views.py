@@ -397,30 +397,38 @@ def ejecutar_comando_cliente(request):
             informe_url = data.get('informe')
             nombre_archivo = data.get('nombreArch')
             
-            # Validación mejorada de la URL
-            if not informe_url or not informe_url.startswith('https://'):
+            # Validación de parámetros
+            if not informe_url:
                 return JsonResponse({
                     'ok': False, 
-                    'error': 'URL no válida o no proporcionada'
+                    'error': 'URL no especificada'
                 }, status=400)
 
-            # Preparar nombre de archivo
-            nombre_archivo = f"{nombre_archivo}.pdf" if not nombre_archivo.endswith('.pdf') else nombre_archivo
+            # Asegurar nombre único para el archivo
+            timestamp = int(time.time())
+            nombre_base = os.path.splitext(nombre_archivo)[0] if nombre_archivo else 'informe'
+            nombre_archivo = f"{nombre_base}_{timestamp}.pdf"
             
             # Directorio para PDFs
             carpeta_pdf = os.path.join(settings.MEDIA_ROOT, 'informes_pdf')
             os.makedirs(carpeta_pdf, exist_ok=True)
             ruta_pdf = os.path.join(carpeta_pdf, nombre_archivo)
             
-            # Eliminar archivo existente si existe
+            # Eliminar archivo existente si hay
             if os.path.exists(ruta_pdf):
-                os.remove(ruta_pdf)
+                try:
+                    os.remove(ruta_pdf)
+                except Exception as e:
+                    return JsonResponse({
+                        'ok': False,
+                        'error': f"No se pudo eliminar archivo existente: {str(e)}"
+                    })
 
-            # Comando con variables de entorno para Node.js
+            # Configurar entorno para Node.js
             env = os.environ.copy()
-            env['NODE_NO_WARNINGS'] = '1'  # Suprimir advertencias de AWS SDK
+            env['NODE_NO_WARNINGS'] = '1'
             
-            # Ejecutar comando con timeout
+            # Ejecutar comando
             try:
                 resultado = subprocess.run(
                     [
@@ -430,50 +438,43 @@ def ejecutar_comando_cliente(request):
                         '--credentials', 'sekiura-reports:Sekiura2025*',
                         '--format', 'pdf',
                         '--filename', ruta_pdf,
-                        '--timeout', '300'  # 5 minutos
+                        '--overwrite',  # Asegurar sobrescritura
+                        '--timeout', '300'
                     ],
                     capture_output=True,
                     text=True,
-                    timeout=600,  # 10 minutos máximo
+                    timeout=600,
                     env=env
                 )
             except subprocess.TimeoutExpired:
                 return JsonResponse({
                     'ok': False,
-                    'error': 'Tiempo de espera agotado (10 minutos)'
+                    'error': 'Tiempo de espera agotado'
                 })
 
-            # Verificación robusta del PDF generado
-            if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 1024:  # Al menos 1KB
+            # Verificar generación del PDF
+            if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 0:
                 return JsonResponse({
                     'ok': True,
                     'filename': nombre_archivo,
-                    'download_url': f'/media/informes_pdf/{nombre_archivo}',
-                    'size': os.path.getsize(ruta_pdf)
+                    'download_url': f'/descargar-pdf/{nombre_archivo}'
                 })
             else:
-                # Analizar salida para diagnóstico
                 error_msg = "Error al generar PDF:\n"
-                if resultado.stdout:
-                    error_msg += f"STDOUT: {resultado.stdout}\n"
                 if resultado.stderr:
-                    error_msg += f"STDERR: {resultado.stderr}\n"
+                    error_msg += resultado.stderr
+                if "File with same name already exists" in error_msg:
+                    error_msg += "\nSolución: Se ha intentado sobrescribir pero falló. Intente nuevamente."
                 
                 return JsonResponse({
                     'ok': False,
-                    'error': error_msg,
-                    'detalles': {
-                        'url_usada': informe_url,
-                        'ruta_pdf': ruta_pdf,
-                        'comando_ejecutado': ' '.join(resultado.args)
-                    }
+                    'error': error_msg.strip()
                 })
 
         except Exception as e:
             return JsonResponse({
                 'ok': False,
-                'error': f"Error inesperado: {str(e)}",
-                'tipo_error': type(e).__name__
+                'error': f"Error inesperado: {str(e)}"
             }, status=500)
 from django.http import JsonResponse, FileResponse, Http404
 @login_required
