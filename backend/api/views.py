@@ -397,69 +397,80 @@ def ejecutar_comando_cliente(request):
             informe_url = data.get('informe')
             nombre_archivo = data.get('nombreArch')
             
-            # Validación de parámetros
-            if not informe_url:
+            # Validación mejorada
+            if not informe_url or not nombre_archivo:
                 return JsonResponse({
                     'ok': False, 
-                    'error': 'URL no especificada'
+                    'error': 'Faltan parámetros requeridos (URL o nombre de archivo)'
                 }, status=400)
-                
-            if not nombre_archivo:
-                return JsonResponse({
-                    'ok': False, 
-                    'error': 'Nombre de archivo no especificado'
-                }, status=400)
+
+            # Asegurar extensión .pdf
+            nombre_archivo = nombre_archivo if nombre_archivo.endswith('.pdf') else f"{nombre_archivo}.pdf"
             
-            # Asegurar que el nombre del archivo termine en .pdf
-            if not nombre_archivo.endswith('.pdf'):
-                nombre_archivo += '.pdf'
-            
-            # Ruta donde se guardará el PDF
-            carpeta_pdf = os.path.join(settings.BASE_DIR, 'generated_pdfs')
+            # Directorio para PDFs con permisos
+            carpeta_pdf = os.path.join(settings.MEDIA_ROOT, 'informes_pdf')
             os.makedirs(carpeta_pdf, exist_ok=True)
             ruta_pdf = os.path.join(carpeta_pdf, nombre_archivo)
             
-            # Ejecutar el comando
-            resultado = subprocess.run(
-                [
-                    '/usr/local/bin/opensearch-reporting-cli',
-                    '--url', informe_url,
-                    '--auth', 'basic',
-                    '--credentials', 'sekiura-reports:Sekiura2025*',
-                    '--format', 'pdf',
-                    '--filename', ruta_pdf
-                ],
-                capture_output=True, text=True, check=True
-            )
-            
-            # Verificar si el archivo se creó correctamente
+            # Eliminar PDF existente si hay
             if os.path.exists(ruta_pdf):
+                os.remove(ruta_pdf)
+
+            # Ejecutar comando con timeout
+            try:
+                resultado = subprocess.run(
+                    [
+                        '/usr/local/bin/opensearch-reporting-cli',
+                        '--url', informe_url,
+                        '--auth', 'basic',
+                        '--credentials', 'sekiura-reports:Sekiura2025*',
+                        '--format', 'pdf',
+                        '--filename', ruta_pdf,
+                        '--timeout', '120'  # 2 minutos de timeout
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=300  # 5 minutos máximo
+                )
+            except subprocess.TimeoutExpired:
                 return JsonResponse({
-                    'ok': True, 
-                    'output': resultado.stdout,
+                    'ok': False,
+                    'error': 'El comando excedió el tiempo máximo de ejecución'
+                })
+
+            # Verificación robusta del PDF generado
+            if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 0:
+                # Registrar éxito
+                print(f"PDF generado correctamente en: {ruta_pdf}")
+                return JsonResponse({
+                    'ok': True,
                     'filename': nombre_archivo,
-                    'download_url': f'/descargar-pdf/{nombre_archivo}'
+                    'download_url': f'/descargar-pdf/{nombre_archivo}',
+                    'size': os.path.getsize(ruta_pdf)
                 })
             else:
-                return JsonResponse({
-                    'ok': False, 
-                    'error': 'El comando se ejecutó pero no se generó el PDF'
-                })
+                # Log detallado del error
+                error_msg = "El comando no generó el PDF esperado. "
+                if resultado.stderr:
+                    error_msg += f"Error: {resultado.stderr}"
+                else:
+                    error_msg += "No se recibió mensaje de error."
                 
-        except subprocess.CalledProcessError as e:
-            return JsonResponse({
-                'ok': False, 
-                'error': f"Error en el comando: {e.stderr}"
-            })
+                print(error_msg)
+                return JsonResponse({
+                    'ok': False,
+                    'error': error_msg,
+                    'stdout': resultado.stdout,
+                    'stderr': resultado.stderr
+                })
+
         except Exception as e:
+            error_msg = f"Error inesperado: {str(e)}"
+            print(error_msg)
             return JsonResponse({
-                'ok': False, 
-                'error': str(e)
-            })
-    return JsonResponse({
-        'ok': False, 
-        'error': 'Método no permitido'
-    }, status=405)
+                'ok': False,
+                'error': error_msg
+            }, status=500)
 from django.http import JsonResponse, FileResponse, Http404
 @login_required
 def descargar_pdf(request, archivo_nombre):

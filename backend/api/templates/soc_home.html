@@ -178,9 +178,8 @@ function formatearFecha(fechaStr) {
 }
 
 function regenInforme() {
-    // Verificar que la URL es válida
-    if (!informe || !informe.startsWith('http')) {
-        alert('Error: La URL del dashboard no es válida. Por favor, selecciona un cliente primero.');
+    if (!informe) {
+        mostrarError('No se ha configurado la URL del dashboard');
         return;
     }
 
@@ -188,51 +187,73 @@ function regenInforme() {
     const regenText = document.getElementById("regen-text");
     const regenSpinner = document.getElementById("regen-spinner");
     
-    // Deshabilitar el botón y mostrar estado de carga
-    if (btnRegen) btnRegen.disabled = true;
-    if (regenText) regenText.textContent = "Generando...";
-    if (regenSpinner) regenSpinner.hidden = false;
-    
-    console.log('Enviando a backend:', { informe, nombreArch });
-    
+    // Estado de carga
+    btnRegen.disabled = true;
+    regenText.textContent = "Generando PDF...";
+    regenSpinner.hidden = false;
+
+    // Datos para el request
+    const payload = {
+        informe: informe,
+        nombreArch: nombreArch
+    };
+
+    console.log("Enviando datos:", payload);
+
     fetch('/ejecutar-comando/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: JSON.stringify({ 
-            informe: informe,
-            nombreArch: nombreArch 
-        })
+        body: JSON.stringify(payload)
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Error en la respuesta del servidor');
+            return response.json().then(err => Promise.reject(err));
         }
         return response.json();
     })
     .then(data => {
         if (data.ok) {
             if (data.download_url) {
-                // Descargar automáticamente
-                window.location.href = data.download_url;
+                // Forzar descarga
+                const link = document.createElement('a');
+                link.href = data.download_url;
+                link.download = nombreArch;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Habilitar botón de enviar
+                document.getElementById("enviar").hidden = false;
             }
-            document.getElementById("enviar").hidden = false;
         } else {
-            throw new Error(data.error || "Error al generar el informe");
+            throw new Error(data.error || "Error desconocido al generar PDF");
         }
     })
     .catch(error => {
         console.error("Error:", error);
-        alert(error.message);
+        mostrarError(`Error al generar el informe: ${error.message}`);
+        
+        // Mostrar detalles técnicos en consola
+        if (error.response) {
+            error.response.json().then(details => {
+                console.log("Detalles del error:", details);
+            });
+        }
     })
     .finally(() => {
-        // Restaurar el estado del botón
-        if (btnRegen) btnRegen.disabled = false;
-        if (regenText) regenText.textContent = "Generar Informe PDF";
-        if (regenSpinner) regenSpinner.hidden = true;
+        btnRegen.disabled = false;
+        regenText.textContent = "Generar Informe PDF";
+        regenSpinner.hidden = true;
     });
+}
+
+function mostrarError(mensaje) {
+    // Puedes implementar un sistema de notificaciones más elegante
+    alert(mensaje);
+    console.error(mensaje);
 }
 
 function actualizarPreview() {
