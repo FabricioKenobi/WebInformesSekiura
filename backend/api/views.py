@@ -394,38 +394,81 @@ def ejecutar_comando_cliente(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            global informe
-            informe = data.get('informe')
-            nombreArch = data.get('nombreArch')
+            informe_url = data.get('informe')
+            nombre_archivo = data.get('nombreArch')
             
-        
-            # Ejecutar el comando en bash (ejemplo)
+            # Asegurar que el nombre del archivo termine en .pdf
+            if not nombre_archivo.endswith('.pdf'):
+                nombre_archivo += '.pdf'
+            
+            # Ruta donde se guardará el PDF
+            carpeta_pdf = os.path.join(settings.BASE_DIR, 'generated_pdfs')
+            os.makedirs(carpeta_pdf, exist_ok=True)
+            ruta_pdf = os.path.join(carpeta_pdf, nombre_archivo)
+            
+            # Ejecutar el comando
             resultado = subprocess.run(
-            [
-                #"cmd", "/c", "ping google.com"
-                '/usr/local/bin/opensearch-reporting-cli',
-                '--url', informe,
-                '--auth', 'basic',
-                '--credentials', 'sekiura-reports:Sekiura2025*',
-                '--format', 'pdf',
-                '--filename', nombreArch
-            ],
+                [
+                    '/usr/local/bin/opensearch-reporting-cli',
+                    '--url', informe_url,
+                    '--auth', 'basic',
+                    '--credentials', 'sekiura-reports:Sekiura2025*',
+                    '--format', 'pdf',
+                    '--filename', ruta_pdf  # Guardar directamente en la ruta especificada
+                ],
                 capture_output=True, text=True, check=True
             )
             
-
-            return JsonResponse({'ok': True, 'output': resultado.stdout})
+            # Verificar si el archivo se creó correctamente
+            if os.path.exists(ruta_pdf):
+                return JsonResponse({
+                    'ok': True, 
+                    'output': resultado.stdout,
+                    'filename': nombre_archivo,
+                    'download_url': f'/descargar-pdf/{nombre_archivo}'
+                })
+            else:
+                return JsonResponse({
+                    'ok': False, 
+                    'error': 'El comando se ejecutó pero no se generó el PDF'
+                })
+                
+        except subprocess.CalledProcessError as e:
+            return JsonResponse({
+                'ok': False, 
+                'error': f"Error en el comando: {e.stderr}"
+            })
         except Exception as e:
-            return JsonResponse({'ok': False, 'error': str(e)})
-    return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
+            return JsonResponse({
+                'ok': False, 
+                'error': str(e)
+            })
+    return JsonResponse({
+        'ok': False, 
+        'error': 'Método no permitido'
+    }, status=405)
 
 from django.http import FileResponse, Http404
+from django.conf import settings
+import os
 
+@login_required
 def descargar_pdf(request, archivo_nombre):
-    ruta_pdf = f"/home/hermes/WebInformesSekiura/backend/{archivo_nombre}"
+    # Prevenir directory traversal
+    archivo_nombre = os.path.basename(archivo_nombre)
+    ruta_pdf = os.path.join(settings.BASE_DIR, 'generated_pdfs', archivo_nombre)
+    
     try:
-        response = FileResponse(open(ruta_pdf, 'rb'), content_type='application/pdf')
+        # Verificar que el archivo existe y es un PDF
+        if not os.path.exists(ruta_pdf) or not archivo_nombre.lower().endswith('.pdf'):
+            raise Http404("Archivo no encontrado")
+            
+        response = FileResponse(
+            open(ruta_pdf, 'rb'), 
+            content_type='application/pdf'
+        )
         response['Content-Disposition'] = f'attachment; filename="{archivo_nombre}"'
         return response
+        
     except FileNotFoundError:
         raise Http404("El archivo no existe")

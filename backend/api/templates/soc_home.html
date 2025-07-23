@@ -235,36 +235,45 @@ function formatearFecha(fechaStr) {
   texto = texto.replace(/\b\w/g, l => l.toUpperCase());
   return texto.replaceAll('De','de');
 }
-function regenInforme(){
-  fetch('/ejecutar-comando/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': '{{ csrf_token }}'
-      },
-      body: JSON.stringify({ 
-        informe: informe,
-        nombreArch : nombreArch 
-      })
+function regenInforme() {
+    const btnRegen = document.getElementById("regen");
+    btnRegen.disabled = true;
+    btnRegen.textContent = "Generando...";
+    
+    fetch('/ejecutar-comando/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ 
+            informe: informe,
+            nombreArch: nombreArch 
+        })
     })
     .then(response => response.json())
     .then(data => {
-      console.log("Comando ejecutado:", data.output || data.error);
-      if (data.ok && data.filename) {
-      // Muestra un enlace de descarga (o lo descarga automáticamente)
-      const enlace = document.createElement('a');
-      enlace.href = `/descargar-pdf/${encodeURIComponent(data.filename)}`;
-      enlace.download = data.filename;
-      enlace.textContent = "Descargar PDF generado";
-      document.body.appendChild(enlace);
-      // Si querés que la descarga sea inmediata:
-      enlace.click();
-      // Opcional: remover el enlace después
-      enlace.remove();
-    }
-    document.getElementById("enviar").hidden = false;
+        if (data.ok) {
+            if (data.download_url) {
+                // Descargar automáticamente
+                window.location.href = data.download_url;
+                
+                // También podrías mostrar un mensaje de éxito
+                alert("Informe generado correctamente. La descarga comenzará automáticamente.");
+            }
+            document.getElementById("enviar").hidden = false;
+        } else {
+            alert("Error al generar el informe: " + (data.error || "Error desconocido"));
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("Error al comunicarse con el servidor");
+    })
+    .finally(() => {
+        btnRegen.disabled = false;
+        btnRegen.textContent = "Re-hacer informe";
     });
-    
 }
 
 function actualizarPreview() {
@@ -289,18 +298,23 @@ function actualizarPreview() {
   let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
   let informe = "";
   let nombre = "";
-  if(tipoPlantilla.includes('proto')){
-    if(tipoPlantilla.includes('diario')){
-      informe = `https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
-    }else if(tipoPlantilla.includes('semanal')){
-      informe = `https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Semanal-`+fecha_2;
-    }else if(tipoPlantilla.includes('mensual')){
-      informe = `https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Mensual-`+fecha_2;
-    }
-    regenInforme();
+   if(tipoPlantilla.includes('proto')){
+        if(tipoPlantilla.includes('diario')){
+            informe = `https://${ip}/app/dashboards#/view/${codeDiario}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+            nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Diario-${fecha_2}.pdf`;
+        } else if(tipoPlantilla.includes('semanal')){
+            informe = `https://${ip}/app/dashboards#/view/${codeSemanal}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+            nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Semanal-${fecha_2}.pdf`;
+        } else if(tipoPlantilla.includes('mensual')){
+            informe = `https://${ip}/app/dashboards#/view/${codeMes}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+            nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Mensual-${fecha_2}.pdf`;
+        }
+        
+        // Mostrar estado de carga
+        document.getElementById('regen-text').textContent = "Generando informe...";
+        document.getElementById('regen-spinner').hidden = false;
+        
+        regenInforme();
   }
   let asunto_personalizado = asunto
     .replaceAll("{cliente}", cliente_nombre)
