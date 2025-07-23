@@ -188,6 +188,10 @@ async function regenInforme() {
         regenText.textContent = "Generando PDF...";
         regenSpinner.hidden = false;
 
+        // Agregar timestamp para nombre único
+        const timestamp = new Date().getTime();
+        const nombreArchUnico = `${nombreArch.replace('.pdf', '')}_${timestamp}.pdf`;
+        
         const response = await fetch('/ejecutar-comando/', {
             method: 'POST',
             headers: {
@@ -196,14 +200,21 @@ async function regenInforme() {
             },
             body: JSON.stringify({ 
                 informe: informe,
-                nombreArch: nombreArch 
+                nombreArch: nombreArchUnico
             })
         });
 
         const data = await response.json();
 
         if (!response.ok || !data.ok) {
-            throw new Error(data.error || "Error al generar el PDF");
+            let errorMsg = data.error || "Error al generar el PDF";
+            
+            // Manejo específico de errores conocidos
+            if (errorMsg.includes("unknown option")) {
+                errorMsg = "Error de configuración. Contacte al administrador.";
+            }
+            
+            throw new Error(errorMsg);
         }
 
         // Descargar automáticamente
@@ -212,10 +223,17 @@ async function regenInforme() {
         link.download = data.filename;
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
         
-        // Habilitar botón de enviar
-        document.getElementById("enviar").hidden = false;
+        // Eliminar el enlace después de la descarga
+        setTimeout(() => {
+            document.body.removeChild(link);
+            
+            // Habilitar botón de enviar
+            document.getElementById("enviar").hidden = false;
+            
+            // Actualizar nombreArch para el próximo uso
+            nombreArch = nombreArchUnico;
+        }, 100);
         
     } catch (error) {
         console.error("Error completo:", error);
@@ -228,10 +246,25 @@ async function regenInforme() {
 }
 
 function mostrarError(mensaje) {
-    // Implementa tu lógica para mostrar errores al usuario
-    alert(mensaje);
+    // Implementación mejorada de notificación
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-danger alert-dismissible';
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '1000';
+    notification.style.maxWidth = '400px';
+    notification.innerHTML = `
+        <strong>Error!</strong> ${mensaje}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    document.body.appendChild(notification);
+    
+    // Auto-eliminar después de 10 segundos
+    setTimeout(() => {
+        notification.remove();
+    }, 10000);
 }
-
 function actualizarPreview() {
   let asunto = document.getElementById("asunto").value;
   let fecha_1 = document.getElementById("fecha_1").value;

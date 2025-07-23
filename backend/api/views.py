@@ -405,16 +405,17 @@ def ejecutar_comando_cliente(request):
                     'error': 'URL no especificada'
                 }, status=400)
 
-            # Generar nombre de archivo único con timestamp
-            timestamp = int(time.time())  # <-- Ahora time está definido
+            # Generar nombre de archivo único
+            timestamp = int(time.time())
             nombre_base = os.path.splitext(nombre_archivo)[0] if nombre_archivo else 'informe'
             nombre_archivo = f"{nombre_base}_{timestamp}.pdf"
             
-            # Resto del código permanece igual...
+            # Directorio para PDFs
             carpeta_pdf = os.path.join(settings.MEDIA_ROOT, 'informes_pdf')
             os.makedirs(carpeta_pdf, exist_ok=True)
             ruta_pdf = os.path.join(carpeta_pdf, nombre_archivo)
             
+            # Eliminar archivo existente si existe (solución alternativa a --overwrite)
             if os.path.exists(ruta_pdf):
                 try:
                     os.remove(ruta_pdf)
@@ -424,7 +425,7 @@ def ejecutar_comando_cliente(request):
                         'error': f"No se pudo eliminar archivo existente: {str(e)}"
                     })
 
-            # Ejecutar comando
+            # Comando sin la opción --overwrite
             try:
                 resultado = subprocess.run(
                     [
@@ -434,7 +435,6 @@ def ejecutar_comando_cliente(request):
                         '--credentials', 'sekiura-reports:Sekiura2025*',
                         '--format', 'pdf',
                         '--filename', ruta_pdf,
-                        '--overwrite',
                         '--timeout', '300'
                     ],
                     capture_output=True,
@@ -447,7 +447,7 @@ def ejecutar_comando_cliente(request):
                     'error': 'Tiempo de espera agotado (10 minutos)'
                 })
 
-            # Verificar generación del PDF
+            # Verificación del PDF generado
             if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 0:
                 return JsonResponse({
                     'ok': True,
