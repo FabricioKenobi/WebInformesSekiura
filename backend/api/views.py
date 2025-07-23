@@ -205,9 +205,20 @@ def crear_email_personalizado(request):
         if archivos:
             archivo_pdf = max(archivos, key=os.path.getmtime)
             with open(archivo_pdf, 'rb') as f:
-                email.attach(os.path.basename(archivo_pdf), f.read(), 'application/pdf')
-                f.seek(0)
                 django_file  = File(f, name=os.path.basename(archivo_pdf))
+                EmailEnviado.objects.create(
+                    usuario=request.user,
+                    cliente=cliente,
+                    asunto=asunto_final,
+                    cuerpo=cuerpo_html_final,
+                    enviado=True,
+                    fecha_evento=timezone.now(),
+                    fecha_envio=timezone.now(),
+                    #archivo_adjunto=archivo
+                    archivo_adjunto = django_file
+                )
+                email.attach(os.path.basename(archivo_pdf), f.read(), 'application/pdf')
+                
         if archivo:
             email.attach(archivo.name, archivo.read(), archivo.content_type)
         
@@ -216,17 +227,7 @@ def crear_email_personalizado(request):
         except Exception as e:
             print("Error al enviar correo:", e)'''
        
-        EmailEnviado.objects.create(
-            usuario=request.user,
-            cliente=cliente,
-            asunto=asunto_final,
-            cuerpo=cuerpo_html_final,
-            enviado=True,
-            fecha_evento=timezone.now(),
-            fecha_envio=timezone.now(),
-            #archivo_adjunto=archivo
-            archivo_adjunto = django_file
-        )
+       
         if archivo_pdf:
             try:
                 os.remove(archivo_pdf)
