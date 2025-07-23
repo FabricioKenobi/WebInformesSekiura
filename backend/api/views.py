@@ -398,11 +398,11 @@ def ejecutar_comando_cliente(request):
             informe_url = data.get('informe')
             nombre_archivo = data.get('nombreArch')
             
-            # Validación de parámetros
-            if not informe_url:
+            # Validación mejorada de URL
+            if not informe_url or not informe_url.startswith('https://'):
                 return JsonResponse({
                     'ok': False, 
-                    'error': 'URL no especificada'
+                    'error': 'URL no válida o no proporcionada'
                 }, status=400)
 
             # Generar nombre de archivo único
@@ -415,17 +415,15 @@ def ejecutar_comando_cliente(request):
             os.makedirs(carpeta_pdf, exist_ok=True)
             ruta_pdf = os.path.join(carpeta_pdf, nombre_archivo)
             
-            # Eliminar archivo existente si existe (solución alternativa a --overwrite)
+            # Eliminar archivo existente si hay
             if os.path.exists(ruta_pdf):
-                try:
-                    os.remove(ruta_pdf)
-                except Exception as e:
-                    return JsonResponse({
-                        'ok': False,
-                        'error': f"No se pudo eliminar archivo existente: {str(e)}"
-                    })
+                os.remove(ruta_pdf)
 
-            # Comando sin la opción --overwrite
+            # Configurar entorno para Node.js
+            env = os.environ.copy()
+            env['NODE_NO_WARNINGS'] = '1'  # Suprimir advertencias de AWS SDK
+            
+            # Ejecutar comando
             try:
                 resultado = subprocess.run(
                     [
@@ -439,7 +437,8 @@ def ejecutar_comando_cliente(request):
                     ],
                     capture_output=True,
                     text=True,
-                    timeout=600
+                    timeout=600,
+                    env=env
                 )
             except subprocess.TimeoutExpired:
                 return JsonResponse({
@@ -447,27 +446,35 @@ def ejecutar_comando_cliente(request):
                     'error': 'Tiempo de espera agotado (10 minutos)'
                 })
 
-            # Verificación del PDF generado
-            if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 0:
+            # Verificación robusta del PDF generado
+            if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 1024:  # Al menos 1KB
                 return JsonResponse({
                     'ok': True,
                     'filename': nombre_archivo,
-                    'download_url': f'/descargar-pdf/{nombre_archivo}'
+                    'download_url': f'/media/informes_pdf/{nombre_archivo}',
+                    'size': os.path.getsize(ruta_pdf)
                 })
             else:
-                error_msg = "Error al generar PDF"
+                error_msg = "El PDF no se generó correctamente"
+                if resultado.stdout:
+                    error_msg += f"\nSalida: {resultado.stdout}"
                 if resultado.stderr:
-                    error_msg += f": {resultado.stderr}"
+                    error_msg += f"\nError: {resultado.stderr}"
                 
                 return JsonResponse({
                     'ok': False,
-                    'error': error_msg
+                    'error': error_msg,
+                    'detalles': {
+                        'ruta_pdf': ruta_pdf,
+                        'tamaño': os.path.getsize(ruta_pdf) if os.path.exists(ruta_pdf) else 0
+                    }
                 })
 
         except Exception as e:
             return JsonResponse({
                 'ok': False,
-                'error': f"Error inesperado: {str(e)}"
+                'error': f"Error inesperado: {str(e)}",
+                'tipo': type(e).__name__
             }, status=500)
         
 from django.http import JsonResponse, FileResponse, Http404
