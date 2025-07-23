@@ -196,7 +196,7 @@ def crear_email_personalizado(request):
 
         # 3. Modificar el HTML para incluir la imagen
         import glob
-        
+        from django.core.files import File
 
         carpeta = "/home/hermes/WebInformesSekiura/backend/"
         patron = f"{cliente.nombre}-Informe-Ejecutivo-*"
@@ -208,10 +208,12 @@ def crear_email_personalizado(request):
                 email.attach(os.path.basename(archivo_pdf), f.read(), 'application/pdf')
         if archivo:
             email.attach(archivo.name, archivo.read(), archivo.content_type)
-        try:
+        f.seek(0)
+        django_file = File(f, name=os.path.basename(archivo_pdf))
+        '''try:
             email.send()
         except Exception as e:
-            print("Error al enviar correo:", e)
+            print("Error al enviar correo:", e)'''
        
         EmailEnviado.objects.create(
             usuario=request.user,
@@ -222,7 +224,7 @@ def crear_email_personalizado(request):
             fecha_evento=timezone.now(),
             fecha_envio=timezone.now(),
             #archivo_adjunto=archivo
-            archivo_adjunto = archivo_pdf
+            archivo_adjunto = django_file
         )
         if archivo_pdf:
             try:
