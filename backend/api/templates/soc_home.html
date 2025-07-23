@@ -64,7 +64,8 @@
 
       <label>Cuerpo:</label>
       <textarea id="editor" name="cuerpo_html">{% autoescape off %}{{ cuerpo_html }}{% endautoescape %}</textarea>
-      <a href="https://vierci.sekiura.local:1433/app/dashboards#/view/7fafbed0-9632-11ef-8d4d-79ed7a3a118a?_g=(time:(from:'2025-06-01T03:00:00.000Z',to:'2025-07-01T02:59:59.000Z'))">ver informe</a>
+      <a id="dashboard" href="">ver informe</a>
+      <button id="regen" onclick="regenInforme()">Re-hacer informe</button>
       <button type="submit" id="enviar" class="btn btn-success w-100" hidden>✉️ Enviar email</button>
     </div>
   </div>
@@ -80,6 +81,8 @@ let codeDiario = "";
 let codeMes = "";
 let codeSemanal="";
 let fechatemp = new Date();
+let informe = "";
+let nombreArch = "";
  
 
 ClassicEditor
@@ -232,6 +235,37 @@ function formatearFecha(fechaStr) {
   texto = texto.replace(/\b\w/g, l => l.toUpperCase());
   return texto.replaceAll('De','de');
 }
+function regenInforme(){
+  fetch('/ejecutar-comando/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ 
+        informe: informe,
+        nombreArch : nombreArch 
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log("Comando ejecutado:", data.output || data.error);
+      if (data.ok && data.filename) {
+      // Muestra un enlace de descarga (o lo descarga automáticamente)
+      const enlace = document.createElement('a');
+      enlace.href = `/descargar-pdf/${encodeURIComponent(data.filename)}`;
+      enlace.download = data.filename;
+      enlace.textContent = "Descargar PDF generado";
+      document.body.appendChild(enlace);
+      // Si querés que la descarga sea inmediata:
+      enlace.click();
+      // Opcional: remover el enlace después
+      enlace.remove();
+    }
+    document.getElementById("enviar").hidden = false;
+    });
+    
+}
 
 function actualizarPreview() {
   let asunto = document.getElementById("asunto").value;
@@ -266,22 +300,7 @@ function actualizarPreview() {
       informe = `https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
       nombreArch = cliente_nombre+`-Informe-Ejecutivo-Mensual-`+fecha_2;
     }
-    fetch('/ejecutar-comando/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': '{{ csrf_token }}'
-      },
-      body: JSON.stringify({ 
-        informe: informe,
-        nombreArch : nombreArch 
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      console.log("Comando ejecutado:", data.output || data.error);
-      document.getElementById("enviar").hidden = false;
-    });
+    regenInforme();
   }
   let asunto_personalizado = asunto
     .replaceAll("{cliente}", cliente_nombre)
@@ -301,6 +320,8 @@ function actualizarPreview() {
     .replaceAll("{informeDiario}",informeDiario)
     .replaceAll("{informeSemanal}",informeSemanal)
     .replaceAll("{informeMensual}",informeMensual);
+  const refer = Document.getElementById('dashboard');
+  refer.setAttribute('href',informe);
   // Reemplazar contenido del editor con la plantilla personalizada
   if (window.miEditor) {
     window.miEditor.setData(cuerpo_personalizado);
