@@ -418,3 +418,14 @@ def ejecutar_comando_cliente(request):
         except Exception as e:
             return JsonResponse({'ok': False, 'error': str(e)})
     return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
+
+from django.http import FileResponse, Http404
+
+def descargar_pdf(request, archivo_nombre):
+    ruta_pdf = f"/home/hermes/WebInformesSekiura/backend/{archivo_nombre}"
+    try:
+        response = FileResponse(open(ruta_pdf, 'rb'), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{archivo_nombre}"'
+        return response
+    except FileNotFoundError:
+        raise Http404("El archivo no existe")
