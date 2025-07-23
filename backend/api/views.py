@@ -396,91 +396,104 @@ def ejecutar_comando_cliente(request):
         try:
             data = json.loads(request.body)
             informe_url = data.get('informe')
-            nombre_archivo = data.get('nombreArch')
+            nombre_archivo = data.get('nombreArch', 'informe').replace(' ', '_') + '.pdf'
             
-            # Validar y limpiar el nombre del archivo
-            nombre_archivo = ''.join(c for c in nombre_archivo if c.isalnum() or c in ('_', '-', '.')) + '.pdf'
-            
-            # Crear directorio específico para informes
-            informe_dir = os.path.join(settings.BASE_DIR, 'generated_pdfs')
+            # Crear directorio específico con permisos adecuados
+            informe_dir = os.path.join(settings.BASE_DIR, 'temp_pdfs')
             os.makedirs(informe_dir, exist_ok=True)
+            os.chmod(informe_dir, 0o777)  # Asegurar permisos de escritura
+            
             ruta_pdf = os.path.join(informe_dir, nombre_archivo)
             
-            # Eliminar PDF existente si hay uno
-            if os.path.exists(ruta_pdf):
-                os.remove(ruta_pdf)
+            # Comando con parámetros adicionales para diagnóstico
+            comando = [
+                '/usr/local/bin/opensearch-reporting-cli',
+                '--url', informe_url,
+                '--auth', 'basic',
+                '--credentials', 'sekiura-reports:Sekiura2025*',
+                '--format', 'pdf',
+                '--filename', ruta_pdf,
+                '--timeout', '900',  # 15 minutos de timeout
+                '--debug'  # Modo debug para más información
+            ]
             
-            # Ejecutar comando con timeout extendido
+            # Ejecutar comando con entorno completo
             resultado = subprocess.run(
-                [
-                    '/usr/local/bin/opensearch-reporting-cli',
-                    '--url', informe_url,
-                    '--auth', 'basic',
-                    '--credentials', 'sekiura-reports:Sekiura2025*',
-                    '--format', 'pdf',
-                    '--filename', ruta_pdf,
-                    '--timeout', '600'  # 10 minutos de timeout
-                ],
-                capture_output=True, 
-                text=True, 
-                check=True
+                comando,
+                capture_output=True,
+                text=True,
+                check=True,
+                env={**os.environ, 'NODE_NO_WARNINGS': '1'}  # Suprimir advertencias de AWS SDK
             )
             
-            # Esperar y verificar la creación del archivo
-            import time
-            max_attempts = 10
-            for _ in range(max_attempts):
+            # Verificación robusta del archivo generado
+            if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 1024:  # Al menos 1KB
+                return JsonResponse({
+                    'ok': True,
+                    'filename': nombre_archivo,
+                    'path': ruta_pdf,
+                    'download_url': f'/descargar-pdf/{nombre_archivo}',
+                    'output': resultado.stdout
+                })
+            else:
+                error_msg = "El PDF no se generó correctamente o está vacío"
                 if os.path.exists(ruta_pdf):
-                    file_size = os.path.getsize(ruta_pdf)
-                    if file_size > 0:  # Asegurar que el archivo no está vacío
-                        return JsonResponse({
-                            'ok': True,
-                            'filename': nombre_archivo,
-                            'download_url': f'/descargar-pdf/{nombre_archivo}'
-                        })
-                time.sleep(1)
-            
-            # Si llegamos aquí, el archivo no se generó
-            error_msg = "El PDF no se generó correctamente"
-            if resultado.stderr:
-                error_msg += f"\nError del comando: {resultado.stderr}"
-            return JsonResponse({
-                'ok': False,
-                'error': error_msg,
-                'output': resultado.stdout
-            })
-            
+                    error_msg += f" (Tamaño: {os.path.getsize(ruta_pdf)} bytes)"
+                return JsonResponse({
+                    'ok': False,
+                    'error': error_msg,
+                    'output': resultado.stdout,
+                    'error_output': resultado.stderr,
+                    'comando_ejecutado': ' '.join(comando)
+                })
+                
         except subprocess.CalledProcessError as e:
             return JsonResponse({
                 'ok': False,
-                'error': f"Error en el comando: {e.stderr}",
-                'output': e.stdout
+                'error': f"Error en el comando (exit code {e.returncode}): {e.stderr}",
+                'output': e.stdout,
+                'comando_ejecutado': ' '.join(comando)
             })
         except Exception as e:
             return JsonResponse({
                 'ok': False,
-                'error': str(e)
+                'error': str(e),
+                'comando_ejecutado': ' '.join(comando) if 'comando' in locals() else 'No se ejecutó'
             })
         
 from django.http import JsonResponse, FileResponse, Http404
 
 @login_required
 def descargar_pdf(request, archivo_nombre):
-    # Prevenir directory traversal
-    archivo_nombre = os.path.basename(archivo_nombre)
-    informe_dir = os.path.join(settings.BASE_DIR, 'generated_pdfs')
-    ruta_pdf = os.path.join(informe_dir, archivo_nombre)
-    
     try:
-        # Verificar que el archivo existe y no está vacío
-        if not os.path.exists(ruta_pdf) or os.path.getsize(ruta_pdf) == 0:
-            raise Http404("El PDF no existe o está vacío")
+        # Validación de seguridad
+        archivo_nombre = os.path.basename(archivo_nombre)
+        if not archivo_nombre.endswith('.pdf'):
+            raise Http404("Formato de archivo no válido")
             
-        response = FileResponse(
-            open(ruta_pdf, 'rb'),
-            content_type='application/pdf'
-        )
+        informe_dir = os.path.join(settings.BASE_DIR, 'temp_pdfs')
+        ruta_pdf = os.path.join(informe_dir, archivo_nombre)
+        
+        # Esperar activamente por el archivo (máximo 10 segundos)
+        timeout = 10
+        while timeout > 0 and (not os.path.exists(ruta_pdf) or os.path.getsize(ruta_pdf) == 0):
+            time.sleep(0.5)
+            timeout -= 0.5
+            
+        if not os.path.exists(ruta_pdf):
+            raise Http404(f"El PDF no existe en: {ruta_pdf}")
+        if os.path.getsize(ruta_pdf) == 0:
+            raise Http404("El PDF está vacío (0 bytes)")
+            
+        response = FileResponse(open(ruta_pdf, 'rb'), content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{archivo_nombre}"'
+        
+        # Opcional: eliminar el archivo después de descargar
+        try:
+            os.remove(ruta_pdf)
+        except:
+            pass
+            
         return response
         
     except Exception as e:
