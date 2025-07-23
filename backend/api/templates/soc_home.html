@@ -90,6 +90,57 @@
     border-radius: 5px;
     z-index: 1000;
 }
+
+/* Spinner animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.fa-spinner {
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+/* Error message styling */
+.error-message {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    padding: 15px;
+    background-color: #ff4444;
+    color: white;
+    border-radius: 5px;
+    max-width: 80%;
+    word-break: break-word;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+/* Loading modal */
+.loading-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+}
+
 </style>
 <script>
 let cliente_nombre = "";
@@ -192,6 +243,7 @@ function formatearFecha(fechaStr) {
 async function regenInforme() {
     const btnRegen = document.getElementById("regen");
     const originalText = btnRegen?.textContent;
+    let modal = null; // Declarar modal aquí para evitar el ReferenceError
     
     try {
         // Mostrar estado de carga
@@ -200,8 +252,8 @@ async function regenInforme() {
             btnRegen.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando PDF...';
         }
 
-        // Mostrar modal de carga
-        const modal = document.createElement('div');
+        // Crear y mostrar modal de carga
+        modal = document.createElement('div');
         modal.style.position = 'fixed';
         modal.style.top = '0';
         modal.style.left = '0';
@@ -213,16 +265,19 @@ async function regenInforme() {
         modal.style.justifyContent = 'center';
         modal.style.alignItems = 'center';
         modal.innerHTML = `
-            <div style="background: white; padding: 20px; border-radius: 5px;">
+            <div style="background: white; padding: 20px; border-radius: 5px; text-align: center;">
                 <h3>Generando informe PDF...</h3>
                 <p>Este proceso puede tardar varios minutos</p>
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Cargando...</span>
                 </div>
-                <div id="progress-text" class="mt-2"></div>
+                <div id="progress-text" class="mt-2">Por favor espere...</div>
             </div>
         `;
         document.body.appendChild(modal);
+
+        // Actualizar el DOM inmediatamente
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         // Ejecutar la generación del PDF
         const response = await fetch('/ejecutar-comando/', {
@@ -237,17 +292,28 @@ async function regenInforme() {
             })
         });
 
+        if (!response.ok) {
+            throw new Error(`Error HTTP ${response.status}`);
+        }
+
         const data = await response.json();
         
         if (!data.ok) {
             throw new Error(data.error || "Error desconocido al generar PDF");
         }
 
+        // Verificar que tenemos URL de descarga
+        if (!data.download_url) {
+            throw new Error("No se recibió URL de descarga");
+        }
+
         // Forzar descarga con parámetro de cache
         const downloadUrl = `${data.download_url}?t=${Date.now()}`;
         const link = document.createElement('a');
         link.href = downloadUrl;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
         
     } catch (error) {
         console.error("Error al generar informe:", error);
@@ -263,6 +329,8 @@ async function regenInforme() {
         errorDiv.style.backgroundColor = '#ff4444';
         errorDiv.style.color = 'white';
         errorDiv.style.borderRadius = '5px';
+        errorDiv.style.maxWidth = '80%';
+        errorDiv.style.wordBreak = 'break-word';
         errorDiv.innerHTML = `
             <strong>Error al generar el informe:</strong><br>
             ${error.message}<br>
@@ -271,13 +339,31 @@ async function regenInforme() {
         `;
         document.body.appendChild(errorDiv);
         
+        // Opcional: enviar el error al servidor para registro
+        try {
+            await fetch('/log-error/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    error: error.message,
+                    stack: error.stack,
+                    url: window.location.href
+                })
+            });
+        } catch (e) {
+            console.error("Error al registrar el error:", e);
+        }
+        
     } finally {
         // Restaurar estado original
         if (btnRegen) {
             btnRegen.disabled = false;
-            btnRegen.textContent = originalText;
+            btnRegen.textContent = originalText || "Re-hacer informe";
         }
-        if (modal) {
+        if (modal && modal.parentNode) {
             document.body.removeChild(modal);
         }
     }
