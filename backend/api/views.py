@@ -410,6 +410,8 @@ def ejecutar_comando_cliente(request):
     # 2) Normalizamos nombre a base + .pdf
     base, ext = os.path.splitext(nombre)
     nombre = f"{base}"
+    nombre = nombre.replace(' ', '\ ')
+
 
     # 3) Directorio y ruta completa
     output_dir  = "/home/hermes/WebInformesSekiura/backend"
