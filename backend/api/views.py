@@ -396,32 +396,45 @@ def ejecutar_comando_cliente(request):
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
 
-    # Parse JSON body
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
         return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
 
     informe = data.get('informe', '').strip()
-    nombreArch = data.get('nombreArch', '').strip()
-
-    # URL must be specified
+    nombre = data.get('nombreArch', '').strip()
     if not informe:
         return JsonResponse({'ok': False, 'error': 'URL not specified'}, status=400)
 
+    # Normalizar nombre a base + .pdf
+    base, ext = os.path.splitext(nombre)
+    nombre = f"{base}.pdf"
 
+    # Directorio de salida
+    output_dir = "/home/hermes/WebInformesSekiura/backend"
+    output_path = os.path.join(output_dir, nombre)
+
+    # Si ya existe, lo borramos para regenerar limpio
+    if os.path.exists(output_path):
+        try:
+            os.remove(output_path)
+        except OSError as e:
+            return JsonResponse({
+                'ok': False,
+                'error': f"No se pudo borrar el archivo previo: {e}"
+            }, status=500)
+
+    # Construir y ejecutar el comando
     cmd = [
         '/usr/local/bin/opensearch-reporting-cli',
         '--url', informe,
         '--auth', 'basic',
         '--credentials', 'sekiura-reports:Sekiura2025*',
         '--format', 'pdf',
-        '--filename', nombreArch
+        '--filename', output_path,
     ]
 
-    # Run without raising, to capture stderr/returncode
-    resultado = subprocess.run(cmd, capture_output=True, text=True, check=False)
-
+    resultado = subprocess.run(cmd, cwd=output_dir, capture_output=True, text=True, check=False)
     if resultado.returncode != 0:
         return JsonResponse({
             'ok': False,
@@ -429,10 +442,9 @@ def ejecutar_comando_cliente(request):
             'returncode': resultado.returncode
         }, status=500)
 
-    # Success: return filename for download
     return JsonResponse({
         'ok': True,
-        'filename': nombreArch,
+        'filename': nombre,
         'output': resultado.stdout.strip()
     })
 
