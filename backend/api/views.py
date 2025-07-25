@@ -416,8 +416,8 @@ def ejecutar_comando_cliente(request):
     # 3) Directorio y ruta completa
     output_dir  = "/home/hermes/WebInformesSekiura/backend"
     output_path = os.path.join(output_dir, nombre)
-    nombre = nombre.replace(' ', '\ ')
-    output_path_rm = os.path.join(output_dir, nombre)
+    nombre_rm = nombre.replace(' ', '\ ')
+    output_path_rm = os.path.join(output_dir, nombre_rm)
     
     print(output_path)
     # 5) Ejecutamos el CLI
