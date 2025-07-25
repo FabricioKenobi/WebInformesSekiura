@@ -235,38 +235,27 @@ function formatearFecha(fechaStr) {
   texto = texto.replace(/\b\w/g, l => l.toUpperCase());
   return texto.replaceAll('De','de');
 }
-function regenInforme() {
+function regenInforme(urlInforme, archivo) {
   fetch('/ejecutar-comando/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-CSRFToken': '{{ csrf_token }}'
     },
-    body: JSON.stringify({ 
-      informe: informe,
-      nombreArch: nombreArch 
-    })
+    body: JSON.stringify({ informe: urlInforme, nombreArch: archivo })
   })
-  .then(response => response.json())
+  .then(r => r.json())
   .then(data => {
     console.log("Comando ejecutado:", data.output || data.error);
     if (data.ok && data.filename) {
-      // Muestra enlace de descarga
-      const enlace = document.createElement('a');
-      enlace.href = `/descargar-pdf/${encodeURIComponent(data.filename)}`;
-      enlace.download = data.filename;
-      enlace.textContent = "Descargar PDF generado";
-      document.body.appendChild(enlace);
-      enlace.click();
-      enlace.remove();
-      document.getElementById("enviar").hidden = false;
+      // descarga automática
+      window.location.href = `/descargar-pdf/${encodeURIComponent(data.filename)}`;
     } else {
-      // Manejo de error
-      alert("Error al generar PDF:\n" + (data.error || "Código de retorno " + data.returncode));
+      alert("Error generando PDF: " + (data.error || data.stderr));
     }
   })
   .catch(err => {
-    console.error("Fetch falló:", err);
+    console.error(err);
     alert("No se pudo conectar con el servidor.");
   });
 }
