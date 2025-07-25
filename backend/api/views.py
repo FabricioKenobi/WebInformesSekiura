@@ -196,45 +196,42 @@ def crear_email_personalizado(request):
 
         # 3. Modificar el HTML para incluir la imagen
         import glob
-        from django.core.files import File
+        import os
 
         carpeta = "/home/hermes/WebInformesSekiura/backend/"
         patron = f"{cliente.nombre}-Informe-Ejecutivo-*"
         archivos = glob.glob(os.path.join(carpeta, patron))
+
         archivo_pdf = None
 
         if archivos:
             archivo_pdf = max(archivos, key=os.path.getmtime)
             with open(archivo_pdf, 'rb') as f:
-                django_file  = File(f, name=os.path.basename(archivo_pdf))
-                EmailEnviado.objects.create(
-                    usuario=request.user,
-                    cliente=cliente,
-                    asunto=asunto_final,
-                    cuerpo=cuerpo_html_final,
-                    enviado=True,
-                    fecha_evento=timezone.now(),
-                    fecha_envio=timezone.now(),
-                    #archivo_adjunto=archivo
-                    archivo_adjunto = django_file
-                )
                 email.attach(os.path.basename(archivo_pdf), f.read(), 'application/pdf')
-                
-        if archivo:
-            email.attach(archivo.name, archivo.read(), archivo.content_type)
-        
+
         try:
             email.send()
         except Exception as e:
             print("Error al enviar correo:", e)
-       
-       
+
+        # ✅ Eliminar el archivo luego de enviar el email
         if archivo_pdf:
             try:
                 os.remove(archivo_pdf)
                 print(f"Archivo {archivo_pdf} eliminado correctamente.")
             except Exception as e:
                 print(f"No se pudo eliminar el archivo {archivo_pdf}:", e)
+
+        EmailEnviado.objects.create(
+            usuario=request.user,
+            cliente=cliente,
+            asunto=asunto_final,
+            cuerpo=cuerpo_html_final,
+            enviado=True,
+            fecha_evento=timezone.now(),
+            fecha_envio=timezone.now(),
+            archivo_adjunto=archivo
+        )
 
         return redirect('home')
     
