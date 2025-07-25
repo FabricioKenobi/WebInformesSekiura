@@ -389,13 +389,14 @@ from django.http import JsonResponse
 informe = ""
 
 
+
 @csrf_exempt
 @login_required
 def ejecutar_comando_cliente(request):
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
 
-    # Parsear JSON
+    # Parse JSON body
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -404,11 +405,14 @@ def ejecutar_comando_cliente(request):
     informe = data.get('informe', '').strip()
     nombreArch = data.get('nombreArch', '').strip()
 
-    # Asegurar extensión .pdf
+    # URL must be specified
+    if not informe:
+        return JsonResponse({'ok': False, 'error': 'URL not specified'}, status=400)
+
+    # Ensure .pdf extension
     if not nombreArch.lower().endswith('.pdf'):
         nombreArch += '.pdf'
 
-    # Construir comando
     cmd = [
         '/usr/local/bin/opensearch-reporting-cli',
         '--url', informe,
@@ -418,7 +422,7 @@ def ejecutar_comando_cliente(request):
         '--filename', nombreArch
     ]
 
-    # Ejecutar sin lanzar excepción para capturar returncode y stderr
+    # Run without raising, to capture stderr/returncode
     resultado = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
     if resultado.returncode != 0:
@@ -426,9 +430,9 @@ def ejecutar_comando_cliente(request):
             'ok': False,
             'error': resultado.stderr.strip(),
             'returncode': resultado.returncode
-        })
+        }, status=500)
 
-    # Éxito: devolvemos el nombre de archivo para descarga
+    # Success: return filename for download
     return JsonResponse({
         'ok': True,
         'filename': nombreArch,
