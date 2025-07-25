@@ -196,29 +196,24 @@ def crear_email_personalizado(request):
 
         # 3. Modificar el HTML para incluir la imagen
         import glob
-        from django.core.files import File 
-        # 1. Buscar el archivo PDF más reciente (CORREGIDO)
+
         carpeta = "/home/hermes/WebInformesSekiura/backend/"
-        patron = f"{cliente.nombre}-Informe-Ejecutivo-*.pdf"  # ¡Agregar .pdf!
+        patron = f"{cliente.nombre}-Informe-Ejecutivo-*"
         archivos = glob.glob(os.path.join(carpeta, patron))
 
-        archivo_pdf_path = None
-        archivo_pdf_nombre = None
+        archivo_pdf = None
 
         if archivos:
-            archivo_pdf_path = max(archivos, key=os.path.getctime)
-            archivo_pdf_nombre = os.path.basename(archivo_pdf_path)
-            
-            with open(archivo_pdf_path, 'rb') as f:
-                email.attach(archivo_pdf_nombre, f.read(), 'application/pdf')
+            archivo_pdf = max(archivos, key=os.path.getmtime)
+            with open(archivo_pdf, 'rb') as f:
+                email.attach(os.path.basename(archivo_pdf), f.read(), 'application/pdf')
 
         try:
             email.send()
         except Exception as e:
             print("Error al enviar correo:", e)
 
-        # 2. Guardar en la base de datos ANTES de eliminar
-        email_enviado = EmailEnviado(
+        EmailEnviado.objects.create(
             usuario=request.user,
             cliente=cliente,
             asunto=asunto_final,
@@ -226,28 +221,18 @@ def crear_email_personalizado(request):
             enviado=True,
             fecha_evento=timezone.now(),
             fecha_envio=timezone.now(),
+            archivo_adjunto=archivo_pdf
         )
 
-        # Guardar el archivo PDF en el modelo
-        if archivo_pdf_path:
-            with open(archivo_pdf_path, 'rb') as f:
-                # Usar Django File para guardar correctamente
-                email_enviado.archivo_adjunto.save(
-                    archivo_pdf_nombre, 
-                    File(f),
-                    save=False
-                )
-        
-        # Guardar la instancia del modelo
-        email_enviado.save()
-
-        # 3. Eliminar el archivo SOLO después de guardar en BD
-        if archivo_pdf_path:
+        # ✅ Eliminar el archivo luego de enviar el email
+        if archivo_pdf:
             try:
-                os.remove(archivo_pdf_path)
-                print(f"Archivo {archivo_pdf_path} eliminado correctamente.")
+                os.remove(archivo_pdf)
+                print(f"Archivo {archivo_pdf} eliminado correctamente.")
             except Exception as e:
-                print(f"No se pudo eliminar el archivo {archivo_pdf_path}:", e)
+                print(f"No se pudo eliminar el archivo {archivo_pdf}:", e)
+
+        
 
         return redirect('home')
     
