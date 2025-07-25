@@ -235,35 +235,40 @@ function formatearFecha(fechaStr) {
   texto = texto.replace(/\b\w/g, l => l.toUpperCase());
   return texto.replaceAll('De','de');
 }
-function regenInforme(){
+function regenInforme() {
   fetch('/ejecutar-comando/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': '{{ csrf_token }}'
-      },
-      body: JSON.stringify({ 
-        informe: informe,
-        nombreArch : nombreArch 
-      })
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: JSON.stringify({ 
+      informe: informe,
+      nombreArch: nombreArch 
     })
-    .then(response => response.json())
-    .then(data => {
-      console.log("Comando ejecutado:", data.output || data.error);
-      /*if (data.ok && data.filename) {
-      // Muestra un enlace de descarga (o lo descarga automáticamente)
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log("Comando ejecutado:", data.output || data.error);
+    if (data.ok && data.filename) {
+      // Muestra enlace de descarga
       const enlace = document.createElement('a');
       enlace.href = `/descargar-pdf/${encodeURIComponent(data.filename)}`;
       enlace.download = data.filename;
       enlace.textContent = "Descargar PDF generado";
       document.body.appendChild(enlace);
-      // Si querés que la descarga sea inmediata:
       enlace.click();
-      // Opcional: remover el enlace después
-      enlace.remove();*/
+      enlace.remove();
       document.getElementById("enviar").hidden = false;
-    });
-    
+    } else {
+      // Manejo de error
+      alert("Error al generar PDF:\n" + (data.error || "Código de retorno " + data.returncode));
+    }
+  })
+  .catch(err => {
+    console.error("Fetch falló:", err);
+    alert("No se pudo conectar con el servidor.");
+  });
 }
 
 function actualizarPreview() {
