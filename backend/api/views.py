@@ -396,6 +396,7 @@ def ejecutar_comando_cliente(request):
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
 
+    # 1) Parseamos JSON
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -406,15 +407,15 @@ def ejecutar_comando_cliente(request):
     if not informe:
         return JsonResponse({'ok': False, 'error': 'URL not specified'}, status=400)
 
-    # Normalizar nombre a base + .pdf
+    # 2) Normalizamos nombre a base + .pdf
     base, ext = os.path.splitext(nombre)
     nombre = f"{base}.pdf"
 
-    # Directorio de salida
-    output_dir = "/home/hermes/WebInformesSekiura/backend"
+    # 3) Directorio y ruta completa
+    output_dir  = "/home/hermes/WebInformesSekiura/backend"
     output_path = os.path.join(output_dir, nombre)
 
-    # Si ya existe, lo borramos para regenerar limpio
+    # 4) Si ya existe, lo borramos
     if os.path.exists(output_path):
         try:
             os.remove(output_path)
@@ -424,7 +425,7 @@ def ejecutar_comando_cliente(request):
                 'error': f"No se pudo borrar el archivo previo: {e}"
             }, status=500)
 
-    # Construir y ejecutar el comando
+    # 5) Ejecutamos el CLI
     cmd = [
         '/usr/local/bin/opensearch-reporting-cli',
         '--url', informe,
@@ -435,6 +436,7 @@ def ejecutar_comando_cliente(request):
     ]
 
     resultado = subprocess.run(cmd, cwd=output_dir, capture_output=True, text=True, check=False)
+
     if resultado.returncode != 0:
         return JsonResponse({
             'ok': False,
@@ -442,6 +444,7 @@ def ejecutar_comando_cliente(request):
             'returncode': resultado.returncode
         }, status=500)
 
+    # 6) Devolvemos el nombre para la descarga
     return JsonResponse({
         'ok': True,
         'filename': nombre,
