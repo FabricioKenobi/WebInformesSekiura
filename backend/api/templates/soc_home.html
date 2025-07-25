@@ -246,16 +246,19 @@ function regenInforme(urlInforme, archivo) {
   })
   .then(r => r.json())
   .then(data => {
-    console.log("Comando ejecutado:", data.output || data.error);
-    if (data.ok && data.filename) {
-      // descarga automática
+    if (!data.ok) {
+      // data.error ahora sí existe
+      return alert("Error al generar PDF:\n" + data.error);
+    }
+    if (data.filename) {
+      // data.filename ya está definido
       window.location.href = `/descargar-pdf/${encodeURIComponent(data.filename)}`;
     } else {
-      alert("Error generando PDF: " + (data.error || data.stderr));
+      console.error("No se devolvió nombre de archivo:", data);
     }
   })
   .catch(err => {
-    console.error(err);
+    console.error("Fetch falló:", err);
     alert("No se pudo conectar con el servidor.");
   });
 }

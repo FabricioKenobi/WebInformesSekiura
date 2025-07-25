@@ -388,36 +388,52 @@ from django.http import JsonResponse
 
 informe = ""
 
+
 @csrf_exempt
 @login_required
 def ejecutar_comando_cliente(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            global informe
-            informe = data.get('informe')
-            nombreArch = data.get('nombreArch')
-            
-        
-            # Ejecutar el comando en bash (ejemplo)
-            resultado = subprocess.run(
-            [
-                #"cmd", "/c", "ping google.com"
-                '/usr/local/bin/opensearch-reporting-cli',
-                '--url', informe,
-                '--auth', 'basic',
-                '--credentials', 'sekiura-reports:Sekiura2025*',
-                '--format', 'pdf',
-                '--filename', nombreArch
-            ],
-                capture_output=True, text=True, check=True
-            )
-            
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
 
-            return JsonResponse({'ok': True, 'output': resultado.stdout})
-        except Exception as e:
-            return JsonResponse({'ok': False, 'error': str(e)})
-    return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
+    # Parsear JSON
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
+
+    informe = data.get('informe', '').strip()
+    nombreArch = data.get('nombreArch', '').strip()
+
+    # Asegurar extensión .pdf
+    if not nombreArch.lower().endswith('.pdf'):
+        nombreArch += '.pdf'
+
+    # Construir comando
+    cmd = [
+        '/usr/local/bin/opensearch-reporting-cli',
+        '--url', informe,
+        '--auth', 'basic',
+        '--credentials', 'sekiura-reports:Sekiura2025*',
+        '--format', 'pdf',
+        '--filename', nombreArch
+    ]
+
+    # Ejecutar sin lanzar excepción para capturar returncode y stderr
+    resultado = subprocess.run(cmd, capture_output=True, text=True, check=False)
+
+    if resultado.returncode != 0:
+        return JsonResponse({
+            'ok': False,
+            'error': resultado.stderr.strip(),
+            'returncode': resultado.returncode
+        })
+
+    # Éxito: devolvemos el nombre de archivo para descarga
+    return JsonResponse({
+        'ok': True,
+        'filename': nombreArch,
+        'output': resultado.stdout.strip()
+    })
 
 from django.http import FileResponse, Http404
 
