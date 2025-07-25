@@ -424,7 +424,7 @@ def ejecutar_comando_cliente(request):
                 'ok': False,
                 'error': f"No se pudo borrar el archivo previo: {e}"
             }, status=500)
-
+    print(output_path)
     # 5) Ejecutamos el CLI
     cmd = [
         "bash", "-c",
