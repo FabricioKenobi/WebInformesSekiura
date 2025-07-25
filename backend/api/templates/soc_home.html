@@ -252,7 +252,7 @@ function regenInforme(urlInforme, archivo) {
     }
     if (data.filename) {
       // data.filename ya está definido
-      window.location.href = `/descargar-pdf/${encodeURIComponent(data.filename)}`;
+      window.location.href = `/descargar-pdf/${encodeURIComponent(data.filename)}/`;
     } else {
       console.error("No se devolvió nombre de archivo:", data);
     }
