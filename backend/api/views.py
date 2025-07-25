@@ -427,12 +427,15 @@ def ejecutar_comando_cliente(request):
 
     # 5) Ejecutamos el CLI
     cmd = [
-        '/usr/local/bin/opensearch-reporting-cli',
-        '--url', informe,
-        '--auth', 'basic',
-        '--credentials', 'sekiura-reports:Sekiura2025*',
-        '--format', 'pdf',
-        '--filename', output_path,
+        "bash", "-c",
+        # rm -f suprime el error si no existe; && sólo ejecuta el CLI si rm acaba sin error
+        f"rm -f {output_path} && "
+        f"/usr/local/bin/opensearch-reporting-cli "
+        f"--url '{informe}' "
+        f"--auth basic "
+        f"--credentials 'sekiura-reports:Sekiura2025*' "
+        f"--format pdf "
+        f"--filename '{output_path}'"
     ]
 
     resultado = subprocess.run(cmd, cwd=output_dir, capture_output=True, text=True, check=False)
