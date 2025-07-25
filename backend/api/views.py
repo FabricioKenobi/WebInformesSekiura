@@ -201,6 +201,7 @@ def crear_email_personalizado(request):
         carpeta = "/home/hermes/WebInformesSekiura/backend/"
         patron = f"{cliente.nombre}-Informe-Ejecutivo-*"
         archivos = glob.glob(os.path.join(carpeta, patron))
+        archivo_pdf = None
 
         if archivos:
             archivo_pdf = max(archivos, key=os.path.getmtime)
@@ -381,12 +382,13 @@ def conf_cliente(request):
     return render(request, 'clients.html', {
         'clientes': clientes,
     })
+
 from django.views.decorators.csrf import csrf_exempt
 import subprocess
 import json
 from django.http import JsonResponse
 
-informe = ""
+
 
 
 
