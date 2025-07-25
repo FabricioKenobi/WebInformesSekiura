@@ -253,6 +253,7 @@ function regenInforme(urlInforme, archivo) {
     }
     if (data.filename) {
       // data.filename ya está definido
+      document.getElementById('enviar').hidden = false;
       window.open(
       `/descargar-pdf/${encodeURIComponent(data.filename)}/`,
       '_blank'
