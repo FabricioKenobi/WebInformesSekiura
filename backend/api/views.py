@@ -222,10 +222,10 @@ def crear_email_personalizado(request):
         if archivo:
             email.attach(archivo.name, archivo.read(), archivo.content_type)
         
-        '''try:
+        try:
             email.send()
         except Exception as e:
-            print("Error al enviar correo:", e)'''
+            print("Error al enviar correo:", e)
        
        
         if archivo_pdf:
