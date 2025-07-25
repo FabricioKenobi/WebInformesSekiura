@@ -250,7 +250,7 @@ function regenInforme(){
     .then(response => response.json())
     .then(data => {
       console.log("Comando ejecutado:", data.output || data.error);
-      if (data.ok && data.filename) {
+      /*if (data.ok && data.filename) {
       // Muestra un enlace de descarga (o lo descarga automáticamente)
       const enlace = document.createElement('a');
       enlace.href = `/descargar-pdf/${encodeURIComponent(data.filename)}`;
@@ -260,9 +260,8 @@ function regenInforme(){
       // Si querés que la descarga sea inmediata:
       enlace.click();
       // Opcional: remover el enlace después
-      enlace.remove();
-    }
-    document.getElementById("enviar").hidden = false;
+      enlace.remove();*/
+      document.getElementById("enviar").hidden = false;
     });
     
 }
