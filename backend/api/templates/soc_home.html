@@ -237,6 +237,7 @@ function formatearFecha(fechaStr) {
   return texto.replaceAll('De','de');
 }
 function regenInforme(urlInforme, archivo) {
+  document.getElementById('enviar').hidden = true;
   fetch('/ejecutar-comando/', {
     method: 'POST',
     headers: {
