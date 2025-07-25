@@ -339,14 +339,12 @@ document.querySelector('form').addEventListener('submit', function () {
     document.getElementById('editor').value = window.miEditor.getData();
   }
 });
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('regen');
-  btn.addEventListener('click', () => {
-    if (!informe || !nombreArch) {
-      return alert("Primero tienes que actualizar el preview para asignar 'informe' y 'nombreArch'.");
-    }
-    regenInforme(informe, nombreArch);
-  });
+
+document.getElementById('regen').addEventListener('click', () => {
+  if (!informe || !nombreArch) {
+    return alert("Primero actualiza el informe para generar el URL y nombre de archivo.");
+  }
+  regenInforme(informe, nombreArch);
 });
 </script>
 {% endblock %}
