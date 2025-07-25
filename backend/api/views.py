@@ -202,6 +202,7 @@ def crear_email_personalizado(request):
         archivos = glob.glob(os.path.join(carpeta, patron))
 
         archivo_pdf = None
+        print(archivos)
 
         if archivos:
             archivo_pdf = max(archivos, key=os.path.getmtime)
