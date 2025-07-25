@@ -409,6 +409,7 @@ def ejecutar_comando_cliente(request):
     if not informe:
         return JsonResponse({'ok': False, 'error': 'URL not specified'}, status=400)
 
+
     cmd = [
         '/usr/local/bin/opensearch-reporting-cli',
         '--url', informe,
@@ -439,6 +440,7 @@ from django.http import FileResponse, Http404
 
 @login_required
 def descargar_pdf(request, archivo_nombre):
+    archivo_nombre += ".pdf"
     # 1) Validar que el nombre venga en la URL
     if not archivo_nombre:
         raise Http404("Nombre de archivo no especificado")
