@@ -409,27 +409,19 @@ def ejecutar_comando_cliente(request):
 
     # 2) Normalizamos nombre a base + .pdf
     base, ext = os.path.splitext(nombre)
-    nombre = f"{base}.pdf"
+    nombre = f"{base}"
 
     # 3) Directorio y ruta completa
     output_dir  = "/home/hermes/WebInformesSekiura/backend"
     output_path = os.path.join(output_dir, nombre)
 
-    # 4) Si ya existe, lo borramos
-    if os.path.exists(output_path):
-        try:
-            os.remove(output_path)
-        except OSError as e:
-            return JsonResponse({
-                'ok': False,
-                'error': f"No se pudo borrar el archivo previo: {e}"
-            }, status=500)
+    
     print(output_path)
     # 5) Ejecutamos el CLI
     cmd = [
         "bash", "-c",
         # rm -f suprime el error si no existe; && sólo ejecuta el CLI si rm acaba sin error
-        f"rm -f {output_path} && "
+        f"rm -f {output_path}.pdf && "
         f"/usr/local/bin/opensearch-reporting-cli "
         f"--url '{informe}' "
         f"--auth basic "
