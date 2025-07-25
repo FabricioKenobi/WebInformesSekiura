@@ -410,20 +410,21 @@ def ejecutar_comando_cliente(request):
     # 2) Normalizamos nombre a base + .pdf
     base, ext = os.path.splitext(nombre)
     nombre = f"{base}"
-    nombre = nombre.replace(' ', '\ ')
+    
 
 
     # 3) Directorio y ruta completa
     output_dir  = "/home/hermes/WebInformesSekiura/backend"
     output_path = os.path.join(output_dir, nombre)
-
+    nombre = nombre.replace(' ', '\ ')
+    output_path_rm = os.path.join(output_dir, nombre)
     
     print(output_path)
     # 5) Ejecutamos el CLI
     cmd = [
         "bash", "-c",
         # rm -f suprime el error si no existe; && sólo ejecuta el CLI si rm acaba sin error
-        f"rm -f {output_path}.pdf && "
+        f"rm -f {output_path_rm}.pdf && "
         f"/usr/local/bin/opensearch-reporting-cli "
         f"--url '{informe}' "
         f"--auth basic "
