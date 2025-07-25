@@ -64,7 +64,8 @@
 
       <label>Cuerpo:</label>
       <textarea id="editor" name="cuerpo_html">{% autoescape off %}{{ cuerpo_html }}{% endautoescape %}</textarea>
-      <a id="dashboard" href="">ver informe</a>
+      <a id="dashboard" href="" target="_blank" rel="noopener noreferrer">Editar Informe</a>
+
       <button id="regen">Generar informe</button>
       <button type="submit" id="enviar" class="btn btn-success w-100" hidden>✉️ Enviar email</button>
     </div>
@@ -319,8 +320,11 @@ function actualizarPreview() {
     .replaceAll("{informeDiario}",informeDiario)
     .replaceAll("{informeSemanal}",informeSemanal)
     .replaceAll("{informeMensual}",informeMensual);
-  const refer = document.getElementById('dashboard');
-  refer.setAttribute('href',informe);
+    const refer = document.getElementById('dashboard');
+    refer.setAttribute('href', informe);
+    refer.setAttribute('target', '_blank');
+    refer.setAttribute('rel', 'noopener noreferrer');
+
   // Reemplazar contenido del editor con la plantilla personalizada
   if (window.miEditor) {
     window.miEditor.setData(cuerpo_personalizado);
