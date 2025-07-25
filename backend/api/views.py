@@ -409,10 +409,6 @@ def ejecutar_comando_cliente(request):
     if not informe:
         return JsonResponse({'ok': False, 'error': 'URL not specified'}, status=400)
 
-    # Ensure .pdf extension
-    if not nombreArch.lower().endswith('.pdf'):
-        nombreArch += '.pdf'
-
     cmd = [
         '/usr/local/bin/opensearch-reporting-cli',
         '--url', informe,
@@ -441,11 +437,31 @@ def ejecutar_comando_cliente(request):
 
 from django.http import FileResponse, Http404
 
+@login_required
 def descargar_pdf(request, archivo_nombre):
-    ruta_pdf = f"/home/hermes/WebInformesSekiura/backend/{archivo_nombre}"
-    try:
-        response = FileResponse(open(ruta_pdf, 'rb'), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{archivo_nombre}"'
-        return response
-    except FileNotFoundError:
-        raise Http404("El archivo no existe")
+    # 1) Validar que el nombre venga en la URL
+    if not archivo_nombre:
+        raise Http404("Nombre de archivo no especificado")
+
+    # 2) Directorio correcto donde se generan los PDFs
+    directorio = "/home/hermes/WebInformesSekiura/backend"
+
+    # 3) Búsqueda case-insensitive
+    nombre_buscado = archivo_nombre.lower()
+    fichero_encontrado = None
+    for fn in os.listdir(directorio):
+        if fn.lower() == nombre_buscado:
+            fichero_encontrado = fn
+            break
+
+    if not fichero_encontrado:
+        raise Http404(f"El archivo «{archivo_nombre}» no existe en {directorio}")
+
+    ruta_pdf = os.path.join(directorio, fichero_encontrado)
+
+    # 4) Devolverlo como attachment
+    return FileResponse(
+        open(ruta_pdf, "rb"),
+        content_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{fichero_encontrado}"'}
+    )
