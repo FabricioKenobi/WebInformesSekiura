@@ -82,9 +82,9 @@
                 <a href="{% url 'enviar_email_guardado' mail.id %}" class="btn btn-sm btn-success ms-2">
                   Enviar ahora
                 </a>
-                <a href="{% url 'editar_borrador' mail.id %}" class="btn btn-sm btn-primary ms-2">
+                <!--a href="{% url 'editar_borrador' mail.id %}" class="btn btn-sm btn-primary ms-2">
                   Editar
-                </a>
+                </a-->
               {% endif %}
               <p style="text-align: right;">
                 to: {{ mail.cliente.lista_emails }}
