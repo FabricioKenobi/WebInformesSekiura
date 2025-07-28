@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from api.views import CreateUserView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from api.views import login_view, register_view,home_view, crear_email_personalizado, crear_cliente_view, crear_plantilla_view, probar_envio_email,configurar_correo, soc_home,conf_cliente, ejecutar_comando_cliente, descargar_pdf
+from api.views import login_view, register_view,home_view, crear_email_personalizado, crear_cliente_view, crear_plantilla_view, probar_envio_email,configurar_correo, soc_home,conf_cliente, ejecutar_comando_cliente, descargar_pdf,guardar_email_personalizado,lista_borradores, enviar_email_guardado
 from django.contrib.auth.views import LogoutView
 from django.conf.urls.static import static
 from django.conf import settings
@@ -27,6 +27,9 @@ urlpatterns = [
     path('soc_home/', soc_home, name='soc_home'),
     path('conf_cliente/',conf_cliente, name='conf_cliente'),
     path('ejecutar-comando/', ejecutar_comando_cliente, name='ejecutar_comando_cliente'),
-    path('descargar-pdf/<str:archivo_nombre>/', descargar_pdf, name='descargar_pdf')
+    path('descargar-pdf/<str:archivo_nombre>/', descargar_pdf, name='descargar_pdf'),
+    path('guardar-email/', guardar_email_personalizado, name='guardar_email'),
+    path('borradores/', lista_borradores, name='lista_borradores'),
+    path('enviar-borrador/<int:email_id>/', enviar_email_guardado, name='enviar_email_guardado'),
 
 ]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

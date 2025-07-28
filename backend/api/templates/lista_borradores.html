@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Borradores de Emails</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Cliente</th>
+            <th>Asunto</th>
+            <th>Fecha creación</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for borrador in borradores %}
+        <tr>
+            <td>{{ borrador.cliente.nombre }}</td>
+            <td>{{ borrador.asunto }}</td>
+            <td>{{ borrador.fecha_evento|date:"d/m/Y H:i" }}</td>
+            <td>
+                <a href="{% url 'enviar_email_guardado' borrador.id %}" class="btn btn-primary">
+                    Enviar
+                </a>
+                <a href="{% url 'editar_borrador' borrador.id %}" class="btn btn-secondary">
+                    Editar
+                </a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">No hay borradores guardados</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

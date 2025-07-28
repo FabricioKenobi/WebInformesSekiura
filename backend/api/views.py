@@ -105,27 +105,19 @@ def crear_cliente_view(request):
     return render(request, 'crear_cliente.html')
 
 @login_required
-def crear_email_personalizado(request):
-    from datetime import datetime  # Agrega esto al inicio con las demás importaciones
+def guardar_email_personalizado(request):
+    from datetime import datetime
     from django.utils import timezone
+    
     if request.method == 'POST':
-        
         user = request.user
-        creds = user.credenciales_smtp
         cliente = Cliente.objects.get(id=request.POST['cliente'])
         asunto = request.POST['asunto']
-        cuerpo_html = request.POST.get("cuerpo_html")
-        archivo = request.FILES.get("archivo_adjunto")
+        cuerpo_html = request.POST.get("cuerpo_html", "")
         
-        # Asegurar valores de fechas
+        # Procesamiento de fechas (igual que antes)
         fecha_1_str = request.POST.get('fecha_1', '')
         fecha_2_str = request.POST.get('fecha_2', '')
-
-        contiene_imagen = '{imagen}' in cuerpo_html
-        
-        # Convertir fechas (manejar valores vacíos)
-        fecha_1 = None
-        fecha_2 = None
         date_format = "%Y-%m-%d"
         
         if fecha_1_str:
@@ -140,108 +132,131 @@ def crear_email_personalizado(request):
         else:
             fecha_2_str = ""
 
-
-        # Obtener cuerpo HTML directamente del request
-        cuerpo_html = request.POST.get("cuerpo_html", "")
-        
-        # Reemplazar solo los placeholders necesarios
+        # Reemplazar placeholders
         asunto_final = asunto.replace('{cliente}', cliente.nombre)
         cuerpo_html_final = cuerpo_html.replace('{cliente}', cliente.nombre)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_1}', fecha_1_str)
         cuerpo_html_final = cuerpo_html_final.replace('{fecha_2}', fecha_2_str)
-        #cuerpo_html_final = cuerpo_html_final.replace('{firma}', '<img src="../static/img/firma.png"  style="max-width:50%">')
-        cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada"  style="max-width:100%">')
-
-        cuerpo_texto = strip_tags(cuerpo_html_final)
-        emails = filter(None, [cliente.email_1, cliente.email_2, cliente.email_3,cliente.email_4,cliente.email_5,cliente.email_6,cliente.cc_1,cliente.cc_2])
-        to = list(emails)
-
-        connection = get_connection(
-            host=creds.smtp_host,
-            port=creds.smtp_puerto,
-            username=creds.smtp_user,
-            password=creds.smtp_password,
-            #use_tls=False
-            use_ssl=True
-        )
-        cuerpo_html_final = cuerpo_html_final.replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;')  # O más, como prefieras
-        cuerpo_html_final = cuerpo_html_final.replace('  ', '&nbsp;&nbsp;')  # Opcional: dobles espacios por 2 &nbsp;
+        cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada" style="max-width:100%">')
+        
+        # Formatear texto para HTML
+        cuerpo_html_final = cuerpo_html_final.replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;')
+        cuerpo_html_final = cuerpo_html_final.replace('  ', '&nbsp;&nbsp;')
         cuerpo_html_final = cuerpo_html_final.replace('\n', '<br>')
 
-        
-
-        
-        email = EmailMultiAlternatives(
-            subject=asunto_final,
-            #body=cuerpo_texto,
-            from_email=creds.email_remitente,
-            to=to,
-            connection= connection
+        # Guardar el borrador (con enviado=False)
+        borrador = EmailEnviado.objects.create(
+            usuario=request.user,
+            cliente=cliente,
+            asunto=asunto_final,
+            cuerpo=cuerpo_html_final,
+            enviado=False,  # Importante: marcamos como no enviado
+            fecha_evento=timezone.now(),
+            archivo_adjunto=request.FILES.get("archivo_adjunto")
         )
-        
 
-
-        # Hacerlo multipart/related manualmente
-        email.mixed_subtype = 'related'
-
-        # Adjuntar imagen (firma)
-        firma_path = os.path.join(settings.BASE_DIR, 'api', 'static', 'img', 'firma.png')
-        with open(firma_path, 'rb') as f:
-            img = MIMEImage(f.read(), _subtype='png')
-            img.add_header('Content-ID', '<firma_incrustada>')
-            img.add_header('Content-Disposition', 'inline', filename='firma.png')
-            email.attach(img)
-        email.attach_alternative(cuerpo_html_final, "text/html")
-        
-
-        # 3. Modificar el HTML para incluir la imagen
-        import glob
-        from django.core.files import File
-
-        carpeta = "/home/hermes/WebInformesSekiura/backend/"
-        patron = f"{cliente.nombre}-Informe-Ejecutivo-*"
-        archivos = glob.glob(os.path.join(carpeta, patron))
-
-        if archivos:
-            archivo_pdf = max(archivos, key=os.path.getmtime)
-            with open(archivo_pdf, 'rb') as f:
-                django_file  = File(f, name=os.path.basename(archivo_pdf))
-                EmailEnviado.objects.create(
-                    usuario=request.user,
-                    cliente=cliente,
-                    asunto=asunto_final,
-                    cuerpo=cuerpo_html_final,
-                    enviado=True,
-                    fecha_evento=timezone.now(),
-                    fecha_envio=timezone.now(),
-                    #archivo_adjunto=archivo
-                    archivo_adjunto = django_file
-                )
-                email.attach(os.path.basename(archivo_pdf), f.read(), 'application/pdf')
-                
-        if archivo:
-            email.attach(archivo.name, archivo.read(), archivo.content_type)
-        
-        '''try:
-            email.send()
-        except Exception as e:
-            print("Error al enviar correo:", e)'''
-       
-       
-        if archivo_pdf:
-            try:
-                os.remove(archivo_pdf)
-                print(f"Archivo {archivo_pdf} eliminado correctamente.")
-            except Exception as e:
-                print(f"No se pudo eliminar el archivo {archivo_pdf}:", e)
-
-        return redirect('home')
+        return redirect('lista_borradores')  # Redirigir a lista de borradores
     
     clientes = Cliente.objects.all()
     plantillas = PlantillaEmail.objects.all()
     return render(request, 'soc_home.html', {
         'clientes': clientes,
         'plantillas': plantillas,
+    })
+
+@login_required
+def enviar_email_guardado(request, email_id):
+    from django.utils import timezone
+    import os
+    import glob
+    from django.core.mail import EmailMultiAlternatives, get_connection
+    from email.mime.image import MIMEImage
+    
+    # Obtener el email guardado
+    try:
+        email_guardado = EmailEnviado.objects.get(id=email_id, usuario=request.user, enviado=False)
+    except EmailEnviado.DoesNotExist:
+        return HttpResponse("Email no encontrado o ya fue enviado", status=404)
+    
+    # Obtener credenciales SMTP del usuario
+    creds = request.user.credenciales_smtp
+    
+    # Obtener lista de emails del cliente
+    cliente = email_guardado.cliente
+    emails = filter(None, [
+        cliente.email_1, cliente.email_2, cliente.email_3,
+        cliente.email_4, cliente.email_5, cliente.email_6,
+        cliente.cc_1, cliente.cc_2
+    ])
+    to = list(emails)
+    
+    # Configurar conexión SMTP
+    connection = get_connection(
+        host=creds.smtp_host,
+        port=creds.smtp_puerto,
+        username=creds.smtp_user,
+        password=creds.smtp_password,
+        use_ssl=True
+    )
+    
+    # Crear el email
+    email = EmailMultiAlternatives(
+        subject=email_guardado.asunto,
+        from_email=creds.email_remitente,
+        to=to,
+        connection=connection
+    )
+    email.mixed_subtype = 'related'
+    
+    # Adjuntar imagen de firma
+    firma_path = os.path.join(settings.BASE_DIR, 'api', 'static', 'img', 'firma.png')
+    with open(firma_path, 'rb') as f:
+        img = MIMEImage(f.read(), _subtype='png')
+        img.add_header('Content-ID', '<firma_incrustada>')
+        img.add_header('Content-Disposition', 'inline', filename='firma.png')
+        email.attach(img)
+    
+    email.attach_alternative(email_guardado.cuerpo, "text/html")
+    
+    # Adjuntar archivo PDF si existe
+    if email_guardado.archivo_adjunto:
+        with open(email_guardado.archivo_adjunto.path, 'rb') as f:
+            email.attach(
+                os.path.basename(email_guardado.archivo_adjunto.name),
+                f.read(),
+                'application/pdf'
+            )
+    
+    # Intentar enviar el email
+    try:
+        email.send()
+        # Marcar como enviado y actualizar fecha
+        email_guardado.enviado = True
+        email_guardado.fecha_envio = timezone.now()
+        email_guardado.save()
+        
+        # Eliminar archivo adjunto si es necesario
+        if email_guardado.archivo_adjunto:
+            try:
+                os.remove(email_guardado.archivo_adjunto.path)
+            except Exception as e:
+                print(f"No se pudo eliminar el archivo adjunto: {e}")
+        
+        return redirect('lista_emails_enviados')
+    
+    except Exception as e:
+        print("Error al enviar correo:", e)
+        return HttpResponse(f"Error al enviar el correo: {str(e)}", status=500)
+    
+@login_required
+def lista_borradores(request):
+    borradores = EmailEnviado.objects.filter(
+        usuario=request.user,
+        enviado=False
+    ).order_by('-fecha_evento')
+    
+    return render(request, 'lista_borradores.html', {
+        'borradores': borradores
     })
 
 @login_required
