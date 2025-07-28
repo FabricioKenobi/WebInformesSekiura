@@ -30,7 +30,12 @@
     
     <label>Fecha 2:</label>
     <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" onchange="actualizarPreview()">
-    <button type="button" onclick="seleccionarFechas()">Continuar</button>
+    <button type="button" onclick="seleccionarFechas()">next</button>
+  </div>
+  <div id="seccion_mes" hidden>
+    <label>Seleccionar mes:</label>
+    <div id="botones_mes" class="mb-3"></div>
+    <button type="button" onclick="seleccionarMes()">next</button>
   </div>
 
   <div id="seccion_previsualizacion" hidden>
@@ -38,12 +43,13 @@
     <input type="hidden" name="cliente" id="cliente_id">
     <input type="hidden" name="plantilla" id="plantilla_id">
 
-    <div id="seccion_archivo">
+    <div id="seccion_archivo" hidden>
       <label>Adjuntar archivo:</label>
       <input type="file" name="archivo_adjunto" class="form-control mb-3" onchange="archivoAgregado()">
+      <button type="button" onclick="archivoAgregado()"> next</button>
     </div>
 
-    <div id="seccion_texto">
+    <div id="seccion_texto" hidden>
       <hr><h2>📄 Vista previa</h2>
       <div id="preview_emails" class="mt-3 bg-light p-3 border rounded">
         <strong>📬 Correos:</strong>
@@ -58,104 +64,28 @@
 
       <label>Cuerpo:</label>
       <textarea id="editor" name="cuerpo_html">{% autoescape off %}{{ cuerpo_html }}{% endautoescape %}</textarea>
-      
-      <div class="mt-3">
-        <button id="regen" type="button" onclick="regenInforme()" class="btn btn-primary">
-          <span id="regen-text">Generar Informe PDF</span>
-          <span id="regen-spinner" class="spinner-border spinner-border-sm" hidden></span>
-        </button>
-        <a id="dashboard" href="#" target="_blank" class="btn btn-secondary ml-2">Ver Dashboard</a>
-      </div>
-      
-      <button type="submit" id="enviar" class="btn btn-success w-100 mt-3" hidden>✉️ Enviar email</button>
+      <a id="dashboard" href="" target="_blank" rel="noopener noreferrer">Editar Informe</a>
+
+      <button id="regen" type="button">Generar informe</button>
+      <button type="submit" id="enviar" class="btn btn-success w-100" >✉️ Enviar email</button>
     </div>
   </div>
 </form>
 
-<style>
-.spinner-border {
-    vertical-align: middle;
-    margin-left: 5px;
-}
-</style>
-<style>
-.loader {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    padding: 20px;
-    background: rgba(0,0,0,0.8);
-    color: white;
-    border-radius: 5px;
-    z-index: 1000;
-}
-
-/* Spinner animation */
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.fa-spinner {
-    animation: spin 1s linear infinite;
-    margin-right: 8px;
-}
-
-/* Error message styling */
-.error-message {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10000;
-    padding: 15px;
-    background-color: #ff4444;
-    color: white;
-    border-radius: 5px;
-    max-width: 80%;
-    word-break: break-word;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-}
-
-/* Loading modal */
-.loading-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.7);
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.loading-content {
-    background: white;
-    padding: 30px;
-    border-radius: 8px;
-    text-align: center;
-    max-width: 500px;
-    width: 90%;
-}
-
-</style>
 <script>
 let cliente_nombre = "";
 let cuerpo_base_original = "";
 let tipoPlantilla = "";
 let ip = "";
-let fqdn = "";
+let fqdn= "";
 let codeDiario = "";
 let codeMes = "";
-let codeSemanal = "";
+let codeSemanal="";
 let fechatemp = new Date();
 let informe = "";
 let nombreArch = "";
+ 
 
-// Inicializar CKEditor
 ClassicEditor
   .create(document.querySelector('#editor'))
   .then(editor => {
@@ -174,16 +104,38 @@ function seleccionarPlantilla(id, asunto, cuerpo, tipo) {
   document.getElementById("seccion_plantillas").hidden = true;
   document.getElementById("seccion_clientes").hidden = false;
 }
+if (tipoPlantilla === 'mensual') {
+  document.getElementById("seccion_fecha").hidden = false;
+  document.getElementById("seccion_mes").hidden = false;
+
+  const contenedor = document.getElementById("botones_mes");
+  contenedor.innerHTML = "";
+
+  const hoy = new Date();
+  for (let i = 0; i < 6; i++) {
+    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const texto = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    const mes = texto.charAt(0).toUpperCase() + texto.slice(1);
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = mes;
+    btn.classList.add("btn", "btn-outline-primary", "m-1");
+    btn.onclick = () => seleccionarMesDirecto(btn);
+    contenedor.appendChild(btn);
+  }
+}
 
 function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, semanal, mensual) {
   document.getElementById("cliente_id").value = id;
+
+  
   cliente_nombre = nombre;
   ip = IPSIEM;
   fqdn = FQDN;
   codeDiario = diario;
   codeSemanal = semanal;
   codeMes = mensual;
-  
   const hoy = new Date();
   const offset = hoy.getTimezoneOffset();
   hoy.setMinutes(hoy.getMinutes() - offset);
@@ -194,29 +146,75 @@ function seleccionarCliente(id, nombre, email, emails, IPSIEM, FQDN, diario, sem
   let diasSumar = 0;
   fechatemp = hoy;
 
+  
   if (tipoPlantilla.includes('diario')) diasSumar = 1;
   if (tipoPlantilla.includes('semanal')) diasSumar = 7;
   if (tipoPlantilla.includes('mensual')) diasSumar = 30;
     
+  
   fecha2.setDate(fecha2.getDate() - diasSumar);
+  
   const fecha2Formateada = fecha2.toISOString().split('T')[0];
   document.getElementById("fecha_1").value = fecha2Formateada;
+
 
   document.getElementById("seccion_clientes").hidden = true;
   document.getElementById("seccion_fecha").hidden = false;
 
   const lista = document.getElementById("lista_emails");
   lista.innerHTML = emails ? emails : "Sin correos previos.";
+  if (tipoPlantilla.includes('mensual')) {
+    document.getElementById("seccion_fecha").hidden = false;
+    document.getElementById("seccion_mes").hidden = false;
+
+    const contenedor = document.getElementById("botones_mes");
+    contenedor.innerHTML = "";
+
+    
+    for (let i = 0; i < 6; i++) {
+      const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      const texto = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      const mes = texto.charAt(0).toUpperCase() + texto.slice(1);
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = mes;
+      btn.classList.add("btn", "btn-outline-primary", "m-1");
+      btn.onclick = () => seleccionarMesDirecto(btn);
+      contenedor.appendChild(btn);
+    }
+  }
+
+}
+let mesSeleccionado = "";
+
+function seleccionarMesDirecto(boton) {
+  document.querySelectorAll('#botones_mes button').forEach(b => b.classList.remove("active"));
+  boton.classList.add("active");
+  mesSeleccionado = boton.textContent;
 }
 
 function seleccionarFechas() {
   event.preventDefault();
   document.getElementById("seccion_fecha").hidden = true;
   document.getElementById("seccion_previsualizacion").hidden = false;
-  actualizarPreview();
+  document.getElementById("seccion_archivo").hidden = false;
 }
 
+function seleccionarMes() {
+  if (!mesSeleccionado) {
+    alert("Seleccioná un mes.");
+    return;
+  }
+
+  
+  document.getElementById("seccion_fecha").hidden = true;
+  document.getElementById("seccion_mes").hidden = true;
+  document.getElementById("seccion_previsualizacion").hidden = false;
+  document.getElementById("seccion_archivo").hidden = false;
+}
 function archivoAgregado() {
+  actualizarPreview();
   const inputArchivo = document.querySelector('input[name="archivo_adjunto"]');
   const nombreArchivoSpan = document.getElementById('nombre_archivo');
 
@@ -225,235 +223,88 @@ function archivoAgregado() {
   } else {
     nombreArchivoSpan.textContent = "Ningún archivo seleccionado";
   }
+
+  document.getElementById("seccion_archivo").hidden = true;
+  document.getElementById("seccion_texto").hidden = false;
 }
 
 function formatearFecha(fechaStr) {
   if (!fechaStr) return "__/__/____";
   const fecha = new Date(fechaStr);
-  let texto = fecha.toLocaleDateString('es-ES', { 
-    weekday: 'long', 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric', 
-    timeZone: 'UTC' 
-  });
-  return texto.replace(/\b\w/g, l => l.toUpperCase()).replaceAll('De','de');
+  let texto = fecha.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' , timeZone: 'UTC' });
+  // Capitaliza cada palabra
+  texto = texto.replace(/\b\w/g, l => l.toUpperCase());
+  return texto.replaceAll('De','de');
 }
-
-async function regenInforme() {
-    const btnRegen = document.getElementById("regen");
-    const originalText = btnRegen?.textContent;
-    let modal = null; // Declarar modal aquí para evitar el ReferenceError
-    
-    try {
-        // Mostrar estado de carga
-        if (btnRegen) {
-            btnRegen.disabled = true;
-            btnRegen.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando PDF...';
-        }
-
-        // Crear y mostrar modal de carga
-        modal = document.createElement('div');
-        modal.style.position = 'fixed';
-        modal.style.top = '0';
-        modal.style.left = '0';
-        modal.style.width = '100%';
-        modal.style.height = '100%';
-        modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
-        modal.style.zIndex = '9999';
-        modal.style.display = 'flex';
-        modal.style.justifyContent = 'center';
-        modal.style.alignItems = 'center';
-        modal.innerHTML = `
-            <div style="background: white; padding: 20px; border-radius: 5px; text-align: center;">
-                <h3>Generando informe PDF...</h3>
-                <p>Este proceso puede tardar varios minutos</p>
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Cargando...</span>
-                </div>
-                <div id="progress-text" class="mt-2">Por favor espere...</div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        // Actualizar el DOM inmediatamente
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-        // Ejecutar la generación del PDF
-        const response = await fetch('/ejecutar-comando/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ 
-                informe: informe,
-                nombreArch: nombreArch 
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        
-        if (!data.ok) {
-            throw new Error(data.error || "Error desconocido al generar PDF");
-        }
-
-        // Verificar que tenemos URL de descarga
-        if (!data.download_url) {
-            throw new Error("No se recibió URL de descarga");
-        }
-
-        // Forzar descarga con parámetro de cache
-        const downloadUrl = `${data.download_url}?t=${Date.now()}`;
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-    } catch (error) {
-        console.error("Error al generar informe:", error);
-        
-        // Mostrar error detallado
-        const errorDiv = document.createElement('div');
-        errorDiv.style.position = 'fixed';
-        errorDiv.style.top = '20px';
-        errorDiv.style.left = '50%';
-        errorDiv.style.transform = 'translateX(-50%)';
-        errorDiv.style.zIndex = '10000';
-        errorDiv.style.padding = '15px';
-        errorDiv.style.backgroundColor = '#ff4444';
-        errorDiv.style.color = 'white';
-        errorDiv.style.borderRadius = '5px';
-        errorDiv.style.maxWidth = '80%';
-        errorDiv.style.wordBreak = 'break-word';
-        errorDiv.innerHTML = `
-            <strong>Error al generar el informe:</strong><br>
-            ${error.message}<br>
-            <small>Consulta la consola para más detalles</small>
-            <button onclick="this.parentElement.remove()" style="float: right; background: none; border: none; color: white;">×</button>
-        `;
-        document.body.appendChild(errorDiv);
-        
-        // Opcional: enviar el error al servidor para registro
-        try {
-            await fetch('/log-error/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    error: error.message,
-                    stack: error.stack,
-                    url: window.location.href
-                })
-            });
-        } catch (e) {
-            console.error("Error al registrar el error:", e);
-        }
-        
-    } finally {
-        // Restaurar estado original
-        if (btnRegen) {
-            btnRegen.disabled = false;
-            btnRegen.textContent = originalText || "Re-hacer informe";
-        }
-        if (modal && modal.parentNode) {
-            document.body.removeChild(modal);
-        }
+function regenInforme(urlInforme, archivo) {
+  
+  document.getElementById('enviar').hidden = true;
+  fetch('/ejecutar-comando/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: JSON.stringify({ informe: urlInforme, nombreArch: archivo })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.ok) {
+      // data.error ahora sí existe
+      return alert("Error al generar PDF:\n" + data.error);
     }
+    if (data.filename) {
+      // data.filename ya está definido
+      document.getElementById('enviar').hidden = false;
+      window.open(
+      `/descargar-pdf/${encodeURIComponent(data.filename)}/`,
+      '_blank'
+    );
+    } else {
+      console.error("No se devolvió nombre de archivo:", data);
+    }
+  })
+  .catch(err => {
+    console.error("Fetch falló:", err);
+    alert("No se pudo conectar con el servidor.");
+  });
 }
 
-// Funciones auxiliares para mostrar mensajes
-function mostrarError(mensaje) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-    alertDiv.style.position = 'fixed';
-    alertDiv.style.top = '20px';
-    alertDiv.style.right = '20px';
-    alertDiv.style.zIndex = '10000';
-    alertDiv.innerHTML = `
-        <strong>Error!</strong> ${mensaje}
-        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-    `;
-    document.body.appendChild(alertDiv);
-    setTimeout(() => alertDiv.remove(), 10000);
-}
-
-function mostrarExito(mensaje) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-success alert-dismissible fade show';
-    alertDiv.style.position = 'fixed';
-    alertDiv.style.top = '20px';
-    alertDiv.style.right = '20px';
-    alertDiv.style.zIndex = '10000';
-    alertDiv.innerHTML = `
-        <strong>Éxito!</strong> ${mensaje}
-        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-    `;
-    document.body.appendChild(alertDiv);
-    setTimeout(() => alertDiv.remove(), 5000);
-}
-
-function mostrarExito(mensaje) {
-    const successDiv = document.createElement('div');
-    successDiv.className = 'alert alert-success';
-    successDiv.style.position = 'fixed';
-    successDiv.style.top = '20px';
-    successDiv.style.right = '20px';
-    successDiv.style.zIndex = '1000';
-    successDiv.style.maxWidth = '400px';
-    successDiv.innerHTML = `
-        <strong>Éxito!</strong> ${mensaje}
-        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-    `;
-    document.body.appendChild(successDiv);
-    
-    setTimeout(() => successDiv.remove(), 5000);
-}
 function actualizarPreview() {
   let asunto = document.getElementById("asunto").value;
   let fecha_1 = document.getElementById("fecha_1").value;
   let fecha1 = formatearFecha(fecha_1);
   
   let fecha_2 = document.getElementById("fecha_2").value;
-  let fechatemp1 = new Date(fecha_2);
-  fechatemp1.setDate(fechatemp1.getDate()-1);
-  let fecha2 = formatearFecha(fecha_2);
+  let fechatemp1 = new Date();
+  fechatemp1.setDate(fechatemp.getDate()-1);
+  let fecha2 = formatearFecha(fechatemp1);
+  
 
-  let link = `<a href="https://${ip}/app/vulnerability-detection">https://${ip}/app/vulnerability-detection</a>`;
-  let fqdnlink = `<a href="https://${fqdn}/app/vulnerability-detection">https://${fqdn}/app/vulnerability-detection</a>`;
+
+  let link = "<a href='https://" + ip + "/app/vulnerability-detection'>"+"https://"+ip+"/app/vulnerability-detection"+"</a>";
+  let fqdnlink = "<a href='https://" + fqdn + "/app/vulnerability-detection'>"+"https://"+fqdn+"/app/vulnerability-detection"+"</a>";
  
   let ini = `(from:'${fecha_1}T03:00:00.000Z',to:'${fecha_2}T02:59:59.000Z')`;
   let encodedIni = encodeURIComponent(ini);
-  
-  let informeDiario = `<a href="https://${ip}/app/dashboards#/view/${codeDiario}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)" target="_blank">Informe Diario</a>`;
-  let informeSemanal = `<a href="https://${ip}/app/dashboards#/view/${codeSemanal}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)" target="_blank">Informe Semanal</a>`;
-  let informeMensual = `<a href="https://${ip}/app/dashboards#/view/${codeMes}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)" target="_blank">Informe Mensual</a>`;
-  
-  if(tipoPlantilla.includes('proto')){
-      if(tipoPlantilla.includes('diario')){
-          informe = `https://${ip}/app/dashboards#/view/${codeDiario}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-          nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Diario-${fecha_2}.pdf`;
-      } else if(tipoPlantilla.includes('semanal')){
-          informe = `https://${ip}/app/dashboards#/view/${codeSemanal}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-          nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Semanal-${fecha_2}.pdf`;
-      } else if(tipoPlantilla.includes('mensual')){
-          informe = `https://${ip}/app/dashboards#/view/${codeMes}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-          nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Mensual-${fecha_2}.pdf`;
-      }
-      
-      const dashboardLink = document.getElementById('dashboard');
-      if (dashboardLink) {
-          dashboardLink.href = informe;
-      }
-  }
+  let informeDiario = `<a href="https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Diario</a>`;
+  let informeSemanal = `<a href="https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Semanal</a>`;
+  let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
 
+  let nombre = "";
+  if(tipoPlantilla.includes('proto')){
+    if(tipoPlantilla.includes('diario')){
+      informe = `https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
+    }else if(tipoPlantilla.includes('semanal')){
+      informe = `https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Semanal-`+fecha_2;
+    }else if(tipoPlantilla.includes('mensual')){
+      informe = `https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = cliente_nombre+`-Informe-Ejecutivo-Mensual-`+fecha_2;
+    }
+    regenInforme(informe, nombreArch);
+  }
   let asunto_personalizado = asunto
     .replaceAll("{cliente}", cliente_nombre)
     .replaceAll("{fecha_1}", fecha1)
@@ -466,11 +317,16 @@ function actualizarPreview() {
     .replaceAll("{cliente}", cliente_nombre)
     .replaceAll("{fecha_1}", fecha1)
     .replaceAll("{fecha_2}", fecha2)
+    .replaceAll("{mes}",mesSeleccionado)
     .replaceAll("{link}", link)
-    .replaceAll("{fqdn}", fqdnlink)
-    .replaceAll("{informeDiario}", informeDiario)
-    .replaceAll("{informeSemanal}", informeSemanal)
-    .replaceAll("{informeMensual}", informeMensual);
+    .replaceAll("{fqdn}",fqdnlink)
+    .replaceAll("{informeDiario}",informeDiario)
+    .replaceAll("{informeSemanal}",informeSemanal)
+    .replaceAll("{informeMensual}",informeMensual);
+    const refer = document.getElementById('dashboard');
+    refer.setAttribute('href', informe);
+    refer.setAttribute('target', '_blank');
+    refer.setAttribute('rel', 'noopener noreferrer');
 
   // Reemplazar contenido del editor con la plantilla personalizada
   if (window.miEditor) {
@@ -485,6 +341,13 @@ document.querySelector('form').addEventListener('submit', function () {
   if (window.miEditor) {
     document.getElementById('editor').value = window.miEditor.getData();
   }
+});
+
+document.getElementById('regen').addEventListener('click', () => {
+  if (!informe || !nombreArch) {
+    return alert("Primero actualiza el informe para generar el URL y nombre de archivo.");
+  }
+  regenInforme(informe, nombreArch);
 });
 </script>
 {% endblock %}
