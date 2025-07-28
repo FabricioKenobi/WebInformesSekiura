@@ -39,7 +39,7 @@ class EmailEnviado(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
     plantilla = models.ForeignKey(PlantillaEmail, on_delete=models.SET_NULL, null=True)
-    fecha_evento = models.DateField()
+    fecha_evento = models.DateField(null=True, blank=True)
     asunto = models.CharField(max_length=100)
     cuerpo = models.TextField()
     enviado = models.BooleanField(default=False)
