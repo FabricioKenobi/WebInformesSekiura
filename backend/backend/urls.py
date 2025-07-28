@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from api.views import CreateUserView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from api.views import login_view, register_view,home_view, crear_email_personalizado, crear_cliente_view, crear_plantilla_view, probar_envio_email,configurar_correo, soc_home,conf_cliente, ejecutar_comando_cliente, descargar_pdf,guardar_email_personalizado,lista_borradores, enviar_email_guardado
+from api.views import login_view, register_view,home_view, crear_cliente_view, crear_plantilla_view, probar_envio_email,configurar_correo, soc_home,conf_cliente, ejecutar_comando_cliente, descargar_pdf,guardar_email_personalizado,lista_borradores, enviar_email_guardado
 from django.contrib.auth.views import LogoutView
 from django.conf.urls.static import static
 from django.conf import settings
@@ -20,7 +20,7 @@ urlpatterns = [
     path('register/', register_view, name='register'),
     path('', home_view, name='home'),  # Landing page después del login
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
-    path('crear_email_personalizado/', crear_email_personalizado, name='crear_email_personalizado'),
+    #path('crear_email_personalizado/', crear_email_personalizado, name='crear_email_personalizado'),
     path('crear_cliente/', crear_cliente_view, name='crear_cliente'),
     path('crear_plantilla/', crear_plantilla_view, name='crear_plantilla'),
     path('probar-mail/', probar_envio_email, name='probar_mail'),
