@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from api.views import CreateUserView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from api.views import login_view, register_view,home_view, crear_cliente_view, crear_plantilla_view, probar_envio_email,configurar_correo, soc_home,conf_cliente, ejecutar_comando_cliente, descargar_pdf,guardar_email_personalizado,lista_borradores, enviar_email_guardado
+from api.views import login_view, register_view,home_view, crear_cliente_view, crear_plantilla_view, probar_envio_email,configurar_correo, soc_home,conf_cliente, ejecutar_comando_cliente,guardar_email_personalizado,lista_borradores, enviar_email_guardado
 from django.contrib.auth.views import LogoutView
 from django.conf.urls.static import static
 from django.conf import settings
