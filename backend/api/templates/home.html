@@ -32,17 +32,32 @@
   <div>
     <button type="submit" class="btn btn-primary">🔍 Buscar</button>
   </div>
+  <div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="mostrar_borradores" id="mostrar_borradores" 
+             {% if request.GET.mostrar_borradores %}checked{% endif %}>
+      <label class="form-check-label" for="mostrar_borradores">
+        Mostrar borradores
+      </label>
+    </div>
+  </div>
 </form>
 
-<h2 class="h5">Últimos Emails Enviados</h2>
+<h2 class="h5">Historial de Emails</h2>
 
 {% if emails %}
   <div class="accordion" id="emailAccordion">
     {% for mail in emails %}
-      <div class="accordion-item mb-3">
+      <div class="accordion-item mb-3 {% if mail.enviado %}border-success{% else %}border-warning{% endif %}">
         <h2 class="accordion-header" id="heading{{ forloop.counter }}">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}">
-            📧 Asunto: {{ mail.asunto }} — Cliente: {{ mail.cliente.nombre }} — Enviado por: {{ mail.usuario }}
+          <button class="accordion-button collapsed {% if mail.enviado %}bg-success bg-opacity-10{% else %}bg-warning bg-opacity-10{% endif %}" 
+                  type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}">
+            {% if mail.enviado %}
+              📧 Enviado: 
+            {% else %}
+              📝 Borrador: 
+            {% endif %}
+            {{ mail.asunto }} — Cliente: {{ mail.cliente.nombre }} — Por: {{ mail.usuario }}
           </button>
         </h2>
         <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse">
@@ -57,11 +72,20 @@
             {% else %}
               <em>Sin archivo adjunto.</em>
             {% endif %}
-            <p style="text-align: right;">elaborado por: {{ mail.usuario }}
-            </p>
+            <p style="text-align: right;">elaborado por: {{ mail.usuario }}</p>
             </p>
             <p>
-              Enviado: {{ mail.fecha_envio }}
+              {% if mail.enviado %}
+                Enviado: {{ mail.fecha_envio }}
+              {% else %}
+                Creado: {{ mail.fecha_evento }}
+                <a href="{% url 'enviar_email_guardado' mail.id %}" class="btn btn-sm btn-success ms-2">
+                  Enviar ahora
+                </a>
+                <a href="{% url 'editar_borrador' mail.id %}" class="btn btn-sm btn-primary ms-2">
+                  Editar
+                </a>
+              {% endif %}
               <p style="text-align: right;">
                 to: {{ mail.cliente.lista_emails }}
               </p>
