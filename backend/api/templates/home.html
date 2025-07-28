@@ -57,7 +57,7 @@
             {% else %}
               📝 Borrador: 
             {% endif %}
-            {{ mail.asunto }} — Cliente: {{ mail.cliente.nombre }} — Por: {{ mail.usuario }}
+            {{ mail.asunto }} — Cliente: {{ mail.cliente.nombre }} — Por: {{ mail.usuario }} — Creado: {{ mail.fecha_evento }}
           </button>
         </h2>
         <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse">
