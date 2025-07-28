@@ -16,7 +16,7 @@
         <tr>
             <td>{{ borrador.cliente.nombre }}</td>
             <td>{{ borrador.asunto }}</td>
-            <td>{{ borrador.fecha_evento|date:"d/m/Y H:i" }}</td>
+            <td>{{ borrador.fecha_evento|date:"d/m/Y" }}</td>
             <td>
                 <a href="{% url 'enviar_email_guardado' borrador.id %}" class="btn btn-primary">
                     Enviar
