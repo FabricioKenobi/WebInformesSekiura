@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from api.views import CreateUserView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from api.views import login_view, register_view,home_view, crear_cliente_view, crear_plantilla_view, probar_envio_email,configurar_correo, soc_home,conf_cliente, ejecutar_comando_cliente,guardar_email_personalizado,lista_borradores, enviar_email_guardado
+from api.views import login_view, register_view,home_view, crear_cliente_view, crear_plantilla_view, probar_envio_email,configurar_correo, soc_home,conf_cliente, ejecutar_comando_cliente,guardar_email_personalizado,lista_borradores, enviar_email_guardado, editar_borrador
 from django.contrib.auth.views import LogoutView
 from django.conf.urls.static import static
 from django.conf import settings
@@ -31,5 +31,5 @@ urlpatterns = [
     path('guardar-email/', guardar_email_personalizado, name='guardar_email'),
     path('borradores/', lista_borradores, name='lista_borradores'),
     path('enviar-borrador/<int:email_id>/', enviar_email_guardado, name='enviar_email_guardado'),
-
+    path('borradores/editar/<int:email_id>/', editar_borrador, name='editar_borrador'),
 ]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
