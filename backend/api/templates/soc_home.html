@@ -67,8 +67,7 @@
       <a id="dashboard" href="" target="_blank" rel="noopener noreferrer">Editar Informe</a>
 
       <button id="regen" type="button">Generar informe</button>
-      <input type="hidden" name="comando_generado" id="comando_generado">
-      <button type="submit" id="enviar" class="btn btn-success w-100" >✉️ Guardar email</button>
+      <button type="submit" id="enviar" class="btn btn-success w-100" >✉️ Enviar email</button>
     </div>
   </div>
 </form>
@@ -237,9 +236,6 @@ function formatearFecha(fechaStr) {
   texto = texto.replace(/\b\w/g, l => l.toUpperCase());
   return texto.replaceAll('De','de');
 }
-
-let ultimoComandoEjecutado = "";
-
 function regenInforme(urlInforme, archivo) {
   
   document.getElementById('enviar').hidden = true;
@@ -259,8 +255,6 @@ function regenInforme(urlInforme, archivo) {
     }
     if (data.filename) {
       // data.filename ya está definido
-      ultimoComandoEjecutado = data.comando_ejecutado || "";
-      document.getElementById("comando_generado").value = ultimoComandoEjecutado;
       document.getElementById('enviar').hidden = false;
       window.open(
       `/descargar-pdf/${encodeURIComponent(data.filename)}/`,
@@ -354,7 +348,6 @@ document.getElementById('regen').addEventListener('click', () => {
     return alert("Primero actualiza el informe para generar el URL y nombre de archivo.");
   }
   regenInforme(informe, nombreArch);
-  document.getElementById("comando_generado").value = ultimoComandoEjecutado;
 });
 </script>
 {% endblock %}
