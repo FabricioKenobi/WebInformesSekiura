@@ -377,15 +377,27 @@ def soc_home(request):
     })
 @login_required
 def editar_borrador(request, email_id):
-    borrador = get_object_or_404(EmailEnviado, id=email_id, usuario=request.user, enviado=False)
-    
+    try:
+        borrador = EmailEnviado.objects.get(id=email_id, usuario=request.user, enviado=False)
+    except EmailEnviado.DoesNotExist:
+        raise Http404("Borrador no encontrado")
+
     if request.method == 'POST':
-        # Procesar formulario...
+        # Procesar el formulario de edición
+        borrador.asunto = request.POST.get('asunto')
+        borrador.cuerpo = request.POST.get('cuerpo_html')
+        if 'archivo_adjunto' in request.FILES:
+            borrador.archivo_adjunto = request.FILES['archivo_adjunto']
+        borrador.save()
         return redirect('lista_borradores')
+
+    clientes = Cliente.objects.all()
+    plantillas = PlantillaEmail.objects.all()
     
     return render(request, 'editar_borrador.html', {
         'borrador': borrador,
-        'tipo_plantilla': borrador.plantilla.tipo.lower() if borrador.plantilla else ''
+        'clientes': clientes,
+        'plantillas': plantillas,
     })
 @login_required
 def conf_cliente(request):
