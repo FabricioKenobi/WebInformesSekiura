@@ -105,64 +105,60 @@ def crear_cliente_view(request):
     return render(request, 'crear_cliente.html')
 
 @login_required
+def editar_borrador(request, borrador_id):
+    borrador = get_object_or_404(EmailEnviado, id=borrador_id, usuario=request.user)
+    return render(request, 'editar_borrador.html', {'borrador': borrador})
+
+
+@login_required
 def guardar_email_personalizado(request):
-    from datetime import datetime
-    from django.utils import timezone
-    
     if request.method == 'POST':
         user = request.user
         cliente = Cliente.objects.get(id=request.POST['cliente'])
+        plantilla = plantilla.objects.get(id=request.POST['plantilla'])
         asunto = request.POST['asunto']
         cuerpo_html = request.POST.get("cuerpo_html", "")
-        
-        # Procesamiento de fechas (igual que antes)
+        archivo = request.FILES.get("archivo_adjunto")
+        nombre_archivo = request.POST.get("nombre_archivo", "")
+        comando_generado = request.POST.get("comando_generado", "")
+
         fecha_1_str = request.POST.get('fecha_1', '')
         fecha_2_str = request.POST.get('fecha_2', '')
         date_format = "%Y-%m-%d"
-        
+        from datetime import datetime
+        fecha_1_fmt = ""
+        fecha_2_fmt = ""
         if fecha_1_str:
             fecha_1 = datetime.strptime(fecha_1_str, date_format)
-            fecha_1_str = date_filter(fecha_1, "l d/M")
-        else:
-            fecha_1_str = ""
-
+            fecha_1_fmt = date_filter(fecha_1, "l d/M")
         if fecha_2_str:
             fecha_2 = datetime.strptime(fecha_2_str, date_format)
-            fecha_2_str = date_filter(fecha_2, "l d/M")
-        else:
-            fecha_2_str = ""
+            fecha_2_fmt = date_filter(fecha_2, "l d/M")
 
-        # Reemplazar placeholders
+        # Reemplazo de placeholders
         asunto_final = asunto.replace('{cliente}', cliente.nombre)
-        cuerpo_html_final = cuerpo_html.replace('{cliente}', cliente.nombre)
-        cuerpo_html_final = cuerpo_html_final.replace('{fecha_1}', fecha_1_str)
-        cuerpo_html_final = cuerpo_html_final.replace('{fecha_2}', fecha_2_str)
-        cuerpo_html_final = cuerpo_html_final.replace('{imagen}', '<img src="cid:firma_incrustada" style="max-width:100%">')
-        
-        # Formatear texto para HTML
-        cuerpo_html_final = cuerpo_html_final.replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;')
-        cuerpo_html_final = cuerpo_html_final.replace('  ', '&nbsp;&nbsp;')
-        cuerpo_html_final = cuerpo_html_final.replace('\n', '<br>')
+        cuerpo_final = cuerpo_html.replace('{cliente}', cliente.nombre)\
+                                  .replace('{fecha_1}', fecha_1_fmt)\
+                                  .replace('{fecha_2}', fecha_2_fmt)\
+                                  .replace('{imagen}', '<img src="cid:firma_incrustada" style="max-width:100%">')\
+                                  .replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;')\
+                                  .replace('  ', '&nbsp;&nbsp;')\
+                                  .replace('\n', '<br>')
 
-        # Guardar el borrador (con enviado=False)
-        borrador = EmailEnviado.objects.create(
-            usuario=request.user,
+        EmailEnviado.objects.create(
+            usuario=user,
             cliente=cliente,
+            plantilla=plantilla,
             asunto=asunto_final,
-            cuerpo=cuerpo_html_final,
-            enviado=False,  # Importante: marcamos como no enviado
+            cuerpo=cuerpo_final,
+            archivo_adjunto=archivo,
+            enviado=False,
             fecha_evento=timezone.now(),
-            archivo_adjunto=request.FILES.get("archivo_adjunto")
+            nombre_archivo=nombre_archivo,
+            comando_generado=comando_generado
         )
 
-        return redirect('lista_borradores')  # Redirigir a lista de borradores
-    
-    clientes = Cliente.objects.all()
-    plantillas = PlantillaEmail.objects.all()
-    return render(request, 'soc_home.html', {
-        'clientes': clientes,
-        'plantillas': plantillas,
-    })
+        return redirect('lista_borradores')
 
 @login_required
 def enviar_email_guardado(request, email_id):
@@ -375,30 +371,8 @@ def soc_home(request):
         'plantillas': plantillas,
         'clientes': clientes,
     })
-@login_required
-def editar_borrador(request, email_id):
-    try:
-        borrador = EmailEnviado.objects.get(id=email_id, usuario=request.user, enviado=False)
-    except EmailEnviado.DoesNotExist:
-        raise Http404("Borrador no encontrado")
 
-    if request.method == 'POST':
-        # Procesar el formulario de edición
-        borrador.asunto = request.POST.get('asunto')
-        borrador.cuerpo = request.POST.get('cuerpo_html')
-        if 'archivo_adjunto' in request.FILES:
-            borrador.archivo_adjunto = request.FILES['archivo_adjunto']
-        borrador.save()
-        return redirect('lista_borradores')
 
-    clientes = Cliente.objects.all()
-    plantillas = PlantillaEmail.objects.all()
-    
-    return render(request, 'editar_borrador.html', {
-        'borrador': borrador,
-        'clientes': clientes,
-        'plantillas': plantillas,
-    })
 @login_required
 def conf_cliente(request):
     if request.method == 'POST':
