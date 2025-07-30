@@ -237,9 +237,11 @@ function formatearFecha(fechaStr) {
   texto = texto.replace(/\b\w/g, l => l.toUpperCase());
   return texto.replaceAll('De','de');
 }
+
 let ultimoComandoEjecutado = "";
 
 function regenInforme(urlInforme, archivo) {
+  
   document.getElementById('enviar').hidden = true;
   fetch('/ejecutar-comando/', {
     method: 'POST',
@@ -252,18 +254,18 @@ function regenInforme(urlInforme, archivo) {
   .then(r => r.json())
   .then(data => {
     if (!data.ok) {
+      // data.error ahora sí existe
       return alert("Error al generar PDF:\n" + data.error);
     }
     if (data.filename) {
-      document.getElementById('enviar').hidden = false;
-      // Guardar el comando en la variable global y en el input oculto
+      // data.filename ya está definido
       ultimoComandoEjecutado = data.comando_ejecutado || "";
       document.getElementById("comando_generado").value = ultimoComandoEjecutado;
-
+      document.getElementById('enviar').hidden = false;
       window.open(
-        `/descargar-pdf/${encodeURIComponent(data.filename)}/`,
-        '_blank'
-      );
+      `/descargar-pdf/${encodeURIComponent(data.filename)}/`,
+      '_blank'
+    );
     } else {
       console.error("No se devolvió nombre de archivo:", data);
     }
@@ -273,15 +275,6 @@ function regenInforme(urlInforme, archivo) {
     alert("No se pudo conectar con el servidor.");
   });
 }
-
-// Antes de enviar el form, asegurate que el campo tenga el valor:
-document.querySelector('form').addEventListener('submit', function () {
-  if (window.miEditor) {
-    document.getElementById('editor').value = window.miEditor.getData();
-  }
-  // Por si acaso, setear el input antes de enviar
-  document.getElementById("comando_generado").value = ultimoComandoEjecutado;
-});
 
 function actualizarPreview() {
   let asunto = document.getElementById("asunto").value;
@@ -361,6 +354,7 @@ document.getElementById('regen').addEventListener('click', () => {
     return alert("Primero actualiza el informe para generar el URL y nombre de archivo.");
   }
   regenInforme(informe, nombreArch);
+  document.getElementById("comando_generado").value = ultimoComandoEjecutado;
 });
 </script>
 {% endblock %}
