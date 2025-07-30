@@ -505,97 +505,90 @@ import traceback
 @csrf_exempt
 @login_required
 def ejecutar_comando_cliente(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            informe_url = data.get('informe')
-            nombre_archivo = data.get('nombreArch', 'informe').replace(' ', '_')
-            
-            # Validar URL
-            if not informe_url or not informe_url.startswith('http'):
-                return JsonResponse({
-                    'ok': False,
-                    'error': 'URL del dashboard no válida'
-                }, status=400)
-            
-            # Crear directorio con permisos
-            informe_dir = os.path.join(settings.BASE_DIR, 'temp_pdfs')
-            os.makedirs(informe_dir, exist_ok=True)
-            os.chmod(informe_dir, 0o777)
-            
-            # Limpiar nombre de archivo
-            nombre_archivo = ''.join(c for c in nombre_archivo if c.isalnum() or c in ('_', '-', '.')) + '.pdf'
-            ruta_pdf = os.path.join(informe_dir, nombre_archivo)
-            
-            # Eliminar PDF existente si lo hay
-            if os.path.exists(ruta_pdf):
-                os.remove(ruta_pdf)
-            
-            # Comando con entorno Node.js configurado
-            comando = [
-                '/usr/local/bin/opensearch-reporting-cli',
-                '--url', informe_url,
-                '--auth', 'basic',
-                '--credentials', 'sekiura-reports:Sekiura2025*',
-                '--format', 'pdf',
-                '--filename', ruta_pdf,
-                '--timeout', '900',
-                #'--debug'
-            ]
-            
-            # Entorno personalizado
-            env = os.environ.copy()
-            env['NODE_NO_WARNINGS'] = '1'  # Suprimir warnings de AWS SDK
-            env['DISPLAY'] = ':0'  # Necesario para Chromium headless
-            
-            # Ejecutar comando
-            resultado = subprocess.run(
-                comando,
-                capture_output=True,
-                text=True,
-                timeout=920,  # 15 minutos + margen
-                env=env
-            )
-            
-            # Verificar resultado
-            if resultado.returncode != 0:
-                raise subprocess.CalledProcessError(
-                    resultado.returncode, 
-                    comando, 
-                    resultado.stdout, 
-                    resultado.stderr
-                )
-            
-            # Esperar y verificar archivo
-            max_attempts = 10
-            for i in range(max_attempts):
-                if os.path.exists(ruta_pdf) and os.path.getsize(ruta_pdf) > 1024:
-                    return JsonResponse({
-                        'ok': True,
-                        'filename': nombre_archivo,
-                        'download_url': f'/descargar-pdf/{nombre_archivo}',
-                        'output': resultado.stdout
-                    })
-                time.sleep(1)
-            
-            raise Exception("El archivo no se generó después del comando exitoso")
-            
-        except subprocess.TimeoutExpired:
-            return JsonResponse({
-                'ok': False,
-                'error': 'Tiempo de espera agotado (15 minutos)',
-                'comando': ' '.join(comando)
-            }, status=504)
-        except subprocess.CalledProcessError as e:
-            return JsonResponse({
-                'ok': False,
-                'error': f"Error en el comando (code {e.returncode}): {e.stderr}",
-                'output': e.stdout,
-                'comando': ' '.join(e.cmd)
-            }, status=500)
-        except Exception as e:
-            return JsonResponse({
-                'ok': False,
-                'error': str(e),
-                'traceback': traceback.format_exc()
-            }, status=500)
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
+
+    # 1) Parseamos JSON
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
+
+    informe = data.get('informe', '').strip()
+    nombre = data.get('nombreArch', '').strip()
+    if not informe:
+        return JsonResponse({'ok': False, 'error': 'URL not specified'}, status=400)
+
+    # 2) Normalizamos nombre a base + .pdf
+    base, ext = os.path.splitext(nombre)
+    nombre = f"{base}"
+    
+
+
+    # 3) Directorio y ruta completa
+    output_dir  = "/home/hermes/WebInformesSekiura/backend"
+    output_path = os.path.join(output_dir, nombre)
+    nombre_rm = nombre.replace(' ', '\ ')
+    output_path_rm = os.path.join(output_dir, nombre_rm)
+    
+    print(output_path)
+    # 5) Ejecutamos el CLI
+    cmd = [
+        "bash", "-c",
+        # rm -f suprime el error si no existe; && sólo ejecuta el CLI si rm acaba sin error
+        f"rm -f {output_path_rm}.pdf && "
+        f"/usr/local/bin/opensearch-reporting-cli "
+        f"--url '{informe}' "
+        f"--auth basic "
+        f"--credentials 'sekiura-reports:Sekiura2025*' "
+        f"--format pdf "
+        f"--filename '{output_path}'"
+    ]
+
+    resultado = subprocess.run(cmd, cwd=output_dir, capture_output=True, text=True, check=False)
+
+    if resultado.returncode != 0:
+        return JsonResponse({
+            'ok': False,
+            'error': resultado.stderr.strip(),
+            'returncode': resultado.returncode
+        }, status=500)
+
+    # 6) Devolvemos el nombre para la descarga
+    return JsonResponse({
+        'ok': True,
+        'filename': nombre,
+        'output': resultado.stdout.strip()
+    })
+
+from django.http import FileResponse, Http404
+
+@login_required
+def descargar_pdf(request, archivo_nombre):
+    archivo_nombre += ".pdf"
+    # 1) Validar que el nombre venga en la URL
+    if not archivo_nombre:
+        raise Http404("Nombre de archivo no especificado")
+
+    # 2) Directorio correcto donde se generan los PDFs
+    directorio = "/home/hermes/WebInformesSekiura/backend"
+
+    # 3) Búsqueda case-insensitive
+    nombre_buscado = archivo_nombre.lower()
+    fichero_encontrado = None
+    for fn in os.listdir(directorio):
+        if fn.lower() == nombre_buscado:
+            fichero_encontrado = fn
+            break
+
+    if not fichero_encontrado:
+        raise Http404(f"El archivo «{archivo_nombre}» no existe en {directorio}")
+
+    ruta_pdf = os.path.join(directorio, fichero_encontrado)
+
+    # 4) Devolverlo como attachment
+    return FileResponse(
+        open(ruta_pdf, "rb"),
+        content_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{fichero_encontrado}"'}
+    )
