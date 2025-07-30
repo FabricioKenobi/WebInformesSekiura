@@ -112,6 +112,8 @@ def editar_borrador(request, borrador_id):
 
 @login_required
 def guardar_email_personalizado(request):
+    if request.method != 'POST':
+        return redirect('soc_home')
     if request.method == 'POST':
         user = request.user
         cliente = Cliente.objects.get(id=request.POST['cliente'])
