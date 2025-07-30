@@ -67,6 +67,7 @@
       <a id="dashboard" href="" target="_blank" rel="noopener noreferrer">Editar Informe</a>
 
       <button id="regen" type="button">Generar informe</button>
+      <input type="hidden" name="comando_generado" id="comando_generado">
       <button type="submit" id="enviar" class="btn btn-success w-100" >✉️ Guardar email</button>
     </div>
   </div>
@@ -236,8 +237,9 @@ function formatearFecha(fechaStr) {
   texto = texto.replace(/\b\w/g, l => l.toUpperCase());
   return texto.replaceAll('De','de');
 }
+let ultimoComandoEjecutado = "";
+
 function regenInforme(urlInforme, archivo) {
-  
   document.getElementById('enviar').hidden = true;
   fetch('/ejecutar-comando/', {
     method: 'POST',
@@ -250,16 +252,18 @@ function regenInforme(urlInforme, archivo) {
   .then(r => r.json())
   .then(data => {
     if (!data.ok) {
-      // data.error ahora sí existe
       return alert("Error al generar PDF:\n" + data.error);
     }
     if (data.filename) {
-      // data.filename ya está definido
       document.getElementById('enviar').hidden = false;
+      // Guardar el comando en la variable global y en el input oculto
+      ultimoComandoEjecutado = data.comando_ejecutado || "";
+      document.getElementById("comando_generado").value = ultimoComandoEjecutado;
+
       window.open(
-      `/descargar-pdf/${encodeURIComponent(data.filename)}/`,
-      '_blank'
-    );
+        `/descargar-pdf/${encodeURIComponent(data.filename)}/`,
+        '_blank'
+      );
     } else {
       console.error("No se devolvió nombre de archivo:", data);
     }
@@ -269,6 +273,15 @@ function regenInforme(urlInforme, archivo) {
     alert("No se pudo conectar con el servidor.");
   });
 }
+
+// Antes de enviar el form, asegurate que el campo tenga el valor:
+document.querySelector('form').addEventListener('submit', function () {
+  if (window.miEditor) {
+    document.getElementById('editor').value = window.miEditor.getData();
+  }
+  // Por si acaso, setear el input antes de enviar
+  document.getElementById("comando_generado").value = ultimoComandoEjecutado;
+});
 
 function actualizarPreview() {
   let asunto = document.getElementById("asunto").value;

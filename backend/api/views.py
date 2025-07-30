@@ -114,7 +114,7 @@ def guardar_email_personalizado(request):
         cliente = Cliente.objects.get(id=request.POST['cliente'])
         asunto = request.POST['asunto']
         cuerpo_html = request.POST.get("cuerpo_html", "")
-        
+        comando_generado = request.POST.get("comando_generado", "")
         # Procesamiento de fechas (igual que antes)
         fecha_1_str = request.POST.get('fecha_1', '')
         fecha_2_str = request.POST.get('fecha_2', '')
@@ -152,7 +152,8 @@ def guardar_email_personalizado(request):
             cuerpo=cuerpo_html_final,
             enviado=False,  # Importante: marcamos como no enviado
             fecha_evento=timezone.now(),
-            archivo_adjunto=request.FILES.get("archivo_adjunto")
+            archivo_adjunto=request.FILES.get("archivo_adjunto"),
+            comando_generado=comando_generado
         )
 
         return redirect('lista_borradores')  # Redirigir a lista de borradores
