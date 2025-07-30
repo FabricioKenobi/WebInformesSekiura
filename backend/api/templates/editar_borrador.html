@@ -5,13 +5,7 @@
 
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
-  <input type="hidden" name="cliente" id="cliente_id" value="{{ borrador.cliente.id }}">
-  <input type="hidden" name="plantilla" id="plantilla_id" value="{{ borrador.plantilla.id }}">
-  <input type="hidden" name="fecha_1" id="fecha_1">
-  <input type="hidden" name="fecha_2" id="fecha_2">
-  <input type="hidden" name="nombre_archivo" id="nombre_archivo">
-  <input type="hidden" name="comando_generado" id="comando_generado">
-
+  
   <div class="mb-3">
     <label for="asunto" class="form-label">Asunto:</label>
     <input type="text" class="form-control" id="asunto" name="asunto" value="{{ borrador.asunto }}">
@@ -19,7 +13,7 @@
 
   <div class="mb-3">
     <label for="cuerpo_html" class="form-label">Cuerpo del email:</label>
-    <textarea id="editor" name="cuerpo_html">{{ borrador.cuerpo|safe }}</textarea>
+    <textarea id="editor" name="cuerpo_html">{{ borrador.cuerpo }}</textarea>
   </div>
 
   <div class="mb-3">
@@ -29,158 +23,26 @@
       <p>Archivo actual: <a href="{{ borrador.archivo_adjunto.url }}" target="_blank">{{ borrador.archivo_adjunto.name }}</a></p>
     {% endif %}
   </div>
+  <input type="hidden" name="cliente" id="cliente_id" value="{{ borrador.cliente.id }}">
+  <input type="hidden" name="fecha_1" id="fecha_1">
+  <input type="hidden" name="fecha_2" id="fecha_2">
+  <input type="hidden" name="plantilla" id="plantilla_id" value="{{ borrador.plantilla.id }}">
 
-  <div class="mb-3">
-    <a id="dashboard" href="#" target="_blank" rel="noopener noreferrer">Editar Informe</a>
-    <button id="regen" type="button" class="btn btn-warning">Generar Informe</button>
-  </div>
+  <a id="dashboard" href="" target="_blank" rel="noopener noreferrer">Editar Informe</a>
+  <button id="regen" type="button">Generar informe</button>
+
 
   <button type="submit" class="btn btn-primary">Guardar Cambios</button>
   <a href="{% url 'lista_borradores' %}" class="btn btn-secondary">Cancelar</a>
 </form>
 
-<!-- CKEditor -->
 <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
-
 <script>
-let cliente_nombre = "{{ borrador.cliente.nombre }}";
-let cuerpo_base_original = `{{ borrador.plantilla.cuerpo_base|escapejs }}`;
-let tipoPlantilla = "{{ borrador.plantilla.tipo|lower }}";
-let ip = "{{ borrador.cliente.IPSIEM }}";
-let fqdn = "{{ borrador.cliente.FQDN }}";
-let codeDiario = "{{ borrador.cliente.diario }}";
-let codeSemanal = "{{ borrador.cliente.semanal }}";
-let codeMes = "{{ borrador.cliente.mensual }}";
-let informe = "";
-let nombreArch = "";
-
-ClassicEditor
-  .create(document.querySelector('#editor'))
-  .then(editor => {
-    window.miEditor = editor;
-  })
-  .catch(error => {
-    console.error('Error al iniciar CKEditor:', error);
-  });
-
-function formatearFecha(fechaStr) {
-  if (!fechaStr) return "__/__/____";
-  const fecha = new Date(fechaStr);
-  let texto = fecha.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-  texto = texto.replace(/\b\w/g, l => l.toUpperCase());
-  return texto.replaceAll('De','de');
-}
-
-function regenInforme(urlInforme, archivo) {
-  document.getElementById('regen').disabled = true;
-  fetch('/ejecutar-comando/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': '{{ csrf_token }}'
-    },
-    body: JSON.stringify({ informe: urlInforme, nombreArch: archivo })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (!data.ok) {
-      alert("Error al generar PDF:\n" + data.error);
-    } else if (data.filename) {
-      window.open(`/descargar-pdf/${encodeURIComponent(data.filename)}/`, '_blank');
-    }
-    document.getElementById('regen').disabled = false;
-  })
-  .catch(err => {
-    console.error("Fetch falló:", err);
-    alert("No se pudo conectar con el servidor.");
-    document.getElementById('regen').disabled = false;
-  });
-}
-
-function actualizarPreview() {
-  let fecha_1 = document.getElementById("fecha_1").value;
-  let fecha_2 = document.getElementById("fecha_2").value;
-  let fecha1 = formatearFecha(fecha_1);
-  let fecha2 = formatearFecha(fecha_2);
-
-  let link = "<a href='https://" + ip + "/app/vulnerability-detection'>" + "https://" + ip + "/app/vulnerability-detection</a>";
-  let fqdnlink = "<a href='https://" + fqdn + "/app/vulnerability-detection'>" + "https://" + fqdn + "/app/vulnerability-detection</a>";
-
-  let ini = `(from:'${fecha_1}T03:00:00.000Z',to:'${fecha_2}T02:59:59.000Z')`;
-  let encodedIni = encodeURIComponent(ini);
-
-  let informeDiario = `<a href="https://${ip}/app/dashboards#/view/${codeDiario}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Diario</a>`;
-  let informeSemanal = `<a href="https://${ip}/app/dashboards#/view/${codeSemanal}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Semanal</a>`;
-  let informeMensual = `<a href="https://${ip}/app/dashboards#/view/${codeMes}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
-
-  if (tipoPlantilla.includes('diario')) {
-    informe = `https://${ip}/app/dashboards#/view/${codeDiario}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-    nombreArch = `${cliente_nombre}-Informe-Diario-${fecha_2}`;
-  } else if (tipoPlantilla.includes('semanal')) {
-    informe = `https://${ip}/app/dashboards#/view/${codeSemanal}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-    nombreArch = `${cliente_nombre}-Informe-Semanal-${fecha_2}`;
-  } else if (tipoPlantilla.includes('mensual')) {
-    informe = `https://${ip}/app/dashboards#/view/${codeMes}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-    nombreArch = `${cliente_nombre}-Informe-Mensual-${fecha_2}`;
-  }
-
-  document.getElementById("nombre_archivo").value = nombreArch;
-  document.getElementById("comando_generado").value = informe;
-
-  let asunto_personalizado = document.getElementById("asunto").value
-    .replaceAll("{cliente}", cliente_nombre)
-    .replaceAll("{fecha_1}", fecha1)
-    .replaceAll("{fecha_2}", fecha2)
-    .replaceAll("{link}", link);
-
-  document.getElementById("asunto").value = asunto_personalizado;
-
-  let cuerpo_personalizado = cuerpo_base_original
-    .replaceAll("{cliente}", cliente_nombre)
-    .replaceAll("{fecha_1}", fecha1)
-    .replaceAll("{fecha_2}", fecha2)
-    .replaceAll("{mes}", "")
-    .replaceAll("{link}", link)
-    .replaceAll("{fqdn}", fqdnlink)
-    .replaceAll("{informeDiario}", informeDiario)
-    .replaceAll("{informeSemanal}", informeSemanal)
-    .replaceAll("{informeMensual}", informeMensual);
-
-  document.getElementById("dashboard").href = informe;
-
-  if (window.miEditor) {
-    window.miEditor.setData(cuerpo_personalizado);
-  }
-
-  document.getElementById('editor').value = cuerpo_personalizado;
-}
-
-document.querySelector('form').addEventListener('submit', function () {
-  if (window.miEditor) {
-    document.getElementById('editor').value = window.miEditor.getData();
-  }
-});
-
-document.getElementById('regen').addEventListener('click', () => {
-  if (!informe || !nombreArch) {
-    alert("Primero completá las fechas y el asunto para generar el informe.");
-    return;
-  }
-  regenInforme(informe, nombreArch);
-});
-
-window.onload = function() {
-  const hoy = new Date();
-  const offset = hoy.getTimezoneOffset();
-  hoy.setMinutes(hoy.getMinutes() - offset);
-  const fechaActual = hoy.toISOString().split('T')[0];
-  document.getElementById("fecha_2").value = fechaActual;
-
-  let dias = tipoPlantilla.includes("semanal") ? 7 : tipoPlantilla.includes("mensual") ? 30 : 1;
-  hoy.setDate(hoy.getDate() - dias);
-  document.getElementById("fecha_1").value = hoy.toISOString().split('T')[0];
-  actualizarPreview();
-};
+  
+  ClassicEditor
+    .create(document.querySelector('#editor'))
+    .catch(error => {
+      console.error(error);
+    });
 </script>
-
 {% endblock %}
