@@ -1,39 +1,251 @@
 {% extends 'base.html' %}
+{% block title %}Editar Borrador{% endblock %}
 
 {% block content %}
-<h2>Editar Borrador</h2>
+<!-- CKEditor 5 CDN -->
+<script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
+
+<div id="seccion_fecha">
+  <label>Fecha 1:</label>
+  <input type="date" name="fecha_1" id="fecha_1" class="form-control mb-2" value="{{ borrador.fecha_evento|date:'Y-m-d' }}" onchange="actualizarPreview()">
+  
+  <label>Fecha 2:</label>
+  <input type="date" name="fecha_2" id="fecha_2" class="form-control mb-2" value="{{ borrador.fecha_envio|date:'Y-m-d' }}" onchange="actualizarPreview()">
+</div>
+
+{% if tipo_plantilla == 'mensual' %}
+<div id="seccion_mes">
+  <label>Seleccionar mes:</label>
+  <div id="botones_mes" class="mb-3"></div>
+</div>
+{% endif %}
 
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
-  
-  <div class="mb-3">
-    <label for="asunto" class="form-label">Asunto:</label>
-    <input type="text" class="form-control" id="asunto" name="asunto" value="{{ borrador.asunto }}">
-  </div>
+  <input type="hidden" name="cliente" id="cliente_id" value="{{ borrador.cliente.id }}">
+  <input type="hidden" name="plantilla" id="plantilla_id" value="{{ borrador.plantilla.id }}">
 
-  <div class="mb-3">
-    <label for="cuerpo_html" class="form-label">Cuerpo del email:</label>
-    <textarea id="editor" name="cuerpo_html">{{ borrador.cuerpo }}</textarea>
-  </div>
-
-  <div class="mb-3">
-    <label for="archivo_adjunto" class="form-label">Archivo adjunto:</label>
-    <input type="file" class="form-control" id="archivo_adjunto" name="archivo_adjunto">
+  <div id="seccion_archivo">
+    <label>Adjuntar archivo:</label>
+    <input type="file" name="archivo_adjunto" class="form-control mb-3" onchange="archivoAgregado()">
     {% if borrador.archivo_adjunto %}
       <p>Archivo actual: <a href="{{ borrador.archivo_adjunto.url }}" target="_blank">{{ borrador.archivo_adjunto.name }}</a></p>
     {% endif %}
   </div>
 
-  <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-  <a href="{% url 'lista_borradores' %}" class="btn btn-secondary">Cancelar</a>
+  <div id="seccion_texto">
+    <hr><h2>📄 Vista previa</h2>
+    <div id="preview_emails" class="mt-3 bg-light p-3 border rounded">
+      <strong>📬 Correos:</strong>
+      <ul id="lista_emails" class="mb-0">
+        <li>{{ borrador.cliente.lista_emails }}</li>
+      </ul>
+      <div class="mt-2"><strong>📎 Archivo:</strong> <span id="nombre_archivo">
+        {% if borrador.archivo_adjunto %}
+          {{ borrador.archivo_adjunto.name }}
+        {% else %}
+          Ningún archivo seleccionado
+        {% endif %}
+      </span></div>
+    </div>
+
+    <label>Asunto:</label>
+    <input type="text" name="asunto" id="asunto" class="form-control mb-2" value="{{ borrador.asunto }}">
+
+    <label>Cuerpo:</label>
+    <textarea id="editor" name="cuerpo_html">{% autoescape off %}{{ borrador.cuerpo }}{% endautoescape %}</textarea>
+    <a id="dashboard" href="" target="_blank" rel="noopener noreferrer">Editar Informe</a>
+
+    <button id="regen" type="button" class="btn btn-primary mb-2">Generar informe</button>
+    <button type="submit" id="enviar" class="btn btn-success w-100">✉️ Guardar cambios</button>
+  </div>
 </form>
 
-<script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
 <script>
-  ClassicEditor
-    .create(document.querySelector('#editor'))
-    .catch(error => {
-      console.error(error);
-    });
+// Variables globales
+let cliente_nombre = "{{ borrador.cliente.nombre }}";
+let cuerpo_base_original = `{% autoescape off %}{{ borrador.plantilla.cuerpo_base }}{% endautoescape %}`;
+let tipoPlantilla = "{{ borrador.plantilla.tipo|lower }}";
+let ip = "{{ borrador.cliente.IPSIEM }}";
+let fqdn = "{{ borrador.cliente.FQDN }}";
+let codeDiario = "{{ borrador.cliente.diario }}";
+let codeSemanal = "{{ borrador.cliente.semanal }}";
+let codeMes = "{{ borrador.cliente.mensual }}";
+let fechatemp = new Date();
+let informe = "";
+let nombreArch = "";
+let mesSeleccionado = "";
+
+// Inicializar CKEditor
+ClassicEditor
+  .create(document.querySelector('#editor'))
+  .then(editor => {
+    window.miEditor = editor;
+    // Actualizar preview al cargar
+    setTimeout(actualizarPreview, 500);
+  })
+  .catch(error => {
+    console.error('Error al iniciar CKEditor:', error);
+  });
+
+// Inicializar botones de mes si es plantilla mensual
+if (tipoPlantilla.includes('mensual')) {
+  const contenedor = document.getElementById("botones_mes");
+  contenedor.innerHTML = "";
+
+  const hoy = new Date();
+  for (let i = 0; i < 6; i++) {
+    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const texto = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    const mes = texto.charAt(0).toUpperCase() + texto.slice(1);
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = mes;
+    btn.classList.add("btn", "btn-outline-primary", "m-1");
+    btn.onclick = () => seleccionarMesDirecto(btn);
+    contenedor.appendChild(btn);
+  }
+}
+
+function seleccionarMesDirecto(boton) {
+  document.querySelectorAll('#botones_mes button').forEach(b => b.classList.remove("active"));
+  boton.classList.add("active");
+  mesSeleccionado = boton.textContent;
+  actualizarPreview();
+}
+
+function archivoAgregado() {
+  const inputArchivo = document.querySelector('input[name="archivo_adjunto"]');
+  const nombreArchivoSpan = document.getElementById('nombre_archivo');
+
+  if (inputArchivo.files && inputArchivo.files[0]) {
+    nombreArchivoSpan.textContent = inputArchivo.files[0].name;
+  } else {
+    nombreArchivoSpan.textContent = "Ningún archivo seleccionado";
+  }
+}
+
+function formatearFecha(fechaStr) {
+  if (!fechaStr) return "__/__/____";
+  const fecha = new Date(fechaStr);
+  let texto = fecha.toLocaleDateString('es-ES', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric',
+    timeZone: 'UTC'
+  });
+  // Capitaliza cada palabra
+  texto = texto.split(' ').map(word => 
+    word === 'De' ? 'de' : word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+  return texto;
+}
+
+function regenInforme(urlInforme, archivo) {
+  document.getElementById('enviar').disabled = true;
+  fetch('/ejecutar-comando/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: JSON.stringify({ informe: urlInforme, nombreArch: archivo })
+  })
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('enviar').disabled = false;
+    if (!data.ok) {
+      return alert("Error al generar PDF:\n" + data.error);
+    }
+    if (data.filename) {
+      window.open(
+        `/descargar-pdf/${encodeURIComponent(data.filename)}/`,
+        '_blank'
+      );
+    } else {
+      console.error("No se devolvió nombre de archivo:", data);
+    }
+  })
+  .catch(err => {
+    console.error("Fetch falló:", err);
+    alert("No se pudo conectar con el servidor.");
+    document.getElementById('enviar').disabled = false;
+  });
+}
+
+function actualizarPreview() {
+  let asunto = document.getElementById("asunto").value;
+  let fecha_1 = document.getElementById("fecha_1").value;
+  let fecha1 = formatearFecha(fecha_1);
+  
+  let fecha_2 = document.getElementById("fecha_2").value;
+  let fecha2 = formatearFecha(fecha_2);
+
+  let link = `<a href='https://${ip}/app/vulnerability-detection'>https://${ip}/app/vulnerability-detection</a>`;
+  let fqdnlink = `<a href='https://${fqdn}/app/vulnerability-detection'>https://${fqdn}/app/vulnerability-detection</a>`;
+ 
+  let ini = `(from:'${fecha_1}T03:00:00.000Z',to:'${fecha_2}T02:59:59.000Z')`;
+  let encodedIni = encodeURIComponent(ini);
+  let informeDiario = `<a href="https://${ip}/app/dashboards#/view/${codeDiario}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Diario</a>`;
+  let informeSemanal = `<a href="https://${ip}/app/dashboards#/view/${codeSemanal}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Semanal</a>`;
+  let informeMensual = `<a href="https://${ip}/app/dashboards#/view/${codeMes}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
+
+  // Generar URL de informe y nombre de archivo
+  if(tipoPlantilla.includes('proto')) {
+    if(tipoPlantilla.includes('diario')) {
+      informe = `https://${ip}/app/dashboards#/view/${codeDiario}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Diario-${fecha_2}`;
+    } else if(tipoPlantilla.includes('semanal')) {
+      informe = `https://${ip}/app/dashboards#/view/${codeSemanal}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Semanal-${fecha_2}`;
+    } else if(tipoPlantilla.includes('mensual')) {
+      informe = `https://${ip}/app/dashboards#/view/${codeMes}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Mensual-${fecha_2}`;
+    }
+  }
+
+  let asunto_personalizado = asunto
+    .replaceAll("{cliente}", cliente_nombre)
+    .replaceAll("{fecha_1}", fecha1)
+    .replaceAll("{fecha_2}", fecha2)
+    .replaceAll("{link}", link);
+
+  document.getElementById("asunto").value = asunto_personalizado;
+
+  let cuerpo_personalizado = cuerpo_base_original
+    .replaceAll("{cliente}", cliente_nombre)
+    .replaceAll("{fecha_1}", fecha1)
+    .replaceAll("{fecha_2}", fecha2)
+    .replaceAll("{mes}", mesSeleccionado)
+    .replaceAll("{link}", link)
+    .replaceAll("{fqdn}", fqdnlink)
+    .replaceAll("{informeDiario}", informeDiario)
+    .replaceAll("{informeSemanal}", informeSemanal)
+    .replaceAll("{informeMensual}", informeMensual);
+
+  const refer = document.getElementById('dashboard');
+  refer.setAttribute('href', informe);
+  refer.setAttribute('target', '_blank');
+  refer.setAttribute('rel', 'noopener noreferrer');
+
+  if (window.miEditor) {
+    window.miEditor.setData(cuerpo_personalizado);
+  }
+}
+
+document.getElementById('regen').addEventListener('click', () => {
+  if (!informe || !nombreArch) {
+    return alert("Primero actualiza el informe para generar el URL y nombre de archivo.");
+  }
+  regenInforme(informe, nombreArch);
+});
+
+document.querySelector('form').addEventListener('submit', function() {
+  if (window.miEditor) {
+    document.getElementById('editor').value = window.miEditor.getData();
+  }
+});
 </script>
 {% endblock %}
