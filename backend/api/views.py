@@ -119,6 +119,7 @@ def guardar_email_personalizado(request):
         cuerpo_html = request.POST.get("cuerpo_html", "")
         comando_generado = request.POST.get("comando_generado", "")
         url_informe = request.POST.get("url_informe","")
+        nombreArch = request.POST.get("nombreArch","")
         
         # Procesamiento de fechas
         fecha_1_str = request.POST.get('fecha_1', '')
@@ -178,7 +179,8 @@ def guardar_email_personalizado(request):
             enviado=False,
             fecha_evento=timezone.now(),
             url_informe=url_informe,
-            comando_generado=comando_generado
+            comando_generado=comando_generado,
+            nombreArch =nombreArch
         )
 
         # Asignar el archivo adjunto si existe
