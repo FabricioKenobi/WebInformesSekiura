@@ -16,11 +16,11 @@
   <div class="row mb-3">
     <div class="col-md-6">
       <label for="fecha_1" class="form-label">Fecha Inicio:</label>
-      <input type="date" class="form-control" id="fecha_1" name="fecha_1" value="{{ borrador.fecha_1|date:'Y-m-d' }}" onchange="actualizarFechas()">
+      <input type="date" class="form-control" id="fecha_1" name="fecha_1" value="{{ borrador.fecha_1|date:'Y-m-d' }}">
     </div>
     <div class="col-md-6">
       <label for="fecha_2" class="form-label">Fecha Fin:</label>
-      <input type="date" class="form-control" id="fecha_2" name="fecha_2" value="{{ borrador.fecha_2|date:'Y-m-d' }}" onchange="actualizarFechas()">
+      <input type="date" class="form-control" id="fecha_2" name="fecha_2" value="{{ borrador.fecha_2|date:'Y-m-d' }}">
     </div>
   </div>
 
@@ -45,7 +45,7 @@
   <input type="hidden" name="enviar_email" value="true">
 
   <div class="mb-3">
-    <a id="dashboard" href="" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">Editar Informe</a>
+    <a id="dashboard" href="{{ borrador.url_informe }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">Editar Informe</a>
     <button id="regen" type="button" class="btn btn-outline-primary" onclick="generarInformeConComandoGuardado()">Generar nuevo informe</button>
   </div>
 
@@ -55,11 +55,40 @@
 
 <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
 <script>
-  function generarInformeConComandoGuardado() {
+function regenerarComandoYUrl() {
+    // Tomá los valores actualizados
+    const clienteNombre = "{{ borrador.cliente.nombre|escapejs }}";
+    const tipoPlantilla = "{{ borrador.plantilla.tipo|escapejs }}";
+    const fechaInicio = document.getElementById("fecha_1").value;
+    const fechaFin = document.getElementById("fecha_2").value;
+
+    // Armá el nombre del archivo
+    const archivo = clienteNombre + "-Informe-" + tipoPlantilla + "-" + fechaFin;
+
+    // Armá el comando igual que en la creación
+    const comando = `generar_informe --cliente="${clienteNombre}" --tipo="${tipoPlantilla}" --fecha-inicio="${fechaInicio}" --fecha-fin="${fechaFin}" --output="${archivo}"`;
+
+    // Si tu plantilla tiene un código de dashboard podés usarlo así:
+    // const dashboardCode = "{{ borrador.plantilla.codigo_dashboard|default:'' }}";
+    // const urlInforme = dashboardCode ? 
+    //   `https://192.168.0.94/app/dashboards#/view/${dashboardCode}?_g=(time:(from:'${fechaInicio}T03:00:00.000Z',to:'${fechaFin}T02:59:59.000Z'))&_a=(fullScreenMode:!t)` : 
+    //   "{{ borrador.url_informe }}";
+
+    // Si no, mantené la url del borrador
+    const urlInforme = "{{ borrador.url_informe }}";
+
+    // Seteá los valores en los campos ocultos
+    document.getElementById('comando_generado').value = comando;
+    document.getElementById('url_informe').value = urlInforme;
+    document.getElementById('dashboard').href = urlInforme;
+}
+
+function generarInformeConComandoGuardado() {
+    regenerarComandoYUrl(); // Siempre actualizar antes de hacer el fetch
     const comandoGuardado = document.getElementById('comando_generado').value;
     const urlInforme = document.getElementById('url_informe').value;
     const statusDiv = document.getElementById('nombre_archivo_generado');
-    console.log(comandoGuardado, '\n', urlInforme);
+
     if (!comandoGuardado || !urlInforme) {
         statusDiv.innerHTML = '<div class="alert alert-warning">Datos incompletos para regenerar el informe</div>';
         return;
@@ -106,39 +135,18 @@
         console.error('Error:', error);
     });
 }
-function regenerarComandoYUrl() {
-    // Tomá los valores directamente del DOM y de tus variables de Django
-    const clienteNombre = "{{ borrador.cliente.nombre|escapejs }}";
-    const tipoPlantilla = "{{ borrador.plantilla.tipo|escapejs }}";
-    const fechaInicio = document.getElementById("fecha_1").value;
-    const fechaFin = document.getElementById("fecha_2").value;
 
-    // Si necesitás generar un nombre de archivo personalizado, cambialo acá:
-    const archivo = clienteNombre + "-Informe-" + tipoPlantilla + "-" + fechaFin;
+// CKEditor init
+ClassicEditor
+  .create(document.querySelector('#editor'))
+  .catch(error => {
+    console.error(error);
+  });
 
-    // Armá el comando igual que en la creación
-    const comando = `generar_informe --cliente="${clienteNombre}" --tipo="${tipoPlantilla}" --fecha-inicio="${fechaInicio}" --fecha-fin="${fechaFin}" --output="${archivo}"`;
-
-    // Si necesitás armar la URL dinámica (como en tu flujo de creación), reemplazá esta parte:
-    let urlInforme = "{{ borrador.url_informe }}";
-    // O, si querés solo dejar la url guardada en el borrador:
-    // let urlInforme = "{{ borrador.url_informe }}";
-    // O podés regenerarla según tu lógica
-    // let urlInforme = ... (lógica de dashboard, por ejemplo)
-
-    // Asignar los valores a los campos ocultos y al botón dashboard
-    document.getElementById('comando_generado').value = comando;
-    document.getElementById('url_informe').value = urlInforme;
-    document.getElementById('dashboard').href = urlInforme;
-}
-
-  ClassicEditor
-    .create(document.querySelector('#editor'))
-    .catch(error => {
-      console.error(error);
-    });
-  window.onload = regenerarComandoYUrl;
+// Listeners para actualizar comando/URL en cambios de fecha
 document.getElementById('fecha_1').addEventListener('change', regenerarComandoYUrl);
 document.getElementById('fecha_2').addEventListener('change', regenerarComandoYUrl);
+// También ejecutar una vez al cargar la página para setear los valores iniciales
+window.onload = regenerarComandoYUrl;
 </script>
 {% endblock %}
