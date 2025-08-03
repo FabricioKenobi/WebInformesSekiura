@@ -156,7 +156,7 @@ def guardar_email_personalizado(request):
             comando_generado=comando_generado
         )
 
-        return redirect('lista_borradores')  # Redirigir a lista de borradores
+        return redirect('home')  # Redirigir a lista de borradores
     
     clientes = Cliente.objects.all()
     plantillas = PlantillaEmail.objects.all()
