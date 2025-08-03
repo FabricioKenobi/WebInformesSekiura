@@ -1,30 +1,62 @@
 {% extends 'base.html' %}
 
+{% block title %}Editar Borrador{% endblock %}
+
 {% block content %}
 <h2>Editar y Enviar Borrador</h2>
 
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
   
-  <!-- Campos existentes... -->
-  
-  <input type="hidden" name="comando_generado" id="comando_generado" value="{{ borrador.comando_generado }}">
-
   <div class="mb-3">
-    <button id="regen" type="button" class="btn btn-outline-primary" 
-            onclick="generarInformeConComandoGuardado()">
-      Generar informe
-    </button>
-    <div id="status-informe" class="mt-2"></div>
+    <label for="asunto" class="form-label">Asunto:</label>
+    <input type="text" class="form-control" id="asunto" name="asunto" value="{{ borrador.asunto }}">
   </div>
 
-  <!-- Resto del formulario... -->
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <label for="fecha_1" class="form-label">Fecha Inicio:</label>
+      <input type="date" class="form-control" id="fecha_1" name="fecha_1" value="{{ borrador.fecha_1|date:'Y-m-d' }}" onchange="actualizarFechas()">
+    </div>
+    <div class="col-md-6">
+      <label for="fecha_2" class="form-label">Fecha Fin:</label>
+      <input type="date" class="form-control" id="fecha_2" name="fecha_2" value="{{ borrador.fecha_2|date:'Y-m-d' }}" onchange="actualizarFechas()">
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="cuerpo_html" class="form-label">Cuerpo del email:</label>
+    <textarea id="editor" name="cuerpo_html">{{ borrador.cuerpo }}</textarea>
+  </div>
+
+  <div class="mb-3">
+    <label for="archivo_adjunto" class="form-label">Archivo adjunto:</label>
+    <input type="file" class="form-control" id="archivo_adjunto" name="archivo_adjunto">
+    {% if borrador.archivo_adjunto %}
+      <p>Archivo actual: <a href="{{ borrador.archivo_adjunto.url }}" target="_blank">{{ borrador.archivo_adjunto.name }}</a></p>
+    {% endif %}
+    <div id="nombre_archivo_generado" class="mt-2"></div>
+  </div>
+
+  <input type="hidden" name="cliente" value="{{ borrador.cliente.id }}">
+  <input type="hidden" name="plantilla" value="{{ borrador.plantilla.id }}">
+  <input type="hidden" name="comando_generado" id="comando_generado" value="{{ borrador.comando_generado }}">
+  <input type="hidden" name="enviar_email" value="true">
+
+  <div class="mb-3">
+    <a id="dashboard" href="" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">Editar Informe</a>
+    <button id="regen" type="button" class="btn btn-outline-primary" onclick="generarInformeConComandoGuardado()">Generar nuevo informe</button>
+  </div>
+
+  <button type="submit" class="btn btn-success">Enviar Email</button>
+  <a href="{% url 'lista_borradores' %}" class="btn btn-secondary">Cancelar</a>
 </form>
 
+<script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
 <script>
   function generarInformeConComandoGuardado() {
     const comandoGuardado = document.getElementById('comando_generado').value;
-    const statusDiv = document.getElementById('status-informe');
+    const statusDiv = document.getElementById('nombre_archivo_generado');
     
     if (!comandoGuardado) {
       statusDiv.innerHTML = '<div class="alert alert-warning">No hay comando guardado para regenerar el informe</div>';
@@ -33,10 +65,6 @@
 
     statusDiv.innerHTML = '<div class="alert alert-info">Generando informe, por favor espere...</div>';
     
-    // Extraer nombre de archivo del comando guardado (asumiendo formato --output="nombre")
-    const nombreArchivoMatch = comandoGuardado.match(/--output="([^"]+)"/);
-    const nombreArchivo = nombreArchivoMatch ? nombreArchivoMatch[1] : 'informe-generado.pdf';
-
     fetch('/ejecutar-comando/', {
       method: 'POST',
       headers: {
@@ -45,7 +73,6 @@
       },
       body: JSON.stringify({
         comando: comandoGuardado,
-        nombreArch: nombreArchivo,
         regenerar: true
       })
     })
@@ -75,4 +102,11 @@
       console.error('Error:', error);
     });
   }
+
+  ClassicEditor
+    .create(document.querySelector('#editor'))
+    .catch(error => {
+      console.error(error);
+    });
 </script>
+{% endblock %}
