@@ -47,6 +47,7 @@ class EmailEnviado(models.Model):
     archivo_adjunto = models.FileField(upload_to='adjuntos/', null=True, blank=True)
     comando_generado = models.TextField(null=True, blank=True) 
     url_informe = models.URLField(blank=True, null=True)
+    nombre_archivo_informe = models.CharField(max_length=255, blank=True, null=True)
 
 
 class CredencialesSMTP(models.Model):
