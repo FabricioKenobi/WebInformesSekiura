@@ -106,11 +106,39 @@
         console.error('Error:', error);
     });
 }
+function regenerarComandoYUrl() {
+    // Tomá los valores directamente del DOM y de tus variables de Django
+    const clienteNombre = "{{ borrador.cliente.nombre|escapejs }}";
+    const tipoPlantilla = "{{ borrador.plantilla.tipo|escapejs }}";
+    const fechaInicio = document.getElementById("fecha_1").value;
+    const fechaFin = document.getElementById("fecha_2").value;
+
+    // Si necesitás generar un nombre de archivo personalizado, cambialo acá:
+    const archivo = clienteNombre + "-Informe-" + tipoPlantilla + "-" + fechaFin;
+
+    // Armá el comando igual que en la creación
+    const comando = `generar_informe --cliente="${clienteNombre}" --tipo="${tipoPlantilla}" --fecha-inicio="${fechaInicio}" --fecha-fin="${fechaFin}" --output="${archivo}"`;
+
+    // Si necesitás armar la URL dinámica (como en tu flujo de creación), reemplazá esta parte:
+    let urlInforme = "{{ borrador.url_informe }}";
+    // O, si querés solo dejar la url guardada en el borrador:
+    // let urlInforme = "{{ borrador.url_informe }}";
+    // O podés regenerarla según tu lógica
+    // let urlInforme = ... (lógica de dashboard, por ejemplo)
+
+    // Asignar los valores a los campos ocultos y al botón dashboard
+    document.getElementById('comando_generado').value = comando;
+    document.getElementById('url_informe').value = urlInforme;
+    document.getElementById('dashboard').href = urlInforme;
+}
 
   ClassicEditor
     .create(document.querySelector('#editor'))
     .catch(error => {
       console.error(error);
     });
+  window.onload = regenerarComandoYUrl;
+document.getElementById('fecha_1').addEventListener('change', regenerarComandoYUrl);
+document.getElementById('fecha_2').addEventListener('change', regenerarComandoYUrl);
 </script>
 {% endblock %}
