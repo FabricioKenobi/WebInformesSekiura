@@ -48,6 +48,7 @@
     <a id="dashboard" href="{{ borrador.url_informe }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">Editar Informe</a>
     <button id="regen" type="button" class="btn btn-outline-primary" onclick="generarInformeConComandoGuardado()">Generar nuevo informe</button>
   </div>
+  <button type="button" class="btn btn-warning" onclick="guardarCambiosBorrador()">Guardar cambios</button>
 
   <button type="submit" class="btn btn-success">Enviar Email</button>
   <a href="{% url 'lista_borradores' %}" class="btn btn-secondary">Cancelar</a>
@@ -55,6 +56,40 @@
 
 <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
 <script>
+  function guardarCambiosBorrador() {
+    const asunto = document.getElementById('asunto').value;
+    const fecha_1 = document.getElementById('fecha_1').value;
+    const fecha_2 = document.getElementById('fecha_2').value;
+    const cuerpo = window.editor ? window.editor.getData() : document.getElementById('editor').value;
+    const nombreArchActual = document.getElementById('nombre_archivo_guardado').value;
+
+    fetch(`/guardar-borrador/{{ borrador.id }}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            asunto: asunto,
+            fecha_1: fecha_1,
+            fecha_2: fecha_2,
+            cuerpo: cuerpo,
+            nombreArch: nombreArchActual
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            alert("Borrador guardado correctamente.");
+        } else {
+            alert("Error al guardar borrador: " + (data.error || "Error desconocido"));
+        }
+    })
+    .catch(e => {
+        alert("No se pudo conectar al servidor.");
+        console.error(e);
+    });
+}
 function regenerarComandoYUrl() {
     // Tomá los valores actualizados
     const clienteNombre = "{{ borrador.cliente.nombre|escapejs }}";

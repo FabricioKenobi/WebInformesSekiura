@@ -437,6 +437,30 @@ def editar_borrador(request, email_id):
         'clientes': clientes,
         'plantillas': plantillas,
     })
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import json
+
+@csrf_exempt
+@login_required
+def guardar_borrador(request, borrador_id):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            borrador = EmailEnviado.objects.get(pk=borrador_id)
+            borrador.asunto = data.get('asunto', borrador.asunto)
+            borrador.fecha_1 = data.get('fecha_1', borrador.fecha_1)
+            borrador.fecha_2 = data.get('fecha_2', borrador.fecha_2)
+            borrador.cuerpo = data.get('cuerpo', borrador.cuerpo)
+            borrador.nombreArch = data.get('nombreArch', borrador.nombreArch)
+            borrador.save()
+            return JsonResponse({'ok': True})
+        except EmailEnviado.DoesNotExist:
+            return JsonResponse({'ok': False, 'error': 'Borrador no encontrado'})
+        except Exception as e:
+            return JsonResponse({'ok': False, 'error': str(e)})
+    return JsonResponse({'ok': False, 'error': 'Método no permitido'})
+
 @login_required
 def conf_cliente(request):
     if request.method == 'POST':
