@@ -110,6 +110,7 @@ def guardar_email_personalizado(request):
     from django.utils import timezone
     import os
     import glob
+    from django.core.files import File
     
     if request.method == 'POST':
         user = request.user
@@ -117,7 +118,8 @@ def guardar_email_personalizado(request):
         asunto = request.POST['asunto']
         cuerpo_html = request.POST.get("cuerpo_html", "")
         comando_generado = request.POST.get("comando_generado", "")
-        # Procesamiento de fechas (igual que antes)
+        
+        # Procesamiento de fechas
         fecha_1_str = request.POST.get('fecha_1', '')
         fecha_2_str = request.POST.get('fecha_2', '')
         date_format = "%Y-%m-%d"
@@ -146,26 +148,43 @@ def guardar_email_personalizado(request):
         cuerpo_html_final = cuerpo_html_final.replace('  ', '&nbsp;&nbsp;')
         cuerpo_html_final = cuerpo_html_final.replace('\n', '<br>')
 
-        # Buscar archivo PDF adjunto (similar a la segunda función)
-        archivo_pdf = None
-        carpeta = "/home/hermes/WebInformesSekiura/backend/"
-        patron = f"{cliente.nombre}-Informe-Ejecutivo-*"
-        archivos = glob.glob(os.path.join(carpeta, patron))
+        # Manejo del archivo adjunto
+        archivo_adjunto = None
         
-        if archivos:
-            archivo_pdf = max(archivos, key=os.path.getmtime)
+        # 1. Primero verificar si hay un archivo subido en el request
+        if 'archivo_adjunto' in request.FILES:
+            archivo_adjunto = request.FILES['archivo_adjunto']
+        else:
+            # 2. Si no hay archivo subido, buscar el PDF generado
+            carpeta = "/home/hermes/WebInformesSekiura/backend/"
+            patron = f"{cliente.nombre}-Informe-Ejecutivo-*"
+            archivos = glob.glob(os.path.join(carpeta, patron))
+            
+            if archivos:
+                ultimo_archivo = max(archivos, key=os.path.getmtime)
+                with open(ultimo_archivo, 'rb') as f:
+                    archivo_adjunto = File(f, name=os.path.basename(ultimo_archivo))
 
-        # Guardar el borrador (con enviado=False)
-        borrador = EmailEnviado.objects.create(
+        # Crear el borrador
+        borrador = EmailEnviado(
             usuario=request.user,
             cliente=cliente,
             asunto=asunto_final,
             cuerpo=cuerpo_html_final,
-            enviado=False,  # Importante: marcamos como no enviado
+            enviado=False,
             fecha_evento=timezone.now(),
-            archivo_adjunto=archivo_pdf if archivo_pdf else request.FILES.get("archivo_adjunto"),
             comando_generado=comando_generado
         )
+
+        # Asignar el archivo adjunto si existe
+        if archivo_adjunto:
+            borrador.archivo_adjunto.save(
+                archivo_adjunto.name,
+                archivo_adjunto,
+                save=False
+            )
+        
+        borrador.save()
 
         return redirect('home')  
     
