@@ -22,15 +22,19 @@
     {% if borrador.archivo_adjunto %}
       <p>Archivo actual: <a href="{{ borrador.archivo_adjunto.url }}" target="_blank">{{ borrador.archivo_adjunto.name }}</a></p>
     {% endif %}
+    <div id="nombre_archivo_generado" class="mt-2"></div>
   </div>
+
   <input type="hidden" name="cliente" id="cliente_id" value="{{ borrador.cliente.id }}">
-  <input type="hidden" name="fecha_1" id="fecha_1">
-  <input type="hidden" name="fecha_2" id="fecha_2">
+  <input type="hidden" name="fecha_1" id="fecha_1" value="{{ borrador.fecha_1|date:'Y-m-d' }}">
+  <input type="hidden" name="fecha_2" id="fecha_2" value="{{ borrador.fecha_2|date:'Y-m-d' }}">
   <input type="hidden" name="plantilla" id="plantilla_id" value="{{ borrador.plantilla.id }}">
+  <input type="hidden" name="comando_generado" id="comando_generado" value="{{ borrador.comando_generado }}">
 
-  <a id="dashboard" href="" target="_blank" rel="noopener noreferrer">Editar Informe</a>
-  <button id="regen" type="button">Generar informe</button>
-
+  <div class="mb-3">
+    <a id="dashboard" href="" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">Editar Informe</a>
+    <button id="regen" type="button" class="btn btn-outline-primary">Generar nuevo informe</button>
+  </div>
 
   <button type="submit" class="btn btn-primary">Guardar Cambios</button>
   <a href="{% url 'lista_borradores' %}" class="btn btn-secondary">Cancelar</a>
@@ -38,11 +42,86 @@
 
 <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
 <script>
-  
+  // Variables globales
+  let cliente_nombre = "{{ borrador.cliente.nombre }}";
+  let ip = "{{ borrador.cliente.IPSIEM }}";
+  let fqdn = "{{ borrador.cliente.FQDN }}";
+  let codeDiario = "{{ borrador.cliente.diario }}";
+  let codeSemanal = "{{ borrador.cliente.semanal }}";
+  let codeMes = "{{ borrador.cliente.mensual }}";
+  let informe = "";
+  let nombreArch = "";
+  let tipoPlantilla = "{{ borrador.plantilla.tipo }}".toLowerCase();
+
+  // Inicializar CKEditor
   ClassicEditor
     .create(document.querySelector('#editor'))
+    .then(editor => {
+      window.miEditor = editor;
+    })
     .catch(error => {
       console.error(error);
     });
+
+  // Función para generar el informe
+  document.getElementById('regen').addEventListener('click', function() {
+    const fecha1 = document.getElementById('fecha_1').value;
+    const fecha2 = document.getElementById('fecha_2').value;
+    
+    if (!fecha1 || !fecha2) {
+      alert('Por favor, asegúrese de que las fechas están configuradas');
+      return;
+    }
+
+    let encodedIni = encodeURIComponent(`(from:'${fecha1}T03:00:00.000Z',to:'${fecha2}T02:59:59.000Z')`);
+    
+    // Determinar el tipo de informe y construir URL/nombre
+    if(tipoPlantilla.includes('diario')) {
+      informe = `https://${ip}/app/dashboards#/view/${codeDiario}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Diario-${fecha2}`;
+    } else if(tipoPlantilla.includes('semanal')) {
+      informe = `https://${ip}/app/dashboards#/view/${codeSemanal}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Semanal-${fecha2}`;
+    } else if(tipoPlantilla.includes('mensual')) {
+      informe = `https://${ip}/app/dashboards#/view/${codeMes}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
+      nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Mensual-${fecha2}`;
+    }
+
+    // Construir comando
+    const comando = `generar_informe --cliente="${cliente_nombre}" --tipo="${tipoPlantilla}" --fecha-inicio="${fecha1}" --fecha-fin="${fecha2}" --output="${nombreArch}"`;
+    document.getElementById('comando_generado').value = comando;
+
+    // Actualizar enlace del dashboard
+    document.getElementById('dashboard').href = informe;
+
+    // Llamar a la API para generar el informe
+    fetch('/ejecutar-comando/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ 
+        informe: informe,
+        nombreArch: nombreArch,
+        comando: comando
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.ok && data.filename) {
+        document.getElementById('nombre_archivo_generado').innerHTML = 
+          `<div class="alert alert-success">Archivo generado: ${data.filename}</div>`;
+      } else {
+        document.getElementById('nombre_archivo_generado').innerHTML = 
+          `<div class="alert alert-danger">Error al generar archivo: ${data.error || 'Error desconocido'}</div>`;
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      document.getElementById('nombre_archivo_generado').innerHTML = 
+        `<div class="alert alert-danger">Error de conexión con el servidor</div>`;
+    });
+  });
 </script>
 {% endblock %}
