@@ -68,6 +68,7 @@
 
       <button id="regen" type="button">Generar informe</button>
       <input type="hidden" name="comando_generado" id="comando_generado">
+      <input type="hidden" name="url_informe" id="url_informe">
       <button type="submit" id="enviar" class="btn btn-success w-100" >✉️ Enviar email</button>
     </div>
   </div>
@@ -245,7 +246,7 @@ function regenInforme(urlInforme, archivo) {
   
   // Guarda el comando en el campo oculto
   document.getElementById('comando_generado').value = comando;
-
+  document.getElementById('url_informe').value = urlInforme;
   fetch('/ejecutar-comando/', {
     method: 'POST',
     headers: {
