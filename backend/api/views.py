@@ -280,7 +280,7 @@ def enviar_email_guardado(request, email_id):
             except Exception as e:
                 print(f"No se pudo eliminar el archivo adjunto: {e}")
         
-        return redirect('lista_emails_enviados')
+        return redirect('home')
     
     except Exception as e:
         print("Error al enviar correo:", e)
