@@ -162,8 +162,11 @@ def guardar_email_personalizado(request):
             
             if archivos:
                 ultimo_archivo = max(archivos, key=os.path.getmtime)
+                # Leer el contenido del archivo y crear un ContentFile
                 with open(ultimo_archivo, 'rb') as f:
-                    archivo_adjunto = File(f, name=os.path.basename(ultimo_archivo))
+                    file_content = f.read()
+                from django.core.files.base import ContentFile
+                archivo_adjunto = ContentFile(file_content, name=os.path.basename(ultimo_archivo))
 
         # Crear el borrador
         borrador = EmailEnviado(
@@ -181,10 +184,10 @@ def guardar_email_personalizado(request):
             borrador.archivo_adjunto.save(
                 archivo_adjunto.name,
                 archivo_adjunto,
-                save=False
+                save=True
             )
-        
-        borrador.save()
+        else:
+            borrador.save()
 
         return redirect('home')  
     
