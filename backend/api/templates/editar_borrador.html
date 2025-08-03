@@ -138,6 +138,7 @@ function generarInformeConComandoGuardado() {
                     <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
                 </div>
             `;
+            console.log("Archivo generado:", data.filename);
             document.getElementById('dashboard').href = urlInforme;
             // ¡Actualiza el input oculto con el nombre real del archivo generado!
             document.getElementById('nombre_archivo_guardado').value = data.filename;
