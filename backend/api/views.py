@@ -427,7 +427,7 @@ def editar_borrador(request, email_id):
         if 'archivo_adjunto' in request.FILES:
             borrador.archivo_adjunto = request.FILES['archivo_adjunto']
         borrador.save()
-        return redirect('lista_borradores')
+        return redirect('home')
 
     clientes = Cliente.objects.all()
     plantillas = PlantillaEmail.objects.all()
