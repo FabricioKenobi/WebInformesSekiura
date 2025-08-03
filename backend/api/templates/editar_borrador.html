@@ -139,7 +139,7 @@ function generarInformeConComandoGuardado() {
                 </div>
             `;
             document.getElementById('dashboard').href = urlInforme;
-            // Si quieres actualizar el input oculto con el nuevo nombre, hazlo aquí:
+            // ¡Actualiza el input oculto con el nombre real del archivo generado!
             document.getElementById('nombre_archivo_guardado').value = data.filename;
         } else {
             statusDiv.innerHTML = `
@@ -161,10 +161,7 @@ function generarInformeConComandoGuardado() {
 
 function guardarCambiosBorrador() {
     const asunto = document.getElementById('asunto').value;
-
     const nombreArchActual = document.getElementById('nombre_archivo_guardado').value;
-
-    // CKEditor puede demorar en cargar, así que chequeamos si existe la instancia
     const cuerpo = (window.editor && typeof window.editor.getData === "function")
         ? window.editor.getData()
         : document.getElementById('editor').value;
@@ -177,8 +174,6 @@ function guardarCambiosBorrador() {
         },
         body: JSON.stringify({
             asunto: asunto,
-            fecha_1: fecha_1,
-            fecha_2: fecha_2,
             cuerpo: cuerpo,
             nombreArch: nombreArchActual
         })
@@ -186,7 +181,7 @@ function guardarCambiosBorrador() {
     .then(r => r.json())
     .then(data => {
         if (data.ok) {
-            window.location.href = "{% url 'home' %}";
+            window.location.href = "{% url 'lista_borradores' %}";
         } else {
             alert("Error al guardar borrador: " + (data.error || "Error desconocido"));
         }
