@@ -103,18 +103,10 @@ function regenerarComandoYUrl() {
 }
 
 function generarInformeConComandoGuardado() {
-    regenerarComandoYUrl();
+ regenerarComandoYUrl();
     const comandoGuardado = document.getElementById('comando_generado').value;
     const urlInforme = document.getElementById('url_informe').value;
-    const statusDiv = document.getElementById('nombre_archivo_generado');
     const nombreArch = document.getElementById('nombre_archivo_guardado').value || "informe_generado";
-
-    if (!comandoGuardado || !urlInforme) {
-        statusDiv.innerHTML = '<div class="alert alert-warning">Datos incompletos para regenerar el informe</div>';
-        return;
-    }
-
-    statusDiv.innerHTML = '<div class="alert alert-info">Generando informe, por favor espere...</div>';
 
     fetch('/ejecutar-comando/', {
         method: 'POST',
@@ -132,39 +124,20 @@ function generarInformeConComandoGuardado() {
     .then(response => response.json())
     .then(data => {
         if (data.ok && data.filename) {
-            statusDiv.innerHTML = `
-                <div class="alert alert-success">
-                    Informe regenerado correctamente: 
-                    <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
-                </div>
-            `;
-            document.getElementById('dashboard').href = urlInforme;
-            // Si quieres actualizar el input oculto con el nuevo nombre, hazlo aquí:
-            document.getElementById('nombre_archivo_guardado').value = data.filename;
+            // Redirigí cuando se haya generado el PDF exitosamente
+            window.location.href = "{% url 'lista_borradores' %}";
         } else {
-            statusDiv.innerHTML = `
-                <div class="alert alert-danger">
-                    Error al regenerar informe: ${data.error || 'Error desconocido'}
-                </div>
-            `;
+            alert("Error al regenerar informe: " + (data.error || "Error desconocido"));
         }
     })
     .catch(error => {
-        statusDiv.innerHTML = `
-            <div class="alert alert-danger">
-                Error de conexión: ${error.message}
-            </div>
-        `;
+        alert("Error de conexión al regenerar informe.");
         console.error('Error:', error);
     });
 }
-
 function guardarCambiosBorrador() {
     const asunto = document.getElementById('asunto').value;
-
     const nombreArchActual = document.getElementById('nombre_archivo_guardado').value;
-
-    // CKEditor puede demorar en cargar, así que chequeamos si existe la instancia
     const cuerpo = (window.editor && typeof window.editor.getData === "function")
         ? window.editor.getData()
         : document.getElementById('editor').value;
@@ -177,8 +150,6 @@ function guardarCambiosBorrador() {
         },
         body: JSON.stringify({
             asunto: asunto,
-            fecha_1: fecha_1,
-            fecha_2: fecha_2,
             cuerpo: cuerpo,
             nombreArch: nombreArchActual
         })
@@ -186,7 +157,8 @@ function guardarCambiosBorrador() {
     .then(r => r.json())
     .then(data => {
         if (data.ok) {
-            window.location.href = "{% url 'home' %}";
+            // Luego de guardar, genera el informe y reemplaza el archivo
+            generarInformeConComandoGuardadoYRedireccion();
         } else {
             alert("Error al guardar borrador: " + (data.error || "Error desconocido"));
         }
@@ -196,5 +168,6 @@ function guardarCambiosBorrador() {
         console.error(e);
     });
 }
+
 </script>
 {% endblock %}
