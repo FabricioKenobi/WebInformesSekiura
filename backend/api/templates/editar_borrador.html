@@ -6,133 +6,36 @@
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
   
-  <div class="mb-3">
-    <label for="asunto" class="form-label">Asunto:</label>
-    <input type="text" class="form-control" id="asunto" name="asunto" value="{{ borrador.asunto }}">
-  </div>
-
-  <div class="row mb-3">
-    <div class="col-md-6">
-      <label for="fecha_1" class="form-label">Fecha Inicio:</label>
-      <input type="date" class="form-control" id="fecha_1" name="fecha_1" value="{{ borrador.fecha_1|date:'Y-m-d' }}" onchange="actualizarFechas()">
-    </div>
-    <div class="col-md-6">
-      <label for="fecha_2" class="form-label">Fecha Fin:</label>
-      <input type="date" class="form-control" id="fecha_2" name="fecha_2" value="{{ borrador.fecha_2|date:'Y-m-d' }}" onchange="actualizarFechas()">
-    </div>
-  </div>
-
-  <div class="mb-3">
-    <label for="cuerpo_html" class="form-label">Cuerpo del email:</label>
-    <textarea id="editor" name="cuerpo_html">{{ borrador.cuerpo }}</textarea>
-  </div>
-
-  <div class="mb-3">
-    <label for="archivo_adjunto" class="form-label">Archivo adjunto:</label>
-    <input type="file" class="form-control" id="archivo_adjunto" name="archivo_adjunto">
-    {% if borrador.archivo_adjunto %}
-      <p>Archivo actual: <a href="{{ borrador.archivo_adjunto.url }}" target="_blank">{{ borrador.archivo_adjunto.name }}</a></p>
-    {% endif %}
-    <div id="nombre_archivo_generado" class="mt-2"></div>
-  </div>
-
-  <input type="hidden" name="cliente" value="{{ borrador.cliente.id }}">
-  <input type="hidden" name="plantilla" value="{{ borrador.plantilla.id }}">
+  <!-- Campos existentes... -->
+  
   <input type="hidden" name="comando_generado" id="comando_generado" value="{{ borrador.comando_generado }}">
-  <input type="hidden" name="enviar_email" value="true"> <!-- Campo para identificar envío -->
 
   <div class="mb-3">
-    <a id="dashboard" href="" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">Editar Informe</a>
-    <button id="regen" type="button" class="btn btn-outline-primary">Generar nuevo informe</button>
+    <button id="regen" type="button" class="btn btn-outline-primary" 
+            onclick="generarInformeConComandoGuardado()">
+      Generar informe
+    </button>
+    <div id="status-informe" class="mt-2"></div>
   </div>
 
-  <button type="submit" class="btn btn-success">Enviar Email</button>
-  <a href="{% url 'lista_borradores' %}" class="btn btn-secondary">Cancelar</a>
+  <!-- Resto del formulario... -->
 </form>
 
-<script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
 <script>
-  // Variables globales
-  let cliente_nombre = "{{ borrador.cliente.nombre }}";
-  let ip = "{{ borrador.cliente.IPSIEM }}";
-  let fqdn = "{{ borrador.cliente.FQDN }}";
-  let codeDiario = "{{ borrador.cliente.diario }}";
-  let codeSemanal = "{{ borrador.cliente.semanal }}";
-  let codeMes = "{{ borrador.cliente.mensual }}";
-  let informe = "";
-  let nombreArch = "";
-  let tipoPlantilla = "{{ borrador.plantilla.tipo }}".toLowerCase();
-
-  // Inicializar CKEditor
-  ClassicEditor
-    .create(document.querySelector('#editor'))
-    .then(editor => {
-      window.miEditor = editor;
-    })
-    .catch(error => {
-      console.error(error);
-    });
-
-  function formatearFecha(fechaStr) {
-    if (!fechaStr) return "__/__/____";
-    const fecha = new Date(fechaStr);
-    let texto = fecha.toLocaleDateString('es-ES', { 
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric',
-      timeZone: 'UTC' 
-    });
-    return texto.replace(/\b\w/g, l => l.toUpperCase()).replaceAll('De','de');
-  }
-
-  function actualizarFechas() {
-    const fecha1 = document.getElementById('fecha_1').value;
-    const fecha2 = document.getElementById('fecha_2').value;
+  function generarInformeConComandoGuardado() {
+    const comandoGuardado = document.getElementById('comando_generado').value;
+    const statusDiv = document.getElementById('status-informe');
     
-    // Actualizar asunto con fechas formateadas
-    const asunto = document.getElementById('asunto');
-    asunto.value = asunto.value
-      .replace(/{fecha_1}/g, formatearFecha(fecha1))
-      .replace(/{fecha_2}/g, formatearFecha(fecha2));
-    
-    // Actualizar cuerpo del email
-    if (window.miEditor) {
-      const cuerpo = window.miEditor.getData();
-      window.miEditor.setData(
-        cuerpo
-          .replace(/{fecha_1}/g, formatearFecha(fecha1))
-          .replace(/{fecha_2}/g, formatearFecha(fecha2))
-      );
-    }
-  }
-
-  // Función para generar el informe
-  document.getElementById('regen').addEventListener('click', function() {
-    const fecha1 = document.getElementById('fecha_1').value;
-    const fecha2 = document.getElementById('fecha_2').value;
-    
-    if (!fecha1 || !fecha2) {
-      alert('Por favor, complete ambas fechas');
+    if (!comandoGuardado) {
+      statusDiv.innerHTML = '<div class="alert alert-warning">No hay comando guardado para regenerar el informe</div>';
       return;
     }
 
-    let encodedIni = encodeURIComponent(`(from:'${fecha1}T03:00:00.000Z',to:'${fecha2}T02:59:59.000Z')`);
+    statusDiv.innerHTML = '<div class="alert alert-info">Generando informe, por favor espere...</div>';
     
-    if(tipoPlantilla.includes('diario')) {
-      informe = `https://${ip}/app/dashboards#/view/${codeDiario}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-      nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Diario-${fecha2}`;
-    } else if(tipoPlantilla.includes('semanal')) {
-      informe = `https://${ip}/app/dashboards#/view/${codeSemanal}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-      nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Semanal-${fecha2}`;
-    } else if(tipoPlantilla.includes('mensual')) {
-      informe = `https://${ip}/app/dashboards#/view/${codeMes}?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
-      nombreArch = `${cliente_nombre}-Informe-Ejecutivo-Mensual-${fecha2}`;
-    }
-
-    const comando = `generar_informe --cliente="${cliente_nombre}" --tipo="${tipoPlantilla}" --fecha-inicio="${fecha1}" --fecha-fin="${fecha2}" --output="${nombreArch}"`;
-    document.getElementById('comando_generado').value = comando;
-    document.getElementById('dashboard').href = informe;
+    // Extraer nombre de archivo del comando guardado (asumiendo formato --output="nombre")
+    const nombreArchivoMatch = comandoGuardado.match(/--output="([^"]+)"/);
+    const nombreArchivo = nombreArchivoMatch ? nombreArchivoMatch[1] : 'informe-generado.pdf';
 
     fetch('/ejecutar-comando/', {
       method: 'POST',
@@ -140,34 +43,36 @@
         'Content-Type': 'application/json',
         'X-CSRFToken': '{{ csrf_token }}'
       },
-      body: JSON.stringify({ 
-        informe: informe,
-        nombreArch: nombreArch,
-        comando: comando
+      body: JSON.stringify({
+        comando: comandoGuardado,
+        nombreArch: nombreArchivo,
+        regenerar: true
       })
     })
     .then(response => response.json())
     .then(data => {
       if (data.ok && data.filename) {
-        document.getElementById('nombre_archivo_generado').innerHTML = 
-          `<div class="alert alert-success">Archivo generado: ${data.filename}</div>`;
+        statusDiv.innerHTML = `
+          <div class="alert alert-success">
+            Informe regenerado correctamente: 
+            <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
+          </div>
+        `;
       } else {
-        document.getElementById('nombre_archivo_generado').innerHTML = 
-          `<div class="alert alert-danger">Error al generar archivo: ${data.error || 'Error desconocido'}</div>`;
+        statusDiv.innerHTML = `
+          <div class="alert alert-danger">
+            Error al regenerar informe: ${data.error || 'Error desconocido'}
+          </div>
+        `;
       }
     })
     .catch(error => {
+      statusDiv.innerHTML = `
+        <div class="alert alert-danger">
+          Error de conexión: ${error.message}
+        </div>
+      `;
       console.error('Error:', error);
-      document.getElementById('nombre_archivo_generado').innerHTML = 
-        `<div class="alert alert-danger">Error de conexión con el servidor</div>`;
     });
-  });
-
-  // Asegurar que el contenido del editor se incluya en el formulario al enviar
-  document.querySelector('form').addEventListener('submit', function() {
-    if (window.miEditor) {
-      document.getElementById('editor').value = window.miEditor.getData();
-    }
-  });
+  }
 </script>
-{% endblock %}
