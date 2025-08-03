@@ -41,6 +41,7 @@
   <input type="hidden" name="cliente" value="{{ borrador.cliente.id }}">
   <input type="hidden" name="plantilla" value="{{ borrador.plantilla.id }}">
   <input type="hidden" name="comando_generado" id="comando_generado" value="{{ borrador.comando_generado }}">
+  <input type="hidden" id="url_informe" value="{{ borrador.url_informe }}">
   <input type="hidden" name="enviar_email" value="true">
 
   <div class="mb-3">
@@ -55,22 +56,12 @@
 <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
 <script>
   function generarInformeConComandoGuardado() {
-    alert('La función se llamó');
     const comandoGuardado = document.getElementById('comando_generado').value;
-    console.log(comandoGuardado);
+    const urlInforme = document.getElementById('url_informe').value;
     const statusDiv = document.getElementById('nombre_archivo_generado');
     
-    if (!comandoGuardado) {
-        statusDiv.innerHTML = '<div class="alert alert-warning">No hay comando guardado para regenerar el informe</div>';
-        return;
-    }
-
-    // Extraer la URL del comando guardado (asumiendo que está en el formato conocido)
-    const urlMatch = comandoGuardado.match(/--url="?([^"\s]+)"?/);
-    const urlInforme = urlMatch ? urlMatch[1] : null;
-
-    if (!urlInforme) {
-        statusDiv.innerHTML = '<div class="alert alert-danger">No se pudo extraer la URL del comando guardado</div>';
+    if (!comandoGuardado || !urlInforme) {
+        statusDiv.innerHTML = '<div class="alert alert-warning">Datos incompletos para regenerar el informe</div>';
         return;
     }
 
@@ -84,7 +75,7 @@
         },
         body: JSON.stringify({
             comando: comandoGuardado,
-            informe: urlInforme,  // Asegúrate de enviar la URL
+            informe: urlInforme,
             regenerar: true
         })
     })
@@ -97,7 +88,6 @@
                     <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
                 </div>
             `;
-            // Actualizar el enlace del dashboard
             document.getElementById('dashboard').href = urlInforme;
         } else {
             statusDiv.innerHTML = `
