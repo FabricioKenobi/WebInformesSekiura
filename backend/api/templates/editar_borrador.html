@@ -59,7 +59,7 @@
     const comandoGuardado = document.getElementById('comando_generado').value;
     const urlInforme = document.getElementById('url_informe').value;
     const statusDiv = document.getElementById('nombre_archivo_generado');
-    console.log("Datos enviados:", "comando:", comandoGuardado, "url:", urlInforme,"csrf:" `{{ csrf_token }}`);
+    console.log("Datos enviados:", "comando:", comandoGuardado, "url:", urlInforme);
     if (!comandoGuardado || !urlInforme) {
         statusDiv.innerHTML = '<div class="alert alert-warning">Datos incompletos para regenerar el informe</div>';
         return;
