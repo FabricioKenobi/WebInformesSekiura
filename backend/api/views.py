@@ -108,6 +108,8 @@ def crear_cliente_view(request):
 def guardar_email_personalizado(request):
     from datetime import datetime
     from django.utils import timezone
+    import os
+    import glob
     
     if request.method == 'POST':
         user = request.user
@@ -144,6 +146,15 @@ def guardar_email_personalizado(request):
         cuerpo_html_final = cuerpo_html_final.replace('  ', '&nbsp;&nbsp;')
         cuerpo_html_final = cuerpo_html_final.replace('\n', '<br>')
 
+        # Buscar archivo PDF adjunto (similar a la segunda función)
+        archivo_pdf = None
+        carpeta = "/home/hermes/WebInformesSekiura/backend/"
+        patron = f"{cliente.nombre}-Informe-Ejecutivo-*"
+        archivos = glob.glob(os.path.join(carpeta, patron))
+        
+        if archivos:
+            archivo_pdf = max(archivos, key=os.path.getmtime)
+
         # Guardar el borrador (con enviado=False)
         borrador = EmailEnviado.objects.create(
             usuario=request.user,
@@ -152,11 +163,11 @@ def guardar_email_personalizado(request):
             cuerpo=cuerpo_html_final,
             enviado=False,  # Importante: marcamos como no enviado
             fecha_evento=timezone.now(),
-            archivo_adjunto=request.FILES.get("archivo_adjunto"),
+            archivo_adjunto=archivo_pdf if archivo_pdf else request.FILES.get("archivo_adjunto"),
             comando_generado=comando_generado
         )
 
-        return redirect('home')  # Redirigir a lista de borradores
+        return redirect('home')  
     
     clientes = Cliente.objects.all()
     plantillas = PlantillaEmail.objects.all()
