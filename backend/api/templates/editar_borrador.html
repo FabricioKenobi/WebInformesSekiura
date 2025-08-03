@@ -59,49 +59,61 @@
     const statusDiv = document.getElementById('nombre_archivo_generado');
     
     if (!comandoGuardado) {
-      statusDiv.innerHTML = '<div class="alert alert-warning">No hay comando guardado para regenerar el informe</div>';
-      return;
+        statusDiv.innerHTML = '<div class="alert alert-warning">No hay comando guardado para regenerar el informe</div>';
+        return;
+    }
+
+    // Extraer la URL del comando guardado (asumiendo que está en el formato conocido)
+    const urlMatch = comandoGuardado.match(/--url="?([^"\s]+)"?/);
+    const urlInforme = urlMatch ? urlMatch[1] : null;
+
+    if (!urlInforme) {
+        statusDiv.innerHTML = '<div class="alert alert-danger">No se pudo extraer la URL del comando guardado</div>';
+        return;
     }
 
     statusDiv.innerHTML = '<div class="alert alert-info">Generando informe, por favor espere...</div>';
     
     fetch('/ejecutar-comando/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': '{{ csrf_token }}'
-      },
-      body: JSON.stringify({
-        comando: comandoGuardado,
-        regenerar: true
-      })
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            comando: comandoGuardado,
+            informe: urlInforme,  // Asegúrate de enviar la URL
+            regenerar: true
+        })
     })
     .then(response => response.json())
     .then(data => {
-      if (data.ok && data.filename) {
-        statusDiv.innerHTML = `
-          <div class="alert alert-success">
-            Informe regenerado correctamente: 
-            <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
-          </div>
-        `;
-      } else {
-        statusDiv.innerHTML = `
-          <div class="alert alert-danger">
-            Error al regenerar informe: ${data.error || 'Error desconocido'}
-          </div>
-        `;
-      }
+        if (data.ok && data.filename) {
+            statusDiv.innerHTML = `
+                <div class="alert alert-success">
+                    Informe regenerado correctamente: 
+                    <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
+                </div>
+            `;
+            // Actualizar el enlace del dashboard
+            document.getElementById('dashboard').href = urlInforme;
+        } else {
+            statusDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    Error al regenerar informe: ${data.error || 'Error desconocido'}
+                </div>
+            `;
+        }
     })
     .catch(error => {
-      statusDiv.innerHTML = `
-        <div class="alert alert-danger">
-          Error de conexión: ${error.message}
-        </div>
-      `;
-      console.error('Error:', error);
+        statusDiv.innerHTML = `
+            <div class="alert alert-danger">
+                Error de conexión: ${error.message}
+            </div>
+        `;
+        console.error('Error:', error);
     });
-  }
+}
 
   ClassicEditor
     .create(document.querySelector('#editor'))
