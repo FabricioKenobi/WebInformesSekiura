@@ -186,7 +186,7 @@ function guardarCambiosBorrador() {
     .then(r => r.json())
     .then(data => {
         if (data.ok) {
-            alert("Borrador guardado correctamente.");
+            window.location.href = "{% url 'home' %}";
         } else {
             alert("Error al guardar borrador: " + (data.error || "Error desconocido"));
         }
