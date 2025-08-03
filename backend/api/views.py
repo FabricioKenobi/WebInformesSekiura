@@ -446,13 +446,21 @@ import json
 def guardar_borrador(request, borrador_id):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
             borrador = EmailEnviado.objects.get(pk=borrador_id)
-            borrador.asunto = data.get('asunto', borrador.asunto)
-            borrador.cuerpo = data.get('cuerpo', borrador.cuerpo)
-            borrador.nombreArch = data.get('nombreArch', borrador.nombreArch)
-            borrador.save()
-            return JsonResponse({'ok': True})
+            
+            if 'guardar' in request.POST:  # Esto indica que viene del guardado normal
+                borrador.asunto = request.POST.get('asunto', borrador.asunto)
+                borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
+                borrador.nombreArch = request.POST.get('nombre_archivo_guardado', borrador.nombreArch)
+                
+                if 'archivo_adjunto' in request.FILES:
+                    borrador.archivo_adjunto = request.FILES['archivo_adjunto']
+                
+                borrador.save()
+                return JsonResponse({'ok': True})
+            
+            # Resto de tu lógica para otros casos...
+            
         except EmailEnviado.DoesNotExist:
             return JsonResponse({'ok': False, 'error': 'Borrador no encontrado'})
         except Exception as e:

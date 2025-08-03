@@ -161,23 +161,16 @@ function generarInformeConComandoGuardado() {
 }
 
 function guardarCambiosBorrador() {
-    const asunto = document.getElementById('asunto').value;
-    const nombreArchActual = document.getElementById('nombre_archivo_guardado').value;
-    const cuerpo = (window.editor && typeof window.editor.getData === "function")
-        ? window.editor.getData()
-        : document.getElementById('editor').value;
-
+    const form = document.querySelector('form');
+    const formData = new FormData(form);
+    formData.append('guardar', 'true'); // Para diferenciar del envío normal
+    
     fetch(`/guardar-borrador/{{ borrador.id }}/`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
             'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: JSON.stringify({
-            asunto: asunto,
-            cuerpo: cuerpo,
-            nombreArch: nombreArchActual
-        })
+        body: formData
     })
     .then(r => r.json())
     .then(data => {
