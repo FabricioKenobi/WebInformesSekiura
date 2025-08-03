@@ -449,8 +449,6 @@ def guardar_borrador(request, borrador_id):
             data = json.loads(request.body)
             borrador = EmailEnviado.objects.get(pk=borrador_id)
             borrador.asunto = data.get('asunto', borrador.asunto)
-            borrador.fecha_1 = data.get('fecha_1', borrador.fecha_1)
-            borrador.fecha_2 = data.get('fecha_2', borrador.fecha_2)
             borrador.cuerpo = data.get('cuerpo', borrador.cuerpo)
             borrador.nombreArch = data.get('nombreArch', borrador.nombreArch)
             borrador.save()
