@@ -452,7 +452,8 @@ def guardar_borrador(request, borrador_id):
             borrador.cuerpo = data.get('cuerpo', borrador.cuerpo)
             borrador.nombreArch = data.get('nombreArch', borrador.nombreArch)
             borrador.save()
-            return JsonResponse({'ok': True})
+            return redirect('home')
+
         except EmailEnviado.DoesNotExist:
             return JsonResponse({'ok': False, 'error': 'Borrador no encontrado'})
         except Exception as e:
