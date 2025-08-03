@@ -540,6 +540,11 @@ import traceback
 @csrf_exempt
 @login_required
 def ejecutar_comando_cliente(request):
+    print("Datos recibidos:", {
+        'comando': data.get('comando'),
+        'url': data.get('informe'),
+        'body_raw': request.body.decode()
+    })
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
 
