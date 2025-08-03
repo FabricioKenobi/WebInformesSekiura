@@ -37,7 +37,7 @@
     {% endif %}
     <div id="nombre_archivo_generado" class="mt-2"></div>
   </div>
-
+  <input type="hidden" id="nombre_archivo_guardado" value="{{ borrador.nombreArch }}">
   <input type="hidden" name="cliente" value="{{ borrador.cliente.id }}">
   <input type="hidden" name="plantilla" value="{{ borrador.plantilla.id }}">
   <input type="hidden" name="comando_generado" id="comando_generado" value="{{ borrador.comando_generado }}">
@@ -88,12 +88,7 @@ function generarInformeConComandoGuardado() {
     const comandoGuardado = document.getElementById('comando_generado').value;
     const urlInforme = document.getElementById('url_informe').value;
     const statusDiv = document.getElementById('nombre_archivo_generado');
-
-    // Generar nombre de archivo
-    const clienteNombre = "{{ borrador.cliente.nombre|escapejs }}";
-    const tipoPlantilla = "{{ borrador.plantilla.tipo|escapejs }}";
-    const fechaFin = document.getElementById("fecha_2").value;
-    const nombreArch = (clienteNombre + "-Informe-" + tipoPlantilla + "-" + fechaFin).replace(/ /g, "_");
+    const nombreArch = "{{ borrador.nombreArch|default:'informe_generado' }}".replace(/ /g, "_");
 
     if (!comandoGuardado || !urlInforme) {
         statusDiv.innerHTML = '<div class="alert alert-warning">Datos incompletos para regenerar el informe</div>';
@@ -101,7 +96,7 @@ function generarInformeConComandoGuardado() {
     }
 
     statusDiv.innerHTML = '<div class="alert alert-info">Generando informe, por favor espere...</div>';
-    
+
     fetch('/ejecutar-comando/', {
         method: 'POST',
         headers: {
@@ -111,7 +106,7 @@ function generarInformeConComandoGuardado() {
         body: JSON.stringify({
             comando: comandoGuardado,
             informe: urlInforme,
-            nombreArch: nombreArch, // ¡IMPORTANTE!
+            nombreArch: nombreArch,
             regenerar: true
         })
     })
@@ -125,6 +120,7 @@ function generarInformeConComandoGuardado() {
                 </div>
             `;
             document.getElementById('dashboard').href = urlInforme;
+            // Podés guardar en el modelo si querés actualizar el nombre si cambia
         } else {
             statusDiv.innerHTML = `
                 <div class="alert alert-danger">
