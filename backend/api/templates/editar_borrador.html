@@ -105,9 +105,16 @@ function regenerarComandoYUrl() {
 function generarInformeConComandoGuardado() {
     regenerarComandoYUrl();
     const comandoGuardado = document.getElementById('comando_generado').value;
+    const urlInforme = document.getElementById('url_informe').value;
     const statusDiv = document.getElementById('nombre_archivo_generado');
+    const nombreArch = document.getElementById('nombre_archivo_guardado').value || "informe_generado";
 
-    statusDiv.innerHTML = '<div class="alert alert-info">Generando informe...</div>';
+    if (!comandoGuardado || !urlInforme) {
+        statusDiv.innerHTML = '<div class="alert alert-warning">Datos incompletos para regenerar el informe</div>';
+        return;
+    }
+
+    statusDiv.innerHTML = '<div class="alert alert-info">Generando informe, por favor espere...</div>';
 
     fetch('/ejecutar-comando/', {
         method: 'POST',
@@ -117,6 +124,8 @@ function generarInformeConComandoGuardado() {
         },
         body: JSON.stringify({
             comando: comandoGuardado,
+            informe: urlInforme,
+            nombreArch: nombreArch.replace(/ /g, "_"),
             regenerar: true
         })
     })
@@ -125,17 +134,32 @@ function generarInformeConComandoGuardado() {
         if (data.ok && data.filename) {
             statusDiv.innerHTML = `
                 <div class="alert alert-success">
-                    Informe regenerado: <a href="/media/${data.filename}" target="_blank">Ver PDF</a>
+                    Informe regenerado correctamente: 
+                    <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
                 </div>
             `;
-            // Actualiza el nombre del archivo y el enlace
+            console.log("Archivo generado:", data.filename);
+            document.getElementById('dashboard').href = urlInforme;
+            // ¡Actualiza el input oculto con el nombre real del archivo generado!
             document.getElementById('nombre_archivo_guardado').value = data.filename;
-            document.getElementById('dashboard').href = `/media/${data.filename}`;
         } else {
-            statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+            statusDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    Error al regenerar informe: ${data.error || 'Error desconocido'}
+                </div>
+            `;
         }
+    })
+    .catch(error => {
+        statusDiv.innerHTML = `
+            <div class="alert alert-danger">
+                Error de conexión: ${error.message}
+            </div>
+        `;
+        console.error('Error:', error);
     });
 }
+
 function guardarCambiosBorrador() {
     const form = document.querySelector('form');
     const formData = new FormData(form);
