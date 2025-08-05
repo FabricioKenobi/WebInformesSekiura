@@ -177,7 +177,7 @@ function generarInformeConComandoGuardado() {
 }
 
 function guardarCambiosBorrador() {
-    const nombreArchivo = document.getElementById('nombre_archivo_guardado').value;
+    const nombreArchivo = document.getElementById('archivo_adjunto').value;
     if (!nombreArchivo) {
         alert('Por favor, genere el informe antes de guardar');
         return;
@@ -188,7 +188,7 @@ function guardarCambiosBorrador() {
     
     // Asegurarse de incluir todos los campos necesarios
     formData.append('guardar', 'true');
-    formData.append('nombre_archivo_guardado', nombreArchivo);
+    formData.append('archivo_adjunto', nombreArchivo);
     formData.append('asunto', document.getElementById('asunto').value);
     formData.append('cuerpo_html', editorInstance.getData());
     formData.append('fecha_1', document.getElementById('fecha_1').value);
