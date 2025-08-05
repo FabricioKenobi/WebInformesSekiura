@@ -141,9 +141,9 @@ function generarInformeConComandoGuardado() {
             `;
             console.log("Archivo generado:", data.filename);
             document.getElementById('dashboard').href = urlInforme;
-            
+            data.filename += '.pdf';
             // Actualiza el input del formulario con el nombre real del archivo generado
-            nombreArchInput.value = data.filename += '.pdf';
+            nombreArchInput.value = data.filename;
             
             // También actualiza el valor en el formulario para que se envíe correctamente
             const form = document.querySelector('form');
