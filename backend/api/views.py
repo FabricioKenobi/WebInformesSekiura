@@ -441,53 +441,42 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
 from django.core.files import File
-
 @csrf_exempt
 @login_required
 def guardar_borrador(request, borrador_id):
     if request.method == 'POST':
         try:
             borrador = EmailEnviado.objects.get(pk=borrador_id)
-            
-            # --- Aquí está la lógica importante para solucionar el problema ---
             nombre_archivo_nuevo = request.POST.get('nombre_archivo_guardado')
 
-            # Si se proporcionó un nuevo nombre de archivo y no se subió un archivo nuevo
-            # esto significa que se generó uno en el frontend.
-            if nombre_archivo_nuevo and 'archivo_adjunto' not in request.FILES:
-                # Construye la ruta completa del archivo en el sistema de archivos
+            # 1. Si hay un nuevo archivo generado
+            if nombre_archivo_nuevo and nombre_archivo_nuevo != borrador.nombreArch:
                 ruta_archivo = os.path.join(settings.MEDIA_ROOT, 'archivos', nombre_archivo_nuevo)
                 
-                # Verifica si el archivo existe antes de intentar asignarlo
                 if os.path.exists(ruta_archivo):
-                    # Abre el archivo y asignaselo al campo FileField
+                    # Abrir y asignar el nuevo archivo
                     with open(ruta_archivo, 'rb') as f:
                         borrador.archivo_adjunto.save(nombre_archivo_nuevo, File(f), save=False)
-                else:
-                    # Si el archivo no existe, puedes registrar un error o manejarlo de otra manera
-                    print(f"Advertencia: El archivo generado '{ruta_archivo}' no fue encontrado.")
+                    
+                    # Actualizar el nombre de archivo en el modelo
+                    borrador.nombreArch = nombre_archivo_nuevo
             
-            # Si se subió un nuevo archivo, Django lo maneja automáticamente
+            # 2. Si se subió un archivo manualmente
             elif 'archivo_adjunto' in request.FILES:
                 borrador.archivo_adjunto = request.FILES['archivo_adjunto']
-
-            # Actualiza los demás campos
+            
+            # Actualizar los demás campos
             borrador.asunto = request.POST.get('asunto', borrador.asunto)
             borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
             borrador.comando_generado = request.POST.get('comando_generado', borrador.comando_generado)
             borrador.url_informe = request.POST.get('url_informe', borrador.url_informe)
             
-            # Si el campo nombreArch es solo para referencia, actualizalo también
-            borrador.nombreArch = nombre_archivo_nuevo
-
             borrador.save()
             return JsonResponse({'ok': True})
         
-        except EmailEnviado.DoesNotExist:
-            return JsonResponse({'ok': False, 'error': 'Borrador no encontrado'})
         except Exception as e:
             return JsonResponse({'ok': False, 'error': str(e)})
-
+    
     return JsonResponse({'ok': False, 'error': 'Método no permitido'})
 
 @login_required

@@ -130,24 +130,26 @@ function generarInformeConComandoGuardado() {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.ok && data.filename) {
-            statusDiv.innerHTML = `
-                <div class="alert alert-success">
-                    Informe regenerado correctamente: 
-                    <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
-                </div>
-            `;
-            // El nombre del archivo se mantiene
-            document.getElementById('nombre_archivo_guardado').value = data.filename;
-            document.getElementById('dashboard').href = urlInforme;
-        } else {
-            statusDiv.innerHTML = `
-                <div class="alert alert-danger">
-                    Error al regenerar informe: ${data.error || 'Error desconocido'}
-                </div>
-            `;
-        }
-    })
+      if (data.ok && data.filename) {
+          // Actualizar el campo oculto con el nuevo nombre de archivo
+          document.getElementById('nombre_archivo_guardado').value = data.filename;
+          
+          // Mostrar el nuevo enlace de descarga
+          statusDiv.innerHTML = `
+              <div class="alert alert-success">
+                  Informe regenerado correctamente: 
+                  <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
+              </div>
+          `;
+          
+          // Actualizar el archivo actual en la interfaz
+          if (document.querySelector('p[data-archivo-actual]')) {
+              document.querySelector('p[data-archivo-actual]').innerHTML = `
+                  Archivo actual: <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">${data.filename}</a>
+              `;
+          }
+      }
+  })
     .catch(error => {
         statusDiv.innerHTML = `
             <div class="alert alert-danger">
