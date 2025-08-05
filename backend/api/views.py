@@ -413,6 +413,9 @@ def soc_home(request):
         'plantillas': plantillas,
         'clientes': clientes,
     })
+import json
+import logging 
+
 logger = logging.getLogger(__name__)
 
 @login_required
