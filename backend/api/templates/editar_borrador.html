@@ -107,7 +107,7 @@ function generarInformeConComandoGuardado() {
     const comandoGuardado = document.getElementById('comando_generado').value;
     const urlInforme = document.getElementById('url_informe').value;
     const statusDiv = document.getElementById('nombre_archivo_generado');
-    const nombreArchInput = document.getElementById('archivo_adjunto');
+    const nombreArchInput = document.getElementById('nombre_archivo_guardado');
     let nombreArch = nombreArchInput.value || "informe_generado";
 
     if (!comandoGuardado || !urlInforme) {
@@ -143,18 +143,18 @@ function generarInformeConComandoGuardado() {
             document.getElementById('dashboard').href = urlInforme;
             
             // Actualiza el input del formulario con el nombre real del archivo generado
-            document.getElementById('archivo_adjunto').value = data.filename;
+            document.getElementById('nombre_archivo_guardado').value = data.filename;
             
             // También actualiza el valor en el formulario para que se envíe correctamente
             const form = document.querySelector('form');
             if (form) {
-                const hiddenInput = form.querySelector('input[name="archivo_adjunto"]');
+                const hiddenInput = form.querySelector('input[name="nombre_archivo_guardado"]');
                 if (hiddenInput) {
                     hiddenInput.value = data.filename;
                 } else {
                     const newInput = document.createElement('input');
                     newInput.type = 'hidden';
-                    newInput.name = 'archivo_adjunto';
+                    newInput.name = 'nombre_archivo_guardado';
                     newInput.value = data.filename;
                     form.appendChild(newInput);
                 }
