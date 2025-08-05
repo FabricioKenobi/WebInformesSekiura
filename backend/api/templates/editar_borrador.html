@@ -47,6 +47,16 @@
 
 <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
 <script>
+
+
+window.addEventListener('DOMContentLoaded', function() {
+  ClassicEditor.create(document.querySelector('#editor'))
+    .then(editor => { window.editor = editor; editorInstance = editor; })
+    .catch(console.error);
+
+  // Sin fechas: sólo aseguramos el href inicial del botón "Editar Informe"
+  regenerarComandoYUrl();
+});
 let editorInstance = null;
 // redundante pero seguro:
 const form = document.querySelector('form');
@@ -56,16 +66,6 @@ if (!fdTest.get('nombre_archivo_guardado')) {
   const hidden = document.querySelector('input[name="nombre_archivo_guardado"]');
   if (hidden) hidden.value = data.filename;
 }
-window.addEventListener('DOMContentLoaded', function() {
-  ClassicEditor.create(document.querySelector('#editor'))
-    .then(editor => { window.editor = editor; editorInstance = editor; })
-    .catch(console.error);
-
-  // Sin fechas: sólo aseguramos el href inicial del botón "Editar Informe"
-  regenerarComandoYUrl();
-});
-
-
 function regenerarComandoYUrl() {
   const urlInforme = document.getElementById('url_informe').value;
   document.getElementById('dashboard').href = urlInforme;
