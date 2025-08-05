@@ -466,46 +466,39 @@ def guardar_borrador(request, borrador_id):
     try:
         borrador = EmailEnviado.objects.get(pk=borrador_id)
 
-        # Nombre objetivo lógico (base anterior, por si no envían nombreArch)
         base_por_defecto = borrador.nombreArch or os.path.basename(borrador.archivo_adjunto.name or '') or 'informe'
 
-        # 1) Tomar nombreArch del POST (sin extensión) o caer al default
-        nombre_arch_base = (request.POST.get('nombreArch') or os.path.splitext(base_por_defecto)[0]).strip()
-        if not nombre_arch_base:
-            nombre_arch_base = 'informe'
-
-        # 2) Normalizar y armar nombre final .pdf
+        nombre_arch_base = (request.POST.get('nombreArch') or os.path.splitext(base_por_defecto)[0]).strip() or 'informe'
         base_clean = sanitize_filename_preserve_case(os.path.splitext(nombre_arch_base)[0] or "Informe")
         nombre_final_pdf = base_clean + ".pdf"
 
-
-        # 3) Utilidad para sobreescribir el FileField con el nombre final
         def overwrite_filefield_with(final_name_basename, fileobj):
-            # Borrar el archivo actual si existe, para que no queden huérfanos con nombres viejos
             if borrador.archivo_adjunto:
                 try:
                     borrador.archivo_adjunto.delete(save=False)
                 except Exception:
                     pass
-            # Guardar con el nombre deseado (Django aplicará upload_to)
             borrador.archivo_adjunto.save(final_name_basename, fileobj, save=False)
-            # Reflejar el nombre lógico en tu modelo
             borrador.nombreArch = final_name_basename
 
-        # 4) Prioridades de origen del archivo
         uploaded_file = request.FILES.get('archivo_adjunto')
-        nombre_archivo_generado = request.POST.get('nombre_archivo_guardado', '').strip()
+        nombre_archivo_generado = (request.POST.get('nombre_archivo_guardado') or '').strip()
+
+        # === FAIL-FAST: si no hay ninguna fuente, avisar y NO devolver ok ===
+        if not uploaded_file and not nombre_archivo_generado:
+            return JsonResponse({
+                'ok': False,
+                'error': 'No se recibió archivo a subir ni nombre de archivo generado (nombre_archivo_guardado).'
+            })
 
         if uploaded_file:
-            # Caso: el usuario subió un archivo -> lo guardamos con nombre_final_pdf
             overwrite_filefield_with(nombre_final_pdf, uploaded_file)
 
-        elif nombre_archivo_generado:
-            # Normalizar nombre recibido (puede venir sin .pdf o con ruta absoluta)
-            tmp_input = nombre_archivo_generado.strip()
-            tmp_basename = os.path.basename(tmp_input)  # sanitize
+        else:
+            # Usar el PDF generado por tu backend
+            tmp_input = nombre_archivo_generado
+            tmp_basename = os.path.basename(tmp_input)
 
-            # Asegurar extensión .pdf
             if not tmp_basename.lower().endswith(".pdf"):
                 tmp_basename_pdf = tmp_basename + ".pdf"
             else:
@@ -513,20 +506,15 @@ def guardar_borrador(request, borrador_id):
 
             candidate_paths = []
 
-            # 1) Si vino ruta absoluta desde el generador, probar tal cual
             if os.path.isabs(tmp_input):
                 candidate_paths.append(tmp_input)
                 if not tmp_input.lower().endswith(".pdf"):
                     candidate_paths.append(tmp_input + ".pdf")
 
-            # 2) Ubicación estándar donde esperamos que el generador guarde
             candidate_paths.append(os.path.join(settings.MEDIA_ROOT, "archivos", tmp_basename_pdf))
-
-            # 3) Fallbacks (por compatibilidad con tu flujo anterior)
             candidate_paths.append(os.path.join(settings.MEDIA_ROOT, tmp_basename_pdf))
             candidate_paths.append(os.path.join("/home/hermes/WebInformesSekiura/backend", tmp_basename_pdf))
 
-            # Elegir el primer path existente
             src_path = next((p for p in candidate_paths if os.path.exists(p)), None)
             if not src_path:
                 return JsonResponse({
@@ -537,7 +525,6 @@ def guardar_borrador(request, borrador_id):
             with open(src_path, 'rb') as fh:
                 overwrite_filefield_with(nombre_final_pdf, File(fh))
 
-            # Si era un temporal dentro de MEDIA_ROOT/archivos y difiere del final, lo borramos
             try:
                 arch_dir = os.path.join(settings.MEDIA_ROOT, "archivos")
                 if src_path.startswith(arch_dir) and os.path.basename(src_path) != nombre_final_pdf:
@@ -545,7 +532,7 @@ def guardar_borrador(request, borrador_id):
             except Exception:
                 pass
 
-        # 5) Actualizar el resto de campos
+        # Guardar el resto de campos
         borrador.asunto = request.POST.get('asunto', borrador.asunto)
         borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
         borrador.comando_generado = request.POST.get('comando_generado', borrador.comando_generado)
@@ -558,6 +545,7 @@ def guardar_borrador(request, borrador_id):
         return JsonResponse({'ok': False, 'error': 'Borrador no encontrado'})
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)})
+
     
 
 @login_required
