@@ -132,7 +132,7 @@ function generarInformeConComandoGuardado() {
     .then(data => {
       if (data.ok && data.filename) {
           // Actualizar el campo oculto con el nuevo nombre de archivo
-          document.getElementById('nombre_archivo_guardado').value = data.filename;
+          document.getElementById('nombre_archivo_guardado').value = nombreArch;
           
           // Mostrar el nuevo enlace de descarga
           statusDiv.innerHTML = `
