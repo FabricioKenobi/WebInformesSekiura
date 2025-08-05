@@ -453,7 +453,7 @@ def guardar_borrador(request, borrador_id):
                 borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
                 
                 # Asegúrate de obtener el nombre del archivo correctamente
-                nombre_archivo = request.POST.get('nombre_archivo_guardado')
+                nombre_archivo = request.POST.get('archivo_adjunto')
                 if nombre_archivo:
                     borrador.nombreArch = nombre_archivo
                 
