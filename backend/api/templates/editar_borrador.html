@@ -133,6 +133,7 @@ function generarInformeConComandoGuardado() {
     .then(response => response.json())
     .then(data => {
         if (data.ok && data.filename) {
+            data.filename += '.pdf';
             statusDiv.innerHTML = `
                 <div class="alert alert-success">
                     Informe regenerado correctamente: 
@@ -141,7 +142,7 @@ function generarInformeConComandoGuardado() {
             `;
             console.log("Archivo generado:", data.filename);
             document.getElementById('dashboard').href = urlInforme;
-            data.filename += '.pdf';
+            
             // Actualiza el input del formulario con el nombre real del archivo generado
             nombreArchInput.value = data.filename;
             
