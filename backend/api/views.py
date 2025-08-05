@@ -441,6 +441,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
 from django.core.files import File
+from django.utils.text import slugify
 @csrf_exempt
 @login_required
 def guardar_borrador(request, borrador_id):
