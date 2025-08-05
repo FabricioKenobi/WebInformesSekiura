@@ -444,41 +444,72 @@ from django.core.files import File
 @csrf_exempt
 @login_required
 def guardar_borrador(request, borrador_id):
-    if request.method == 'POST':
-        try:
-            borrador = EmailEnviado.objects.get(pk=borrador_id)
-            nombre_archivo_nuevo = request.POST.get('nombre_archivo_guardado')
-            nombre_original = borrador.nombreArch
-            
-            # 1. Si hay un nuevo archivo generado
-            if nombre_archivo_nuevo and nombre_archivo_nuevo != borrador.nombreArch:
-                ruta_archivo = os.path.join(settings.MEDIA_ROOT, 'archivos', nombre_archivo_nuevo)
-                
-                if os.path.exists(ruta_archivo):
-                    # Abrir y asignar el nuevo archivo
-                    with open(ruta_archivo, 'rb') as f:
-                        borrador.archivo_adjunto.save(nombre_archivo_nuevo, File(f), save=False)
-                    
-                    # Actualizar el nombre de archivo en el modelo
-                    borrador.nombreArch = nombre_original
-            
-            # 2. Si se subió un archivo manualmente
-            elif 'archivo_adjunto' in request.FILES:
-                borrador.archivo_adjunto = request.FILES['archivo_adjunto']
-            
-            # Actualizar los demás campos
-            borrador.asunto = request.POST.get('asunto', borrador.asunto)
-            borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
-            borrador.comando_generado = request.POST.get('comando_generado', borrador.comando_generado)
-            borrador.url_informe = request.POST.get('url_informe', borrador.url_informe)
-            
-            borrador.save()
-            return JsonResponse({'ok': True})
-        
-        except Exception as e:
-            return JsonResponse({'ok': False, 'error': str(e)})
-    
-    return JsonResponse({'ok': False, 'error': 'Método no permitido'})
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'Método no permitido'})
+
+    try:
+        borrador = EmailEnviado.objects.get(pk=borrador_id)
+
+        # Nombre objetivo: el que quieres mantener SIEMPRE
+        # Prioriza el campo que usas como "nombre lógico" y respáldate con el de FileField.
+        target_basename = borrador.nombreArch or os.path.basename(borrador.archivo_adjunto.name or '')
+        if not target_basename:
+            target_basename = 'informe.pdf'  # fallback
+
+        # Sanitizar por seguridad
+        target_basename = os.path.basename(target_basename)
+
+        nombre_archivo_nuevo = request.POST.get('nombre_archivo_guardado', '').strip()
+        uploaded_file = request.FILES.get('archivo_adjunto')
+
+        # Función para sobrescribir el FileField con un nombre fijo
+        def overwrite_filefield_with(name_basename, fileobj):
+            # 1) borrar el archivo actual para liberar el nombre
+            if borrador.archivo_adjunto:
+                try:
+                    borrador.archivo_adjunto.delete(save=False)
+                except Exception:
+                    pass
+            # 2) guardar con el MISMO nombre (basename). upload_to se aplica.
+            borrador.archivo_adjunto.save(name_basename, fileobj, save=False)
+            # 3) reflejar el nombre lógico si lo usas en la UI
+            borrador.nombreArch = name_basename
+
+        if uploaded_file:
+            # Se subió manualmente un archivo: sobrescribir manteniendo el nombre objetivo
+            overwrite_filefield_with(target_basename, uploaded_file)
+
+        elif nombre_archivo_nuevo:
+            # Usar el PDF generado por tu backend (guardado en /media/archivos/)
+            tmp_basename = os.path.basename(nombre_archivo_nuevo)  # sanitize
+            tmp_path = os.path.join(settings.MEDIA_ROOT, 'archivos', tmp_basename)
+
+            if not os.path.exists(tmp_path):
+                return JsonResponse({'ok': False, 'error': f'No existe el archivo generado: {tmp_basename}'})
+
+            with open(tmp_path, 'rb') as fh:
+                overwrite_filefield_with(target_basename, File(fh))
+
+            # Opcional: borrar el temporal si su nombre difiere del objetivo
+            if tmp_basename != target_basename:
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
+
+        # Actualizar el resto de campos
+        borrador.asunto = request.POST.get('asunto', borrador.asunto)
+        borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
+        borrador.comando_generado = request.POST.get('comando_generado', borrador.comando_generado)
+        borrador.url_informe = request.POST.get('url_informe', borrador.url_informe)
+
+        borrador.save()
+        return JsonResponse({'ok': True})
+
+    except EmailEnviado.DoesNotExist:
+        return JsonResponse({'ok': False, 'error': 'Borrador no encontrado'})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)})
 
 @login_required
 def conf_cliente(request):

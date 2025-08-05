@@ -37,7 +37,7 @@
     {% endif %}
     <div id="nombre_archivo_generado" class="mt-2"></div>
   </div>
-  <input type="hidden" id="nombre_archivo_guardado" value="{{ borrador.nombreArch }}">
+  <input type="hidden" id="nombre_archivo_guardado" name="nombre_archivo_guardado" value="{{ borrador.nombreArch }}">
   <input type="hidden" name="cliente" value="{{ borrador.cliente.id }}">
   <input type="hidden" name="plantilla" value="{{ borrador.plantilla.id }}">
   <input type="hidden" name="comando_generado" id="comando_generado" value="{{ borrador.comando_generado }}">
