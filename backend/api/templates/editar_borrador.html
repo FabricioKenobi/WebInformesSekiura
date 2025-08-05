@@ -34,7 +34,7 @@
   <input type="hidden" name="comando_generado" id="comando_generado" value="{{ borrador.comando_generado }}">
   <input type="hidden" name="url_informe" id="url_informe" value="{{ borrador.url_informe }}">
   <input type="hidden" name="enviar_email" value="true">
-
+  
   <div class="mb-3">
     <a id="dashboard" href="{{ borrador.url_informe }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">Editar Informe</a>
     <button id="regen" type="button" class="btn btn-outline-primary" onclick="generarInformeConComandoGuardado()">Generar nuevo informe</button>
@@ -48,7 +48,14 @@
 <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
 <script>
 let editorInstance = null;
-
+// redundante pero seguro:
+const form = document.querySelector('form');
+const fdTest = new FormData(form);
+if (!fdTest.get('nombre_archivo_guardado')) {
+  // Si por algún motivo el DOM no reflejó el cambio (raro), lo forzamos
+  const hidden = document.querySelector('input[name="nombre_archivo_guardado"]');
+  if (hidden) hidden.value = data.filename;
+}
 window.addEventListener('DOMContentLoaded', function() {
   ClassicEditor.create(document.querySelector('#editor'))
     .then(editor => { window.editor = editor; editorInstance = editor; })
@@ -125,22 +132,33 @@ function generarInformeConComandoGuardado() {
 }
 
 function guardarCambiosBorrador() {
-  // Sin fechas: sólo nos aseguramos de mandar el comando y el archivo generado
-  const nombreArchivo = document.getElementById('nombre_archivo_guardado').value;
+  const nombreArchivo = document.getElementById('nombre_archivo_guardado').value.trim();
   if (!nombreArchivo) {
     alert('Por favor, genere el informe antes de guardar');
     return;
   }
+
   const form = document.querySelector('form');
   const formData = new FormData(form);
-  formData.append('guardar', 'true');
 
-  // Forzamos incluir el comando actual en el POST
+  // Fuerza que estos campos viajen
+  formData.set('nombre_archivo_guardado', nombreArchivo);
   formData.set('comando_generado', document.getElementById('comando_generado').value);
+
+  // (Opcional) si usás nombre lógico final:
+  const nombreArchInput = document.getElementById('nombreArch');
+  if (nombreArchInput) {
+    formData.set('nombreArch', nombreArchInput.value.trim());
+  }
+
+  // DEBUG: ver qué se envía realmente
+  for (const [k, v] of formData.entries()) {
+    console.log('FD', k, v);
+  }
 
   fetch(`/guardar-borrador/{{ borrador.id }}/`, {
     method: 'POST',
-    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' }, // NO pongas Content-Type; FormData lo maneja
     body: formData
   })
   .then(r => r.json())
@@ -156,5 +174,6 @@ function guardarCambiosBorrador() {
     console.error(e);
   });
 }
+
 </script>
 {% endblock %}
