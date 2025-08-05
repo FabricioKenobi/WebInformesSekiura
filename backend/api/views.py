@@ -452,13 +452,16 @@ def guardar_borrador(request, borrador_id):
                 borrador.asunto = request.POST.get('asunto', borrador.asunto)
                 borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
                 
-                # Asegúrate de obtener el nombre del archivo correctamente
-                nombre_archivo = request.POST.get('archivo_adjunto')
-                if nombre_archivo:
-                    borrador.nombreArch = nombre_archivo
+                # Verifica que estás recibiendo el campo correctamente
+                print("Nombre archivo recibido:", request.POST.get('nombre_archivo_guardado'))
+                
+                borrador.nombreArch = request.POST.get('nombre_archivo_guardado', borrador.nombreArch)
                 
                 if 'archivo_adjunto' in request.FILES:
                     borrador.archivo_adjunto = request.FILES['archivo_adjunto']
+                
+                borrador.comando_generado = request.POST.get('comando_generado', borrador.comando_generado)
+                borrador.url_informe = request.POST.get('url_informe', borrador.url_informe)
                 
                 borrador.save()
                 return JsonResponse({'ok': True})
