@@ -37,7 +37,7 @@
     {% endif %}
     <div id="nombre_archivo_generado" class="mt-2"></div>
   </div>
-  <input type="hidden" id="nombre_archivo_guardado" name="nombre_archivo_guardado" value="{{ borrador.nombreArch }}">
+  <input type="hidden" id="nombre_archivo_guardado" value="{{ borrador.nombreArch }}">
   <input type="hidden" name="cliente" value="{{ borrador.cliente.id }}">
   <input type="hidden" name="plantilla" value="{{ borrador.plantilla.id }}">
   <input type="hidden" name="comando_generado" id="comando_generado" value="{{ borrador.comando_generado }}">
@@ -84,12 +84,17 @@ function regenerarComandoYUrl() {
     const fechaInicio = document.getElementById("fecha_1").value;
     const fechaFin = document.getElementById("fecha_2").value;
 
-    // ELIMINA O COMENTA ESTA LÍNEA QUE AUTOGENERA EL NOMBRE
+    // Armá el nombre del archivo (solo si lo quisieras autoactualizar)
     // const archivo = clienteNombre + "-Informe-" + tipoPlantilla + "-" + fechaFin;
 
-    // Y esta línea, que usa el nombre autogenerado
+    // Armá el comando igual que en la creación
     const comando = `generar_informe --cliente="${clienteNombre}" --tipo="${tipoPlantilla}" --fecha-inicio="${fechaInicio}" --fecha-fin="${fechaFin}" --output="${clienteNombre}-Informe-${tipoPlantilla}-${fechaFin}"`;
 
+    // Si tu plantilla tiene un código de dashboard podés usarlo así:
+    // const dashboardCode = "{{ borrador.plantilla.codigo_dashboard|default:'' }}";
+    // const urlInforme = dashboardCode ? 
+    //   `https://192.168.0.94/app/dashboards#/view/${dashboardCode}?_g=(time:(from:'${fechaInicio}T03:00:00.000Z',to:'${fechaFin}T02:59:59.000Z'))&_a=(fullScreenMode:!t)` : 
+    //   "{{ borrador.url_informe }}";
     const urlInforme = "{{ borrador.url_informe }}";
 
     document.getElementById('comando_generado').value = comando;
@@ -102,8 +107,8 @@ function generarInformeConComandoGuardado() {
     const comandoGuardado = document.getElementById('comando_generado').value;
     const urlInforme = document.getElementById('url_informe').value;
     const statusDiv = document.getElementById('nombre_archivo_generado');
-    // USA EL NOMBRE DEL ARCHIVO EXISTENTE
-    let nombreArch = document.getElementById('nombre_archivo_guardado').value;
+    const nombreArchInput = document.getElementById('nombre_archivo_guardado');
+    let nombreArch = nombreArchInput.value || "informe_generado";
 
     if (!comandoGuardado || !urlInforme) {
         statusDiv.innerHTML = '<div class="alert alert-warning">Datos incompletos para regenerar el informe</div>';
@@ -112,9 +117,6 @@ function generarInformeConComandoGuardado() {
 
     statusDiv.innerHTML = '<div class="alert alert-info">Generando informe, por favor espere...</div>';
 
-    // Modificamos el comando para que use el nombre de archivo existente
-    const comandoFinal = comandoGuardado.replace(/--output="[^"]+"/, `--output="${nombreArch.replace(/\.pdf$/, '')}"`);
-
     fetch('/ejecutar-comando/', {
         method: 'POST',
         headers: {
@@ -122,7 +124,7 @@ function generarInformeConComandoGuardado() {
             'X-CSRFToken': '{{ csrf_token }}'
         },
         body: JSON.stringify({
-            comando: comandoFinal, // Usa el nuevo comando con el nombre original
+            comando: comandoGuardado,
             informe: urlInforme,
             nombreArch: nombreArch.replace(/ /g, "_"),
             regenerar: true
@@ -130,26 +132,41 @@ function generarInformeConComandoGuardado() {
     })
     .then(response => response.json())
     .then(data => {
-      if (data.ok && data.filename) {
-          // Actualizar el campo oculto con el nuevo nombre de archivo
-          document.getElementById('nombre_archivo_guardado').value = nombreArch;
-          
-          // Mostrar el nuevo enlace de descarga
-          statusDiv.innerHTML = `
-              <div class="alert alert-success">
-                  Informe regenerado correctamente: 
-                  <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
-              </div>
-          `;
-          
-          // Actualizar el archivo actual en la interfaz
-          if (document.querySelector('p[data-archivo-actual]')) {
-              document.querySelector('p[data-archivo-actual]').innerHTML = `
-                  Archivo actual: <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">${data.filename}</a>
-              `;
-          }
-      }
-  })
+        if (data.ok && data.filename) {
+            statusDiv.innerHTML = `
+                <div class="alert alert-success">
+                    Informe regenerado correctamente: 
+                    <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
+                </div>
+            `;
+            console.log("Archivo generado:", data.filename);
+            document.getElementById('dashboard').href = urlInforme;
+            
+            // Actualiza el input del formulario con el nombre real del archivo generado
+            nombreArchInput.value = data.filename;
+            
+            // También actualiza el valor en el formulario para que se envíe correctamente
+            const form = document.querySelector('form');
+            if (form) {
+                const hiddenInput = form.querySelector('input[name="nombre_archivo_guardado"]');
+                if (hiddenInput) {
+                    hiddenInput.value = data.filename;
+                } else {
+                    const newInput = document.createElement('input');
+                    newInput.type = 'hidden';
+                    newInput.name = 'nombre_archivo_guardado';
+                    newInput.value = data.filename;
+                    form.appendChild(newInput);
+                }
+            }
+        } else {
+            statusDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    Error al regenerar informe: ${data.error || 'Error desconocido'}
+                </div>
+            `;
+        }
+    })
     .catch(error => {
         statusDiv.innerHTML = `
             <div class="alert alert-danger">
@@ -159,7 +176,9 @@ function generarInformeConComandoGuardado() {
         console.error('Error:', error);
     });
 }
+
 function guardarCambiosBorrador() {
+    // Asegurarse de que el formulario tiene los datos más recientes
     const nombreArchivo = document.getElementById('nombre_archivo_guardado').value;
     if (!nombreArchivo) {
         alert('Por favor, genere el informe antes de guardar');
@@ -168,17 +187,8 @@ function guardarCambiosBorrador() {
 
     const form = document.querySelector('form');
     const formData = new FormData(form);
-    
-    // Asegurar que todos los campos necesarios están incluidos
-    formData.set('nombre_archivo_guardado', nombreArchivo);
-    formData.set('comando_generado', document.getElementById('comando_generado').value);
-    formData.set('url_informe', document.getElementById('url_informe').value);
-    formData.set('guardar', 'true');
-    
-    // Agregar el contenido del editor CKEditor
-    if (editorInstance) {
-        formData.set('cuerpo_html', editorInstance.getData());
-    }
+    formData.append('guardar', 'true');
+    formData.append('nombre_archivo_guardado', nombreArchivo); // Asegurar que se envía
 
     fetch(`/guardar-borrador/{{ borrador.id }}/`, {
         method: 'POST',
