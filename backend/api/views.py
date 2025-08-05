@@ -448,16 +448,16 @@ def guardar_borrador(request, borrador_id):
         try:
             borrador = EmailEnviado.objects.get(pk=borrador_id)
             
-            if 'guardar' in request.POST:  # Esto indica que viene del guardado normal
-                borrador.asunto = request.POST.get('asunto', borrador.asunto)
-                borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
-                borrador.nombreArch = request.POST.get('nombre_archivo_guardado', borrador.nombreArch)
+            # Esto indica que viene del guardado normal
+            borrador.asunto = request.POST.get('asunto', borrador.asunto)
+            borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
+            borrador.nombreArch = request.POST.get('nombre_archivo_guardado', borrador.nombreArch)
                 
-                if 'archivo_adjunto' in request.FILES:
-                    borrador.archivo_adjunto = request.FILES['archivo_adjunto']
+            if 'archivo_adjunto' in request.FILES:
+                borrador.archivo_adjunto = request.FILES['archivo_adjunto']
                 
-                borrador.save()
-                return JsonResponse({'ok': True})
+            borrador.save()
+            return JsonResponse({'ok': True})
             
             # Resto de tu lógica para otros casos...
             
