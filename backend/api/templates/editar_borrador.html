@@ -13,16 +13,7 @@
     <input type="text" class="form-control" id="asunto" name="asunto" value="{{ borrador.asunto }}">
   </div>
 
-  <div class="row mb-3">
-    <div class="col-md-6">
-      <label for="fecha_1" class="form-label">Fecha Inicio:</label>
-      <input type="date" class="form-control" id="fecha_1" name="fecha_1" value="{{ borrador.fecha_1|date:'Y-m-d' }}">
-    </div>
-    <div class="col-md-6">
-      <label for="fecha_2" class="form-label">Fecha Fin:</label>
-      <input type="date" class="form-control" id="fecha_2" name="fecha_2" value="{{ borrador.fecha_2|date:'Y-m-d' }}">
-    </div>
-  </div>
+
 
   <div class="mb-3">
     <label for="cuerpo_html" class="form-label">Cuerpo del email:</label>
@@ -41,7 +32,7 @@
   <input type="hidden" name="cliente" value="{{ borrador.cliente.id }}">
   <input type="hidden" name="plantilla" value="{{ borrador.plantilla.id }}">
   <input type="hidden" name="comando_generado" id="comando_generado" value="{{ borrador.comando_generado }}">
-  <input type="hidden" id="url_informe" value="{{ borrador.url_informe }}">
+  <input type="hidden" name="url_informe" id="url_informe" value="{{ borrador.url_informe }}">
   <input type="hidden" name="enviar_email" value="true">
 
   <div class="mb-3">
@@ -59,156 +50,111 @@
 let editorInstance = null;
 
 window.addEventListener('DOMContentLoaded', function() {
-  // CKEditor init
-  ClassicEditor
-    .create(document.querySelector('#editor'))
-    .then(editor => {
-      window.editor = editor;
-      editorInstance = editor;
-    })
-    .catch(error => {
-      console.error(error);
-    });
+  ClassicEditor.create(document.querySelector('#editor'))
+    .then(editor => { window.editor = editor; editorInstance = editor; })
+    .catch(console.error);
 
-  // Listeners para actualizar comando/URL en cambios de fecha
-  document.getElementById('fecha_1').addEventListener('change', regenerarComandoYUrl);
-  document.getElementById('fecha_2').addEventListener('change', regenerarComandoYUrl);
-
-  // Ejecutar una vez al cargar la página para setear los valores iniciales
+  // Sin fechas: sólo aseguramos el href inicial del botón "Editar Informe"
   regenerarComandoYUrl();
 });
 
+
 function regenerarComandoYUrl() {
-    const clienteNombre = "{{ borrador.cliente.nombre|escapejs }}";
-    const tipoPlantilla = "{{ borrador.plantilla.tipo|escapejs }}";
-    const fechaInicio = document.getElementById("fecha_1").value;
-    const fechaFin = document.getElementById("fecha_2").value;
-
-    // Armá el nombre del archivo (solo si lo quisieras autoactualizar)
-    // const archivo = clienteNombre + "-Informe-" + tipoPlantilla + "-" + fechaFin;
-
-    // Armá el comando igual que en la creación
-    const comando = `generar_informe --cliente="${clienteNombre}" --tipo="${tipoPlantilla}" --fecha-inicio="${fechaInicio}" --fecha-fin="${fechaFin}" --output="${clienteNombre}-Informe-${tipoPlantilla}-${fechaFin}"`;
-
-    // Si tu plantilla tiene un código de dashboard podés usarlo así:
-    // const dashboardCode = "{{ borrador.plantilla.codigo_dashboard|default:'' }}";
-    // const urlInforme = dashboardCode ? 
-    //   `https://192.168.0.94/app/dashboards#/view/${dashboardCode}?_g=(time:(from:'${fechaInicio}T03:00:00.000Z',to:'${fechaFin}T02:59:59.000Z'))&_a=(fullScreenMode:!t)` : 
-    //   "{{ borrador.url_informe }}";
-    const urlInforme = "{{ borrador.url_informe }}";
-
-    document.getElementById('comando_generado').value = comando;
-    document.getElementById('url_informe').value = urlInforme;
-    document.getElementById('dashboard').href = urlInforme;
+  const urlInforme = document.getElementById('url_informe').value;
+  document.getElementById('dashboard').href = urlInforme;
 }
 
 function generarInformeConComandoGuardado() {
-    regenerarComandoYUrl();
-    const comandoGuardado = document.getElementById('comando_generado').value;
-    const urlInforme = document.getElementById('url_informe').value;
-    const statusDiv = document.getElementById('nombre_archivo_generado');
-    const nombreArchInput = document.getElementById('nombre_archivo_guardado');
-    let nombreArch = nombreArchInput.value || "informe_generado";
+  // Ya no regeneramos nada por fechas; usamos el comando tal cual está en el hidden
+  const comandoGuardado = document.getElementById('comando_generado').value;
+  const urlInforme = document.getElementById('url_informe').value;
+  const statusDiv = document.getElementById('nombre_archivo_generado');
+  const nombreArchInput = document.getElementById('nombre_archivo_guardado');
+  let nombreArch = nombreArchInput.value || "informe_generado";
 
-    if (!comandoGuardado || !urlInforme) {
-        statusDiv.innerHTML = '<div class="alert alert-warning">Datos incompletos para regenerar el informe</div>';
-        return;
+  if (!comandoGuardado || !urlInforme) {
+    statusDiv.innerHTML = '<div class="alert alert-warning">Datos incompletos para regenerar el informe</div>';
+    return;
+  }
+
+  statusDiv.innerHTML = '<div class="alert alert-info">Generando informe, por favor espere...</div>';
+
+  fetch('/ejecutar-comando/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: JSON.stringify({
+      comando: comandoGuardado,
+      informe: urlInforme,
+      nombreArch: nombreArch.replace(/ /g, "_"),
+      regenerar: true
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok && data.filename) {
+      statusDiv.innerHTML = `
+        <div class="alert alert-success">
+          Informe regenerado correctamente:
+          <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
+        </div>
+      `;
+      document.getElementById('dashboard').href = urlInforme;
+
+      // Si el backend devuelve también el comando realmente usado, sincronizalo:
+      if (data.command_used) {
+        document.getElementById('comando_generado').value = data.command_used;
+      }
+
+      // Actualizar el hidden con el nombre real del archivo generado
+      nombreArchInput.value = data.filename;
+    } else {
+      statusDiv.innerHTML = `
+        <div class="alert alert-danger">
+          Error al regenerar informe: ${data.error || 'Error desconocido'}
+        </div>
+      `;
     }
-
-    statusDiv.innerHTML = '<div class="alert alert-info">Generando informe, por favor espere...</div>';
-
-    fetch('/ejecutar-comando/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            comando: comandoGuardado,
-            informe: urlInforme,
-            nombreArch: nombreArch.replace(/ /g, "_"),
-            regenerar: true
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.ok && data.filename) {
-            statusDiv.innerHTML = `
-                <div class="alert alert-success">
-                    Informe regenerado correctamente: 
-                    <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
-                </div>
-            `;
-            console.log("Archivo generado:", data.filename);
-            document.getElementById('dashboard').href = urlInforme;
-            
-            // Actualiza el input del formulario con el nombre real del archivo generado
-            nombreArchInput.value = data.filename;
-            
-            // También actualiza el valor en el formulario para que se envíe correctamente
-            const form = document.querySelector('form');
-            if (form) {
-                const hiddenInput = form.querySelector('input[name="nombre_archivo_guardado"]');
-                if (hiddenInput) {
-                    hiddenInput.value = data.filename;
-                } else {
-                    const newInput = document.createElement('input');
-                    newInput.type = 'hidden';
-                    newInput.name = 'nombre_archivo_guardado';
-                    newInput.value = data.filename;
-                    form.appendChild(newInput);
-                }
-            }
-        } else {
-            statusDiv.innerHTML = `
-                <div class="alert alert-danger">
-                    Error al regenerar informe: ${data.error || 'Error desconocido'}
-                </div>
-            `;
-        }
-    })
-    .catch(error => {
-        statusDiv.innerHTML = `
-            <div class="alert alert-danger">
-                Error de conexión: ${error.message}
-            </div>
-        `;
-        console.error('Error:', error);
-    });
+  })
+  .catch(error => {
+    statusDiv.innerHTML = `<div class="alert alert-danger">Error de conexión: ${error.message}</div>`;
+    console.error(error);
+  });
 }
 
 function guardarCambiosBorrador() {
-    // Asegurarse de que el formulario tiene los datos más recientes
-    const nombreArchivo = document.getElementById('nombre_archivo_guardado').value;
-    if (!nombreArchivo) {
-        alert('Por favor, genere el informe antes de guardar');
-        return;
-    }
-    
-    const form = document.querySelector('form');
-    const formData = new FormData(form);
-    formData.append('guardar', 'true');
-    formData.append('nombre_archivo_guardado', nombreArchivo); // Asegurar que se envía
+  // Sin fechas: sólo nos aseguramos de mandar el comando y el archivo generado
+  const nombreArchivo = document.getElementById('nombre_archivo_guardado').value;
+  if (!nombreArchivo) {
+    alert('Por favor, genere el informe antes de guardar');
+    return;
+  }
+  const form = document.querySelector('form');
+  const formData = new FormData(form);
+  formData.append('guardar', 'true');
 
-    fetch(`/guardar-borrador/{{ borrador.id }}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: formData
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.ok) {
-            window.location.href = "{% url 'home' %}";
-        } else {
-            alert("Error al guardar borrador: " + (data.error || "Error desconocido"));
-        }
-    })
-    .catch(e => {
-        alert("No se pudo conectar al servidor.");
-        console.error(e);
-    });
+  // Forzamos incluir el comando actual en el POST
+  formData.set('comando_generado', document.getElementById('comando_generado').value);
+
+  fetch(`/guardar-borrador/{{ borrador.id }}/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+    body: formData
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      window.location.href = "{% url 'home' %}";
+    } else {
+      alert("Error al guardar borrador: " + (data.error || "Error desconocido"));
+    }
+  })
+  .catch(e => {
+    alert("No se pudo conectar al servidor.");
+    console.error(e);
+  });
 }
 </script>
 {% endblock %}
