@@ -448,27 +448,21 @@ def guardar_borrador(request, borrador_id):
         try:
             borrador = EmailEnviado.objects.get(pk=borrador_id)
             
-            if 'guardar' in request.POST:  # Guardado normal
+            if 'guardar' in request.POST:
                 borrador.asunto = request.POST.get('asunto', borrador.asunto)
                 borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
                 
-                nombre_archivo = request.POST.get('nombre_archivo_guardado', borrador.nombreArch)
-                # Si el nombre cambió y no llegó un archivo adjunto nuevo, buscamos el PDF generado
-                if nombre_archivo and nombre_archivo != borrador.nombreArch:
-                    ruta = os.path.join('media', 'informes', nombre_archivo)  # Cambia el path si es diferente en tu proyecto
-                    if os.path.exists(ruta):
-                        with open(ruta, 'rb') as f:
-                            borrador.archivo_adjunto.save(nombre_archivo, File(f), save=False)
-                        borrador.nombreArch = nombre_archivo
-
+                # Asegúrate de obtener el nombre del archivo correctamente
+                nombre_archivo = request.POST.get('nombre_archivo_guardado')
+                if nombre_archivo:
+                    borrador.nombreArch = nombre_archivo
+                
                 if 'archivo_adjunto' in request.FILES:
                     borrador.archivo_adjunto = request.FILES['archivo_adjunto']
                 
                 borrador.save()
                 return JsonResponse({'ok': True})
-
-            # Resto de tu lógica...
-
+            
         except EmailEnviado.DoesNotExist:
             return JsonResponse({'ok': False, 'error': 'Borrador no encontrado'})
         except Exception as e:

@@ -107,7 +107,8 @@ function generarInformeConComandoGuardado() {
     const comandoGuardado = document.getElementById('comando_generado').value;
     const urlInforme = document.getElementById('url_informe').value;
     const statusDiv = document.getElementById('nombre_archivo_generado');
-    const nombreArch = document.getElementById('nombre_archivo_guardado').value || "informe_generado";
+    const nombreArchInput = document.getElementById('nombre_archivo_guardado');
+    let nombreArch = nombreArchInput.value || "informe_generado";
 
     if (!comandoGuardado || !urlInforme) {
         statusDiv.innerHTML = '<div class="alert alert-warning">Datos incompletos para regenerar el informe</div>';
@@ -140,8 +141,24 @@ function generarInformeConComandoGuardado() {
             `;
             console.log("Archivo generado:", data.filename);
             document.getElementById('dashboard').href = urlInforme;
-            // ¡Actualiza el input oculto con el nombre real del archivo generado!
-            document.getElementById('nombre_archivo_guardado').value = data.filename;
+            
+            // Actualiza el input del formulario con el nombre real del archivo generado
+            nombreArchInput.value = data.filename;
+            
+            // También actualiza el valor en el formulario para que se envíe correctamente
+            const form = document.querySelector('form');
+            if (form) {
+                const hiddenInput = form.querySelector('input[name="nombre_archivo_guardado"]');
+                if (hiddenInput) {
+                    hiddenInput.value = data.filename;
+                } else {
+                    const newInput = document.createElement('input');
+                    newInput.type = 'hidden';
+                    newInput.name = 'nombre_archivo_guardado';
+                    newInput.value = data.filename;
+                    form.appendChild(newInput);
+                }
+            }
         } else {
             statusDiv.innerHTML = `
                 <div class="alert alert-danger">
@@ -161,10 +178,18 @@ function generarInformeConComandoGuardado() {
 }
 
 function guardarCambiosBorrador() {
+    // Asegurarse de que el formulario tiene los datos más recientes
+    const nombreArchivo = document.getElementById('nombre_archivo_guardado').value;
+    if (!nombreArchivo) {
+        alert('Por favor, genere el informe antes de guardar');
+        return;
+    }
+
     const form = document.querySelector('form');
     const formData = new FormData(form);
-    formData.append('guardar', 'true'); // Para diferenciar del envío normal
-    
+    formData.append('guardar', 'true');
+    formData.append('nombre_archivo_guardado', nombreArchivo); // Asegurar que se envía
+
     fetch(`/guardar-borrador/{{ borrador.id }}/`, {
         method: 'POST',
         headers: {
