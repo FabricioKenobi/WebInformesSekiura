@@ -510,7 +510,8 @@ def guardar_borrador(request, borrador_id):
         return JsonResponse({'ok': False, 'error': 'Borrador no encontrado'})
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)})
-
+    
+    
 @login_required
 def conf_cliente(request):
     if request.method == 'POST':
