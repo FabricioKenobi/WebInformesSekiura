@@ -143,7 +143,7 @@ function generarInformeConComandoGuardado() {
             document.getElementById('dashboard').href = urlInforme;
             
             // Actualiza el input del formulario con el nombre real del archivo generado
-            nombreArchInput.value = data.filename;
+            nombreArchInput.value = data.filename += '.pdf';
             
             // También actualiza el valor en el formulario para que se envíe correctamente
             const form = document.querySelector('form');
@@ -188,7 +188,7 @@ function guardarCambiosBorrador() {
     const form = document.querySelector('form');
     const formData = new FormData(form);
     formData.append('guardar', 'true');
-    formData.append('nombre_archivo_guardado', nombreArchivo+'.pdf'); // Asegurar que se envía
+    formData.append('nombre_archivo_guardado', nombreArchivo); // Asegurar que se envía
 
     fetch(`/guardar-borrador/{{ borrador.id }}/`, {
         method: 'POST',
