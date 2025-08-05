@@ -37,8 +37,7 @@
     {% endif %}
     <div id="nombre_archivo_generado" class="mt-2"></div>
   </div>
-  <input type="hidden" id="nombre_archivo_guardado" name="nombre_archivo_guardado" value="{{ borrador.nombreArch }}">
-  <input type="hidden" name="cliente" value="{{ borrador.cliente.id }}">
+  <input type="hidden" id="nombre_archivo_guardado" name="nombre_archivo_guardado" value="{{ borrador.nombreArch }}">  <input type="hidden" name="cliente" value="{{ borrador.cliente.id }}">
   <input type="hidden" name="plantilla" value="{{ borrador.plantilla.id }}">
   <input type="hidden" name="comando_generado" id="comando_generado" value="{{ borrador.comando_generado }}">
   <input type="hidden" id="url_informe" value="{{ borrador.url_informe }}">
@@ -143,7 +142,7 @@ function generarInformeConComandoGuardado() {
             document.getElementById('dashboard').href = urlInforme;
             
             // Actualiza el input del formulario con el nombre real del archivo generado
-            nombreArchInput.value = data.filename;
+            document.getElementById('nombre_archivo_guardado').value = data.filename;
             
             // También actualiza el valor en el formulario para que se envíe correctamente
             const form = document.querySelector('form');
@@ -178,7 +177,6 @@ function generarInformeConComandoGuardado() {
 }
 
 function guardarCambiosBorrador() {
-    // Asegurarse de que el formulario tiene los datos más recientes
     const nombreArchivo = document.getElementById('nombre_archivo_guardado').value;
     if (!nombreArchivo) {
         alert('Por favor, genere el informe antes de guardar');
@@ -187,8 +185,17 @@ function guardarCambiosBorrador() {
 
     const form = document.querySelector('form');
     const formData = new FormData(form);
+    
+    // Asegurarse de incluir todos los campos necesarios
     formData.append('guardar', 'true');
-    formData.append('nombre_archivo_guardado', nombreArchivo); // Asegurar que se envía
+    formData.append('nombre_archivo_guardado', nombreArchivo);
+    formData.append('asunto', document.getElementById('asunto').value);
+    formData.append('cuerpo_html', editorInstance.getData());
+    formData.append('fecha_1', document.getElementById('fecha_1').value);
+    formData.append('fecha_2', document.getElementById('fecha_2').value);
+    formData.append('cliente', '{{ borrador.cliente.id }}');
+    formData.append('plantilla', '{{ borrador.plantilla.id }}');
+    formData.append('comando_generado', document.getElementById('comando_generado').value);
 
     fetch(`/guardar-borrador/{{ borrador.id }}/`, {
         method: 'POST',
