@@ -413,22 +413,31 @@ def soc_home(request):
         'plantillas': plantillas,
         'clientes': clientes,
     })
+logger = logging.getLogger(__name__)
+
 @login_required
 def editar_borrador(request, email_id):
+    """
+    View to edit draft emails
+    """
     try:
         borrador = EmailEnviado.objects.get(id=email_id, usuario=request.user, enviado=False)
     except EmailEnviado.DoesNotExist:
         raise Http404("Borrador no encontrado")
 
     if request.method == 'POST':
-        # Procesar el formulario de edición
-        borrador.asunto = request.POST.get('asunto')
-        borrador.cuerpo = request.POST.get('cuerpo_html')
+        # Handle direct form submission (non-AJAX)
+        borrador.asunto = request.POST.get('asunto', borrador.asunto)
+        borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
+        
         if 'archivo_adjunto' in request.FILES:
-            borrador.archivo_adjunto = request.FILES['archivo_adjunto']
+            # Replace old file with new one, keeping the same logical name
+            replace_borrador_file(borrador, manual_file=request.FILES['archivo_adjunto'])
+        
         borrador.save()
         return redirect('home')
 
+    # GET request - show the form
     clientes = Cliente.objects.all()
     plantillas = PlantillaEmail.objects.all()
     
@@ -437,79 +446,214 @@ def editar_borrador(request, email_id):
         'clientes': clientes,
         'plantillas': plantillas,
     })
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-import json
-from django.core.files import File
+
+
 @csrf_exempt
 @login_required
 def guardar_borrador(request, borrador_id):
+    """
+    AJAX endpoint to save draft changes with proper file replacement
+    """
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'Método no permitido'})
 
     try:
-        borrador = EmailEnviado.objects.get(pk=borrador_id)
-
-        # Nombre objetivo: el que quieres mantener SIEMPRE
-        # Prioriza el campo que usas como "nombre lógico" y respáldate con el de FileField.
-        target_basename = borrador.nombreArch or os.path.basename(borrador.archivo_adjunto.name or '')
-        if not target_basename:
-            target_basename = 'informe.pdf'  # fallback
-
-        # Sanitizar por seguridad
-        target_basename = os.path.basename(target_basename)
-
-        nombre_archivo_nuevo = request.POST.get('nombre_archivo_guardado', '').strip()
-        uploaded_file = request.FILES.get('archivo_adjunto')
-
-        # Función para sobrescribir el FileField con un nombre fijo
-        def overwrite_filefield_with(name_basename, fileobj):
-            # 1) borrar el archivo actual para liberar el nombre
-            if borrador.archivo_adjunto:
-                try:
-                    borrador.archivo_adjunto.delete(save=False)
-                except Exception:
-                    pass
-            # 2) guardar con el MISMO nombre (basename). upload_to se aplica.
-            borrador.archivo_adjunto.save(name_basename, fileobj, save=False)
-            # 3) reflejar el nombre lógico si lo usas en la UI
-            borrador.nombreArch = name_basename
-
-        if uploaded_file:
-            # Se subió manualmente un archivo: sobrescribir manteniendo el nombre objetivo
-            overwrite_filefield_with(target_basename, uploaded_file)
-
-        elif nombre_archivo_nuevo:
-            # Usar el PDF generado por tu backend (guardado en /media/archivos/)
-            tmp_basename = os.path.basename(nombre_archivo_nuevo)  # sanitize
-            tmp_path = os.path.join(settings.MEDIA_ROOT, 'archivos', tmp_basename)
-
-            if not os.path.exists(tmp_path):
-                return JsonResponse({'ok': False, 'error': f'No existe el archivo generado: {tmp_basename}'})
-
-            with open(tmp_path, 'rb') as fh:
-                overwrite_filefield_with(target_basename, File(fh))
-
-            # Opcional: borrar el temporal si su nombre difiere del objetivo
-            if tmp_basename != target_basename:
-                try:
-                    os.remove(tmp_path)
-                except Exception:
-                    pass
-
-        # Actualizar el resto de campos
+        borrador = get_object_or_404(EmailEnviado, pk=borrador_id, usuario=request.user)
+        
+        # Update basic fields
         borrador.asunto = request.POST.get('asunto', borrador.asunto)
         borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
         borrador.comando_generado = request.POST.get('comando_generado', borrador.comando_generado)
         borrador.url_informe = request.POST.get('url_informe', borrador.url_informe)
-
+        
+        # Handle file replacement
+        file_source = request.POST.get('file_source', '')
+        
+        if file_source == 'manual' and 'archivo_adjunto' in request.FILES:
+            # Manual file upload
+            success = replace_borrador_file(borrador, manual_file=request.FILES['archivo_adjunto'])
+            if not success:
+                return JsonResponse({'ok': False, 'error': 'Error al procesar archivo manual'})
+                
+        elif file_source == 'generated':
+            # Generated file from backend
+            generated_filename = request.POST.get('generated_filename', '').strip()
+            if generated_filename:
+                success = replace_borrador_file(borrador, generated_filename=generated_filename)
+                if not success:
+                    return JsonResponse({'ok': False, 'error': 'Error al procesar archivo generado'})
+        
         borrador.save()
-        return JsonResponse({'ok': True})
+        
+        return JsonResponse({
+            'ok': True, 
+            'message': 'Borrador guardado correctamente',
+            'filename': borrador.nombreArch or (borrador.archivo_adjunto.name if borrador.archivo_adjunto else None)
+        })
 
     except EmailEnviado.DoesNotExist:
         return JsonResponse({'ok': False, 'error': 'Borrador no encontrado'})
     except Exception as e:
-        return JsonResponse({'ok': False, 'error': str(e)})
+        logger.error(f"Error saving draft {borrador_id}: {str(e)}", exc_info=True)
+        return JsonResponse({'ok': False, 'error': f'Error interno: {str(e)}'})
+
+
+def replace_borrador_file(borrador, manual_file=None, generated_filename=None):
+    """
+    Replace the borrador's file while maintaining a consistent filename
+    
+    Args:
+        borrador: EmailEnviado instance
+        manual_file: UploadedFile from form (optional)
+        generated_filename: Name of generated file in MEDIA_ROOT/archivos/ (optional)
+    
+    Returns:
+        bool: Success status
+    """
+    try:
+        # Determine the target filename to maintain consistency
+        target_basename = get_target_filename(borrador)
+        
+        if manual_file:
+            # Handle manual file upload
+            return handle_manual_file_replacement(borrador, manual_file, target_basename)
+        elif generated_filename:
+            # Handle generated file
+            return handle_generated_file_replacement(borrador, generated_filename, target_basename)
+        else:
+            logger.warning("No file source provided for replacement")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error replacing file for borrador {borrador.id}: {str(e)}", exc_info=True)
+        return False
+
+
+def get_target_filename(borrador):
+    """
+    Determine the target filename to maintain consistency
+    """
+    # Priority: nombreArch field -> current file basename -> fallback
+    if borrador.nombreArch:
+        return os.path.basename(borrador.nombreArch)
+    elif borrador.archivo_adjunto and borrador.archivo_adjunto.name:
+        return os.path.basename(borrador.archivo_adjunto.name)
+    else:
+        # Generate a default name based on borrador data
+        cliente_name = borrador.cliente.nombre if borrador.cliente else "Cliente"
+        plantilla_tipo = borrador.plantilla.tipo if borrador.plantilla else "Informe"
+        return f"{cliente_name}-{plantilla_tipo}-{borrador.id}.pdf"
+
+
+def handle_manual_file_replacement(borrador, manual_file, target_basename):
+    """
+    Handle replacement with manually uploaded file
+    """
+    try:
+        # Remove old file
+        remove_old_file(borrador)
+        
+        # Save new file with target name
+        borrador.archivo_adjunto.save(target_basename, manual_file, save=False)
+        borrador.nombreArch = target_basename
+        
+        logger.info(f"Manual file replacement successful for borrador {borrador.id}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error in manual file replacement: {str(e)}", exc_info=True)
+        return False
+
+
+def handle_generated_file_replacement(borrador, generated_filename, target_basename):
+    """
+    Handle replacement with generated file from /media/archivos/
+    """
+    try:
+        # Sanitize the generated filename
+        generated_basename = os.path.basename(generated_filename)
+        source_path = os.path.join(settings.MEDIA_ROOT, 'archivos', generated_basename)
+        
+        if not os.path.exists(source_path):
+            logger.error(f"Generated file not found: {source_path}")
+            return False
+        
+        # Remove old file
+        remove_old_file(borrador)
+        
+        # Copy generated file to the FileField with target name
+        with open(source_path, 'rb') as source_file:
+            borrador.archivo_adjunto.save(target_basename, File(source_file), save=False)
+        
+        borrador.nombreArch = target_basename
+        
+        # Clean up the temporary generated file if it has a different name
+        if generated_basename != target_basename:
+            try:
+                os.remove(source_path)
+                logger.info(f"Cleaned up temporary file: {source_path}")
+            except OSError as e:
+                logger.warning(f"Could not remove temporary file {source_path}: {str(e)}")
+        
+        logger.info(f"Generated file replacement successful for borrador {borrador.id}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error in generated file replacement: {str(e)}", exc_info=True)
+        return False
+
+
+def remove_old_file(borrador):
+    """
+    Safely remove the old file associated with the borrador
+    """
+    if borrador.archivo_adjunto:
+        try:
+            # Use Django's storage system to delete the file
+            default_storage.delete(borrador.archivo_adjunto.name)
+            logger.info(f"Removed old file: {borrador.archivo_adjunto.name}")
+        except Exception as e:
+            logger.warning(f"Could not remove old file: {str(e)}")
+
+
+@login_required
+def descargar_pdf(request, filename):
+    """
+    Secure file download endpoint
+    """
+    try:
+        # Sanitize filename
+        safe_filename = os.path.basename(filename)
+        
+        # Check in the user's borrador files first
+        borrador_file = EmailEnviado.objects.filter(
+            usuario=request.user,
+            archivo_adjunto__icontains=safe_filename
+        ).first()
+        
+        if borrador_file and borrador_file.archivo_adjunto:
+            # Serve the file from the borrador
+            response = FileResponse(
+                borrador_file.archivo_adjunto.open('rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
+            return response
+        
+        # Fallback: check in archivos directory (for generated files)
+        file_path = os.path.join(settings.MEDIA_ROOT, 'archivos', safe_filename)
+        if os.path.exists(file_path):
+            with open(file_path, 'rb') as f:
+                response = FileResponse(f, content_type='application/pdf')
+                response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
+                return response
+        
+        raise Http404("Archivo no encontrado")
+        
+    except Exception as e:
+        logger.error(f"Error downloading file {filename}: {str(e)}")
+        raise Http404("Error al descargar archivo")
+
 
 @login_required
 def conf_cliente(request):
