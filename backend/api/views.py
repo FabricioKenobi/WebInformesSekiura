@@ -448,7 +448,8 @@ def guardar_borrador(request, borrador_id):
         try:
             borrador = EmailEnviado.objects.get(pk=borrador_id)
             nombre_archivo_nuevo = request.POST.get('nombre_archivo_guardado')
-
+            nombre_original = borrador.nombreArch
+            
             # 1. Si hay un nuevo archivo generado
             if nombre_archivo_nuevo and nombre_archivo_nuevo != borrador.nombreArch:
                 ruta_archivo = os.path.join(settings.MEDIA_ROOT, 'archivos', nombre_archivo_nuevo)
@@ -459,7 +460,7 @@ def guardar_borrador(request, borrador_id):
                         borrador.archivo_adjunto.save(nombre_archivo_nuevo, File(f), save=False)
                     
                     # Actualizar el nombre de archivo en el modelo
-                    borrador.nombreArch = nombre_archivo_nuevo
+                    borrador.nombreArch = nombre_original
             
             # 2. Si se subió un archivo manualmente
             elif 'archivo_adjunto' in request.FILES:
