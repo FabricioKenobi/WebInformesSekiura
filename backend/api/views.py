@@ -442,6 +442,21 @@ from django.http import JsonResponse
 import json
 from django.core.files import File
 from django.utils.text import slugify
+# utils de filename (colocá esto en el mismo archivo o en un utils.py)
+import re, unicodedata
+
+def sanitize_filename_preserve_case(value: str) -> str:
+    # Normaliza a ASCII sin alterar mayúsculas/minúsculas
+    value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+    # Espacios a guiones
+    value = re.sub(r"\s+", "-", value)
+    # Quitar caracteres inválidos típicos en nombres de archivo
+    value = re.sub(r'[\\/*?:"<>|]', "-", value)
+    # Permitir solo [A-Za-z0-9._-]
+    value = re.sub(r"[^A-Za-z0-9._-]", "", value)
+    # Colapsar guiones repetidos y recortar bordes
+    value = re.sub(r"-{2,}", "-", value).strip("-_.")
+    return value or "Informe"
 @csrf_exempt
 @login_required
 def guardar_borrador(request, borrador_id):
@@ -460,10 +475,9 @@ def guardar_borrador(request, borrador_id):
             nombre_arch_base = 'informe'
 
         # 2) Normalizar y armar nombre final .pdf
-        base_slug = slugify(nombre_arch_base)
-        if not base_slug:
-            base_slug = 'informe'
-        nombre_final_pdf = base_slug + '.pdf'
+        base_clean = sanitize_filename_preserve_case(os.path.splitext(nombre_arch_base)[0] or "Informe")
+        nombre_final_pdf = base_clean + ".pdf"
+
 
         # 3) Utilidad para sobreescribir el FileField con el nombre final
         def overwrite_filefield_with(final_name_basename, fileobj):
