@@ -440,6 +440,7 @@ def editar_borrador(request, email_id):
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
+from django.core.files import File
 
 @csrf_exempt
 @login_required
