@@ -487,22 +487,49 @@ def guardar_borrador(request, borrador_id):
             overwrite_filefield_with(nombre_final_pdf, uploaded_file)
 
         elif nombre_archivo_generado:
-            # Caso: usar el PDF generado por tu backend (p. ej. guardado en MEDIA_ROOT/archivos)
-            tmp_basename = os.path.basename(nombre_archivo_generado)  # sanitize
-            tmp_path = os.path.join(settings.MEDIA_ROOT, 'archivos', tmp_basename)
+            # Normalizar nombre recibido (puede venir sin .pdf o con ruta absoluta)
+            tmp_input = nombre_archivo_generado.strip()
+            tmp_basename = os.path.basename(tmp_input)  # sanitize
 
-            if not os.path.exists(tmp_path):
-                return JsonResponse({'ok': False, 'error': f'No existe el archivo generado: {tmp_basename}'})
+            # Asegurar extensión .pdf
+            if not tmp_basename.lower().endswith(".pdf"):
+                tmp_basename_pdf = tmp_basename + ".pdf"
+            else:
+                tmp_basename_pdf = tmp_basename
 
-            with open(tmp_path, 'rb') as fh:
+            candidate_paths = []
+
+            # 1) Si vino ruta absoluta desde el generador, probar tal cual
+            if os.path.isabs(tmp_input):
+                candidate_paths.append(tmp_input)
+                if not tmp_input.lower().endswith(".pdf"):
+                    candidate_paths.append(tmp_input + ".pdf")
+
+            # 2) Ubicación estándar donde esperamos que el generador guarde
+            candidate_paths.append(os.path.join(settings.MEDIA_ROOT, "archivos", tmp_basename_pdf))
+
+            # 3) Fallbacks (por compatibilidad con tu flujo anterior)
+            candidate_paths.append(os.path.join(settings.MEDIA_ROOT, tmp_basename_pdf))
+            candidate_paths.append(os.path.join("/home/hermes/WebInformesSekiura/backend", tmp_basename_pdf))
+
+            # Elegir el primer path existente
+            src_path = next((p for p in candidate_paths if os.path.exists(p)), None)
+            if not src_path:
+                return JsonResponse({
+                    'ok': False,
+                    'error': f'No existe el archivo generado: {tmp_basename}. Probé: ' + " | ".join(candidate_paths)
+                })
+
+            with open(src_path, 'rb') as fh:
                 overwrite_filefield_with(nombre_final_pdf, File(fh))
 
-            # (Opcional) borrar el temporal si su nombre difiere del final
-            if tmp_basename != nombre_final_pdf:
-                try:
-                    os.remove(tmp_path)
-                except Exception:
-                    pass
+            # Si era un temporal dentro de MEDIA_ROOT/archivos y difiere del final, lo borramos
+            try:
+                arch_dir = os.path.join(settings.MEDIA_ROOT, "archivos")
+                if src_path.startswith(arch_dir) and os.path.basename(src_path) != nombre_final_pdf:
+                    os.remove(src_path)
+            except Exception:
+                pass
 
         # 5) Actualizar el resto de campos
         borrador.asunto = request.POST.get('asunto', borrador.asunto)
