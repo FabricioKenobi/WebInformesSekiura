@@ -450,54 +450,60 @@ def guardar_borrador(request, borrador_id):
     try:
         borrador = EmailEnviado.objects.get(pk=borrador_id)
 
-        # Nombre objetivo: el que quieres mantener SIEMPRE
-        # Prioriza el campo que usas como "nombre lógico" y respáldate con el de FileField.
-        target_basename = borrador.nombreArch or os.path.basename(borrador.archivo_adjunto.name or '')
-        if not target_basename:
-            target_basename = 'informe.pdf'  # fallback
+        # Nombre objetivo lógico (base anterior, por si no envían nombreArch)
+        base_por_defecto = borrador.nombreArch or os.path.basename(borrador.archivo_adjunto.name or '') or 'informe'
 
-        # Sanitizar por seguridad
-        target_basename = os.path.basename(target_basename)
+        # 1) Tomar nombreArch del POST (sin extensión) o caer al default
+        nombre_arch_base = (request.POST.get('nombreArch') or os.path.splitext(base_por_defecto)[0]).strip()
+        if not nombre_arch_base:
+            nombre_arch_base = 'informe'
 
-        nombre_archivo_nuevo = request.POST.get('nombre_archivo_guardado', '').strip()
-        uploaded_file = request.FILES.get('archivo_adjunto')
+        # 2) Normalizar y armar nombre final .pdf
+        base_slug = slugify(nombre_arch_base)
+        if not base_slug:
+            base_slug = 'informe'
+        nombre_final_pdf = base_slug + '.pdf'
 
-        # Función para sobrescribir el FileField con un nombre fijo
-        def overwrite_filefield_with(name_basename, fileobj):
-            # 1) borrar el archivo actual para liberar el nombre
+        # 3) Utilidad para sobreescribir el FileField con el nombre final
+        def overwrite_filefield_with(final_name_basename, fileobj):
+            # Borrar el archivo actual si existe, para que no queden huérfanos con nombres viejos
             if borrador.archivo_adjunto:
                 try:
                     borrador.archivo_adjunto.delete(save=False)
                 except Exception:
                     pass
-            # 2) guardar con el MISMO nombre (basename). upload_to se aplica.
-            borrador.archivo_adjunto.save(name_basename, fileobj, save=False)
-            # 3) reflejar el nombre lógico si lo usas en la UI
-            borrador.nombreArch = name_basename
+            # Guardar con el nombre deseado (Django aplicará upload_to)
+            borrador.archivo_adjunto.save(final_name_basename, fileobj, save=False)
+            # Reflejar el nombre lógico en tu modelo
+            borrador.nombreArch = final_name_basename
+
+        # 4) Prioridades de origen del archivo
+        uploaded_file = request.FILES.get('archivo_adjunto')
+        nombre_archivo_generado = request.POST.get('nombre_archivo_guardado', '').strip()
 
         if uploaded_file:
-            # Se subió manualmente un archivo: sobrescribir manteniendo el nombre objetivo
-            overwrite_filefield_with(target_basename, uploaded_file)
+            # Caso: el usuario subió un archivo -> lo guardamos con nombre_final_pdf
+            overwrite_filefield_with(nombre_final_pdf, uploaded_file)
 
-        elif nombre_archivo_nuevo:
-            # Usar el PDF generado por tu backend (guardado en /media/archivos/)
-            tmp_basename = os.path.basename(nombre_archivo_nuevo)  # sanitize
+        elif nombre_archivo_generado:
+            # Caso: usar el PDF generado por tu backend (p. ej. guardado en MEDIA_ROOT/archivos)
+            tmp_basename = os.path.basename(nombre_archivo_generado)  # sanitize
             tmp_path = os.path.join(settings.MEDIA_ROOT, 'archivos', tmp_basename)
 
             if not os.path.exists(tmp_path):
                 return JsonResponse({'ok': False, 'error': f'No existe el archivo generado: {tmp_basename}'})
 
             with open(tmp_path, 'rb') as fh:
-                overwrite_filefield_with(target_basename, File(fh))
+                overwrite_filefield_with(nombre_final_pdf, File(fh))
 
-            # Opcional: borrar el temporal si su nombre difiere del objetivo
-            if tmp_basename != target_basename:
+            # (Opcional) borrar el temporal si su nombre difiere del final
+            if tmp_basename != nombre_final_pdf:
                 try:
                     os.remove(tmp_path)
                 except Exception:
                     pass
 
-        # Actualizar el resto de campos
+        # 5) Actualizar el resto de campos
         borrador.asunto = request.POST.get('asunto', borrador.asunto)
         borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
         borrador.comando_generado = request.POST.get('comando_generado', borrador.comando_generado)
@@ -511,7 +517,7 @@ def guardar_borrador(request, borrador_id):
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)})
     
-    
+
 @login_required
 def conf_cliente(request):
     if request.method == 'POST':

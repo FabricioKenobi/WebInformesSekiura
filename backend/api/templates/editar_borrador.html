@@ -184,7 +184,7 @@ function guardarCambiosBorrador() {
         alert('Por favor, genere el informe antes de guardar');
         return;
     }
-
+    
     const form = document.querySelector('form');
     const formData = new FormData(form);
     formData.append('guardar', 'true');
