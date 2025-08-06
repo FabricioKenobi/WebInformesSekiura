@@ -86,17 +86,15 @@ function generarInformeConComandoGuardado() {
 
   statusDiv.innerHTML = '<div class="alert alert-info">Generando informe, por favor espere...</div>';
 
-  fetch('/ejecutar-comando/', {
+  fetch('/ejecutar_comando_cliente/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-CSRFToken': '{{ csrf_token }}'
     },
     body: JSON.stringify({
-      comando: comandoGuardado,
       informe: urlInforme,
-      nombreArch: nombreArch.replace(/ /g, "_"),
-      regenerar: true
+      nombreArch: nombreArch
     })
   })
   .then(r => r.json())
