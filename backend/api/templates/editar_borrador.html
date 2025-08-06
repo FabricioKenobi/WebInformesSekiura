@@ -77,7 +77,8 @@ function generarInformeConComandoGuardado() {
   const urlInforme = document.getElementById('url_informe').value;
   const statusDiv = document.getElementById('nombre_archivo_generado');
   const nombreArchInput = document.getElementById('nombre_archivo_guardado');
-  let nombreArch = nombreArchInput.value || "informe_generado";
+  let url_informe = document.getElementById('url_informe').value;
+  let nombreArch = document.getElementById('nombre_archivo_guardado').value;
 
   if (!comandoGuardado || !urlInforme) {
     statusDiv.innerHTML = '<div class="alert alert-warning">Datos incompletos para regenerar el informe</div>';
@@ -86,14 +87,14 @@ function generarInformeConComandoGuardado() {
 
   statusDiv.innerHTML = '<div class="alert alert-info">Generando informe, por favor espere...</div>';
 
-  fetch('/ejecutar_comando_cliente/', {
+  fetch('/ejecutar-comando/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-CSRFToken': '{{ csrf_token }}'
     },
     body: JSON.stringify({
-      informe: urlInforme,
+      informe: url_Informe,
       nombreArch: nombreArch
     })
   })
