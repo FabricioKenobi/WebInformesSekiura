@@ -650,6 +650,8 @@ def ejecutar_comando_cliente(request):
         
 from django.http import JsonResponse, FileResponse, Http404
 import traceback
+import urllib.parse
+
 @csrf_exempt
 @login_required
 def ejecutar_comando_cliente(request):
@@ -679,7 +681,7 @@ def ejecutar_comando_cliente(request):
     output_path = os.path.join(output_dir, nombre)
     nombre_rm = nombre.replace(' ', '\ ')
     output_path_rm = os.path.join(output_dir, nombre_rm)
-    
+    informe = urllib.parse.unquote(informe)
     print(output_path)
     # 5) Ejecutamos el CLI
     cmd = [
