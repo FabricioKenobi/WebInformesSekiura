@@ -34,7 +34,7 @@ class PlantillaEmail(models.Model):
 
     def __str__(self):
         return self.tipo
-    
+from storage_backend import OverwriteStorage
 class EmailEnviado(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
@@ -44,7 +44,10 @@ class EmailEnviado(models.Model):
     cuerpo = models.TextField()
     enviado = models.BooleanField(default=False)
     fecha_envio = models.DateTimeField(auto_now_add=True)
-    archivo_adjunto = models.FileField(upload_to='adjuntos/', null=True, blank=True)
+    archivo_adjunto = models.FileField(
+        upload_to='pdfs/',
+        storage=OverwriteStorage()
+    )
     url_informe = models.URLField(blank=True, null=True)
     nombreArch = models.CharField(max_length=500, blank=True, null=True)
 
