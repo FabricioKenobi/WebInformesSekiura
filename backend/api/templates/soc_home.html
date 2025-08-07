@@ -308,6 +308,7 @@ function actualizarPreview() {
       informe = `https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
       nombreArch = cliente_nombre+`-Informe-Ejecutivo-Mensual-`+fecha_2;
     }
+    informe = informe.replace('%3A',':')
     regenInforme(informe, nombreArch);
   }
   let asunto_personalizado = asunto
