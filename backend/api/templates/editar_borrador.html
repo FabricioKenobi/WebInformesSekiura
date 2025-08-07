@@ -80,7 +80,7 @@ function generarInformeConComandoGuardado() {
   let url_informe = document.getElementById('url_informe').value;
   let nombreArch = document.getElementById('nombre_archivo_guardado').value;
 
-  if (!comandoGuardado || !urlInforme) {
+  if (!urlInforme) {
     statusDiv.innerHTML = '<div class="alert alert-warning">Datos incompletos para regenerar el informe</div>';
     return;
   }
