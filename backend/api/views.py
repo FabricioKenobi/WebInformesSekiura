@@ -681,7 +681,7 @@ def ejecutar_comando_cliente(request):
     output_path = os.path.join(output_dir, nombre)
     nombre_rm = nombre.replace(' ', '\ ')
     output_path_rm = os.path.join(output_dir, nombre_rm)
-    informe.replaceAll("'",'\'')
+    informe = informe.replaceAll("'",'\'')
     print(output_path)
     # 5) Ejecutamos el CLI
     cmd = [
