@@ -93,10 +93,8 @@ function generarInformeConComandoGuardado() {
       'Content-Type': 'application/json',
       'X-CSRFToken': '{{ csrf_token }}'
     },
-    body: JSON.stringify({
-      informe: url_Informe,
-      nombreArch: nombreArch
-    })
+    body: JSON.stringify({ informe: urlInforme, nombreArch: archivo })
+
   })
   .then(r => r.json())
   .then(data => {
@@ -106,14 +104,14 @@ function generarInformeConComandoGuardado() {
           Informe regenerado correctamente:
           <a href="/descargar-pdf/${encodeURIComponent(data.filename)}/" target="_blank">Descargar</a>
         </div>
+        
       `;
+      
+      window.open(
+      `/descargar-pdf/${encodeURIComponent(data.filename)}/`,
+      '_blank'
+      );
       document.getElementById('dashboard').href = urlInforme;
-
-      // Si el backend devuelve también el comando realmente usado, sincronizalo:
-      if (data.command_used) {
-        document.getElementById('comando_generado').value = data.command_used;
-      }
-
       // Actualizar el hidden con el nombre real del archivo generado
       nombreArchInput.value = data.filename;
     } else {
