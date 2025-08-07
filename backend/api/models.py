@@ -45,7 +45,6 @@ class EmailEnviado(models.Model):
     enviado = models.BooleanField(default=False)
     fecha_envio = models.DateTimeField(auto_now_add=True)
     archivo_adjunto = models.FileField(upload_to='adjuntos/', null=True, blank=True)
-    comando_generado = models.TextField(null=True, blank=True) 
     url_informe = models.URLField(blank=True, null=True)
     nombreArch = models.CharField(max_length=500, blank=True, null=True)
 

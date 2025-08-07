@@ -31,7 +31,6 @@
   <input type="hidden" id="nombre_archivo_guardado" name="nombre_archivo_guardado" value="{{ borrador.nombreArch }}">
   <input type="hidden" name="cliente" value="{{ borrador.cliente.id }}">
   <input type="hidden" name="plantilla" value="{{ borrador.plantilla.id }}">
-  <input type="hidden" name="comando_generado" id="comando_generado" value="{{ borrador.comando_generado }}">
   <input type="hidden" name="url_informe" id="url_informe" value="{{ borrador.url_informe }}">
   <input type="hidden" name="enviar_email" value="true">
   
@@ -73,7 +72,6 @@ function regenerarComandoYUrl() {
 
 function generarInformeConComandoGuardado() {
   // Ya no regeneramos nada por fechas; usamos el comando tal cual está en el hidden
-  const comandoGuardado = document.getElementById('comando_generado').value;
   const urlInforme = document.getElementById('url_informe').value;
   const statusDiv = document.getElementById('nombre_archivo_generado');
   const nombreArchInput = document.getElementById('nombre_archivo_guardado');
@@ -140,7 +138,6 @@ function guardarCambiosBorrador() {
 
   // Fuerza que estos campos viajen
   formData.set('nombre_archivo_guardado', nombreArchivo);
-  formData.set('comando_generado', document.getElementById('comando_generado').value);
 
   // (Opcional) si usás nombre lógico final:
   const nombreArchInput = document.getElementById('nombreArch');
