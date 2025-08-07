@@ -693,7 +693,7 @@ def ejecutar_comando_cliente(request):
         
         f"rm -f {output_path_rm}.pdf && "
         f"/usr/local/bin/opensearch-reporting-cli "
-        f"--url '{informe}' "
+        f"--url '{informe2}' "
         f"--auth basic "
         f"--credentials 'sekiura-reports:Sekiura2025*' "
         f"--format pdf "
