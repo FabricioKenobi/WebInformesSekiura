@@ -664,23 +664,7 @@ def ejecutar_comando_cliente(request):
     except json.JSONDecodeError:
         return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
 
-    # Decodifica y vuelve a codificar el JSON correctamente
-    try:
-        # Decodifica la URL una sola vez
-        informe_decodificado = urllib.parse.unquote(informe)
-        
-        # Parsea el JSON para validarlo
-        params = json.loads(informe_decodificado.split('_g=')[1].split('&')[0])
-        
-        # Vuelve a codificar en formato que OpenSearch espera
-        g_param = urllib.parse.quote(json.dumps(params))
-        
-        # Reconstruye la URL
-        informe = informe_decodificado.split('_g=')[0] + '_g=' + g_param + '&' + '&'.join(informe_decodificado.split('&')[1:])
-        
-    except Exception as e:
-        print(f"Error procesando URL: {str(e)}")
-        return JsonResponse({'ok': False, 'error': f'URL inválida: {str(e)}'}, status=400)
+    
     
     informe = data.get('informe', '').strip()
     nombre = data.get('nombreArch', '').strip()
