@@ -284,7 +284,7 @@ function actualizarPreview() {
   let fechatemp1 = new Date();
   fechatemp1.setDate(fechatemp.getDate()-1);
   let fecha2 = formatearFecha(fechatemp1);
-  let informe='';
+  
 
 
   let link = "<a href='https://" + ip + "/app/vulnerability-detection'>"+"https://"+ip+"/app/vulnerability-detection"+"</a>";
@@ -292,19 +292,21 @@ function actualizarPreview() {
  
   let ini = `(from:"${fecha_1}T03:00:00.000Z",to:"${fecha_2}T02:59:59.000Z")`;
   let encodedIni = encodeURIComponent(ini);
-
   
+  let informeDiario = `<a href="https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Diario</a>`;
+  let informeSemanal = `<a href="https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Semanal</a>`;
+  let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
 
   let nombre = "";
   if(tipoPlantilla.includes('proto')){
     if(tipoPlantilla.includes('diario')){
-      informe = `https://${ip}/app/dashboards#/view/${codeDiario}?_g=${encodedIni}&_a=(fullScreenMode:!t)`;
+      informe = `https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
       nombreArch = cliente_nombre+`-Informe-Ejecutivo-Diario-`+fecha_2;
     }else if(tipoPlantilla.includes('semanal')){
-      informe = `https://${ip}/app/dashboards#/view/${codeSemanal}?_g=${encodedIni}&_a=(fullScreenMode:!t)`;
+      informe = `https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
       nombreArch = cliente_nombre+`-Informe-Ejecutivo-Semanal-`+fecha_2;
     }else if(tipoPlantilla.includes('mensual')){
-      informe = `https://${ip}/app/dashboards#/view/${codeMes}?_g=${encodedIni}&_a=(fullScreenMode:!t)`;
+      informe = `https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)`;
       nombreArch = cliente_nombre+`-Informe-Ejecutivo-Mensual-`+fecha_2;
     }
     

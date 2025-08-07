@@ -664,8 +664,6 @@ def ejecutar_comando_cliente(request):
     except json.JSONDecodeError:
         return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
 
-    
-    
     informe = data.get('informe', '').strip()
     nombre = data.get('nombreArch', '').strip()
     
@@ -688,9 +686,10 @@ def ejecutar_comando_cliente(request):
     # 5) Ejecutamos el CLI
     cmd = [
         "bash", "-c",
+        # rm -f suprime el error si no existe; && sólo ejecuta el CLI si rm acaba sin error
         f"rm -f {output_path_rm}.pdf && "
         f"/usr/local/bin/opensearch-reporting-cli "
-        f"--url '{informe}' "  # Ahora conserva la codificación original
+        f"--url '{informe}' "
         f"--auth basic "
         f"--credentials 'sekiura-reports:Sekiura2025*' "
         f"--format pdf "
