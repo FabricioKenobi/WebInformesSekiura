@@ -664,6 +664,8 @@ def ejecutar_comando_cliente(request):
 
     informe = data.get('informe', '').strip()
     nombre = data.get('nombreArch', '').strip()
+    informe = informe.replace('%3A',':')
+    
     if not informe:
         return JsonResponse({'ok': False, 'error': 'URL not specified'}, status=400)
 
