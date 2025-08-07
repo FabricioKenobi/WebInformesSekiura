@@ -680,6 +680,7 @@ def ejecutar_comando_cliente(request):
     output_path = os.path.join(output_dir, nombre)
     nombre_rm = nombre.replace(' ', '\ ')
     output_path_rm = os.path.join(output_dir, nombre_rm)
+    print(informe)
     informe = informe.replace("%3A","\'")
     informe = informe.replace("%2C",",")
     print(informe)
