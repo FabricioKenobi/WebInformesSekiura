@@ -293,9 +293,9 @@ function actualizarPreview() {
   let ini = `(from:"${fecha_1}T03:00:00.000Z",to:"${fecha_2}T02:59:59.000Z")`;
   
 
-  let informeDiario = `<a href="https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Diario</a>`;
-  let informeSemanal = `<a href="https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Semanal</a>`;
-  let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
+  let informeDiario = `<a href="https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${ini})&_a=(fullScreenMode:!t)">Informe Diario</a>`;
+  let informeSemanal = `<a href="https://`+ip+`/app/dashboards#/view/`+codeSemanal+`?_g=(time:${ini})&_a=(fullScreenMode:!t)">Informe Semanal</a>`;
+  let informeMensual = `<a href="https://`+ip+`/app/dashboards#/view/`+codeMes+`?_g=(time:${ini})&_a=(fullScreenMode:!t)">Informe Mensual</a>`;
 
   let nombre = "";
   if(tipoPlantilla.includes('proto')){
