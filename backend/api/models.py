@@ -34,7 +34,7 @@ class PlantillaEmail(models.Model):
 
     def __str__(self):
         return self.tipo
-from storage_backend import OverwriteStorage
+from .storage_backend import OverwriteStorage
 class EmailEnviado(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
