@@ -681,15 +681,16 @@ def ejecutar_comando_cliente(request):
     nombre_rm = nombre.replace(' ', '\ ')
     output_path_rm = os.path.join(output_dir, nombre_rm)
     print(informe)
-    informe = informe.replace("%3A",":")
-    informe = informe.replace("%22","\\\'")
-    informe = informe.replace("%2C",",")
+    from urllib.parse import unquote
+    informe = unquote(informe)         # full decode
+
     print(informe)
     print(output_path)
     # 5) Ejecutamos el CLI
     cmd = [
         "bash", "-c",
         # rm -f suprime el error si no existe; && sólo ejecuta el CLI si rm acaba sin error
+        
         f"rm -f {output_path_rm}.pdf && "
         f"/usr/local/bin/opensearch-reporting-cli "
         f"--url '{informe}' "
