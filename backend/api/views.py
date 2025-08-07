@@ -681,15 +681,14 @@ def ejecutar_comando_cliente(request):
     output_path = os.path.join(output_dir, nombre)
     nombre_rm = nombre.replace(' ', '\ ')
     output_path_rm = os.path.join(output_dir, nombre_rm)
-    informe = urllib.parse.unquote(informe)
+    
     print(output_path)
     # 5) Ejecutamos el CLI
     cmd = [
         "bash", "-c",
-        # rm -f suprime el error si no existe; && sólo ejecuta el CLI si rm acaba sin error
         f"rm -f {output_path_rm}.pdf && "
         f"/usr/local/bin/opensearch-reporting-cli "
-        f"--url '{informe}' "
+        f"--url '{informe}' "  # Ahora conserva la codificación original
         f"--auth basic "
         f"--credentials 'sekiura-reports:Sekiura2025*' "
         f"--format pdf "
