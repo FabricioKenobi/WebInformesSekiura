@@ -117,7 +117,6 @@ def guardar_email_personalizado(request):
         cliente = Cliente.objects.get(id=request.POST['cliente'])
         asunto = request.POST['asunto']
         cuerpo_html = request.POST.get("cuerpo_html", "")
-        comando_generado = request.POST.get("comando_generado", "")
         url_informe = request.POST.get("url_informe","")
         nombreArch = request.POST.get("nombreArch","")
         
@@ -179,7 +178,7 @@ def guardar_email_personalizado(request):
             enviado=False,
             fecha_evento=timezone.now(),
             url_informe=url_informe,
-            comando_generado=comando_generado,
+            
             nombreArch =nombreArch
         )
 
@@ -535,7 +534,7 @@ def guardar_borrador(request, borrador_id):
         # Guardar el resto de campos
         borrador.asunto = request.POST.get('asunto', borrador.asunto)
         borrador.cuerpo = request.POST.get('cuerpo_html', borrador.cuerpo)
-        borrador.comando_generado = request.POST.get('comando_generado', borrador.comando_generado)
+        
         borrador.url_informe = request.POST.get('url_informe', borrador.url_informe)
 
         borrador.save()
@@ -631,7 +630,7 @@ def ejecutar_comando_cliente(request):
                     'error': error_msg,
                     'output': resultado.stdout,
                     'error_output': resultado.stderr,
-                    'comando_ejecutado': ' '.join(comando)
+                    
                 })
                 
         except subprocess.CalledProcessError as e:
@@ -639,13 +638,13 @@ def ejecutar_comando_cliente(request):
                 'ok': False,
                 'error': f"Error en el comando (exit code {e.returncode}): {e.stderr}",
                 'output': e.stdout,
-                'comando_ejecutado': ' '.join(comando)
+                
             })
         except Exception as e:
             return JsonResponse({
                 'ok': False,
                 'error': str(e),
-                'comando_ejecutado': ' '.join(comando) if 'comando' in locals() else 'No se ejecutó'
+                
             })
         
 from django.http import JsonResponse, FileResponse, Http404
