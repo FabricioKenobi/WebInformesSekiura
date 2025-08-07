@@ -290,7 +290,7 @@ function actualizarPreview() {
   let link = "<a href='https://" + ip + "/app/vulnerability-detection'>"+"https://"+ip+"/app/vulnerability-detection"+"</a>";
   let fqdnlink = "<a href='https://" + fqdn + "/app/vulnerability-detection'>"+"https://"+fqdn+"/app/vulnerability-detection"+"</a>";
  
-  let ini = `(from:"${fecha_1}T03:00:00.000Z",to:"${fecha_2}T02:59:59.000Z")`;
+  let ini = `(from:'${fecha_1}T03:00:00.000Z',to:'${fecha_2}T02:59:59.000Z')`;
   let encodedIni = encodeURIComponent(ini);
   
   let informeDiario = `<a href="https://`+ip+`/app/dashboards#/view/`+codeDiario+`?_g=(time:${encodedIni})&_a=(fullScreenMode:!t)">Informe Diario</a>`;

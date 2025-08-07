@@ -683,7 +683,7 @@ def ejecutar_comando_cliente(request):
     print(informe)
     from urllib.parse import unquote
     informe = unquote(informe)         # full decode
-
+    informe2 = informe.replace("'",r"'\''")
     print(informe)
     print(output_path)
     # 5) Ejecutamos el CLI
