@@ -91,7 +91,7 @@ function generarInformeConComandoGuardado() {
       'Content-Type': 'application/json',
       'X-CSRFToken': '{{ csrf_token }}'
     },
-    body: JSON.stringify({ informe: urlInforme, nombreArch: archivo })
+    body: JSON.stringify({ informe: urlInforme, nombreArch: nombreArch })
 
   })
   .then(r => r.json())
