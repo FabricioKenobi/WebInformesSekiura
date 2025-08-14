@@ -297,6 +297,12 @@ def lista_borradores(request):
     context = {
         'emails': borradores
     }
+    for m in borradores:
+        if isinstance(m.asunto, str):
+            i = m.asunto.find("Informe")
+            if i != -1:
+                m.asunto = m.asunto[i:]
+                
     return render(request, 'lista_borradores.html', context)
 
 @login_required

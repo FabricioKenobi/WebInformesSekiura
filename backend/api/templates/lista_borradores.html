@@ -3,22 +3,45 @@
 {% block content %}
 <h2 class="h5">Borradores de Emails</h2>
 
+<!-- Encabezados -->
+<div class="row fw-bold mb-2">
+  <div class="col-2">Estado</div>
+  <div class="col-3">Asunto</div>
+  <div class="col-3">Cliente</div>
+  <div class="col-2">Creado por</div>
+  <div class="col-2">Fecha</div>
+</div>
+
 {% if emails %}
   <div class="accordion" id="emailAccordion">
     {% for mail in emails %}
-      <div class="accordion-item mb-3 border-warning">
+      <div class="accordion-item mb-3 {% if mail.enviado %}border-success{% else %}border-warning{% endif %}">
         <h2 class="accordion-header" id="heading{{ forloop.counter }}">
-          <button class="accordion-button collapsed bg-warning bg-opacity-10" 
+          <button class="accordion-button collapsed {% if mail.enviado %}bg-success bg-opacity-10{% else %}bg-warning bg-opacity-10{% endif %}" 
                   type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}">
-            📝 Borrador  
-            {{ mail.asunto }}   {{ mail.cliente.nombre }}   {{ mail.usuario }}   {{ mail.fecha_evento }}
+            
+            <div class="row w-100">
+              <div class="col-2">
+                {% if mail.enviado %}
+                  📧 Enviado
+                {% else %}
+                  📝 Borrador
+                {% endif %}
+              </div>
+              <div class="col-3">{{ mail.asunto }}</div>
+              <div class="col-3">{{ mail.cliente.nombre }}</div>
+              <div class="col-2">{{ mail.usuario }}</div>
+              <div class="col-2">{{ mail.fecha_evento }}</div>
+            </div>
+
           </button>
         </h2>
         <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse">
           <div class="accordion-body">
-            <div class="email-preview">
+            <div class="email-preview border border-dark rounded p-2">
               {{ mail.cuerpo|safe }}
             </div>
+            <p>
             {% if mail.archivo_adjunto and mail.archivo_adjunto.name %}
               <a href="{{ mail.archivo_adjunto.url }}" download>
                 Descargar {{ mail.archivo_adjunto.name|cut:"adjuntos/" }}
@@ -26,25 +49,28 @@
             {% else %}
               <em>Sin archivo adjunto.</em>
             {% endif %}
-            <p style="text-align: right;">Creado por: {{ mail.usuario }}</p>
-            <p>
-              Creado: {{ mail.fecha_evento }}
-              <a href="{% url 'enviar_email_guardado' mail.id %}" class="btn btn-sm btn-success ms-2">
-                Enviar ahora
-              </a>
-              <a href="{% url 'editar_borrador' mail.id %}" class="btn btn-sm btn-primary ms-2">
-                Editar
-              </a>
+            <p style="text-align: right;">elaborado por: {{ mail.usuario }}</p>
             </p>
-            <p style="text-align: right;">
-              to: {{ mail.cliente.lista_emails }}
+            <p>
+              {% if mail.enviado %}
+                Enviado: {{ mail.fecha_envio }}
+              {% else %}
+                Creado: {{ mail.fecha_evento }}
+                <a href="{% url 'enviar_email_guardado' mail.id %}" class="btn btn-sm btn-success ms-2">
+                  Enviar ahora
+                </a>
+                <a href="{% url 'editar_borrador' mail.id %}" class="btn btn-sm btn-primary ms-2">
+                  Editar
+                </a>
+              {% endif %}
+              <p style="text-align: right;">
+                to: {{ mail.cliente.lista_emails }}
+              </p>
             </p>
           </div>
         </div>
       </div>
     {% endfor %}
   </div>
-{% else %}
-  <p>No hay borradores disponibles.</p>
 {% endif %}
 {% endblock %}
