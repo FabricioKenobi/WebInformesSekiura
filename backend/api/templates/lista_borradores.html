@@ -1,39 +1,50 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h2>Editar Borrador</h2>
+<h2 class="h5">Borradores de Emails</h2>
 
-<form method="post" enctype="multipart/form-data">
-  {% csrf_token %}
-  
-  <div class="mb-3">
-    <label for="asunto" class="form-label">Asunto:</label>
-    <input type="text" class="form-control" id="asunto" name="asunto" value="{{ borrador.asunto }}">
+{% if emails %}
+  <div class="accordion" id="emailAccordion">
+    {% for mail in emails %}
+      <div class="accordion-item mb-3 border-warning">
+        <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+          <button class="accordion-button collapsed bg-warning bg-opacity-10" 
+                  type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}">
+            📝 Borrador  
+            {{ mail.asunto }}   {{ mail.cliente.nombre }}   {{ mail.usuario }}   {{ mail.fecha_evento }}
+          </button>
+        </h2>
+        <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse">
+          <div class="accordion-body">
+            <div class="email-preview">
+              {{ mail.cuerpo|safe }}
+            </div>
+            {% if mail.archivo_adjunto and mail.archivo_adjunto.name %}
+              <a href="{{ mail.archivo_adjunto.url }}" download>
+                Descargar {{ mail.archivo_adjunto.name|cut:"adjuntos/" }}
+              </a>
+            {% else %}
+              <em>Sin archivo adjunto.</em>
+            {% endif %}
+            <p style="text-align: right;">Creado por: {{ mail.usuario }}</p>
+            <p>
+              Creado: {{ mail.fecha_evento }}
+              <a href="{% url 'enviar_email_guardado' mail.id %}" class="btn btn-sm btn-success ms-2">
+                Enviar ahora
+              </a>
+              <a href="{% url 'editar_borrador' mail.id %}" class="btn btn-sm btn-primary ms-2">
+                Editar
+              </a>
+            </p>
+            <p style="text-align: right;">
+              to: {{ mail.cliente.lista_emails }}
+            </p>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
   </div>
-
-  <div class="mb-3">
-    <label for="cuerpo_html" class="form-label">Cuerpo del email:</label>
-    <textarea id="editor" name="cuerpo_html">{{ borrador.cuerpo }}</textarea>
-  </div>
-
-  <div class="mb-3">
-    <label for="archivo_adjunto" class="form-label">Archivo adjunto:</label>
-    <input type="file" class="form-control" id="archivo_adjunto" name="archivo_adjunto">
-    {% if borrador.archivo_adjunto %}
-      <p>Archivo actual: <a href="{{ borrador.archivo_adjunto.url }}" target="_blank">{{ borrador.archivo_adjunto.name }}</a></p>
-    {% endif %}
-  </div>
-
-  <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-  <a href="{% url 'lista_borradores' %}" class="btn btn-secondary">Cancelar</a>
-</form>
-
-<script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
-<script>
-  ClassicEditor
-    .create(document.querySelector('#editor'))
-    .catch(error => {
-      console.error(error);
-    });
-</script>
+{% else %}
+  <p>No hay borradores disponibles.</p>
+{% endif %}
 {% endblock %}

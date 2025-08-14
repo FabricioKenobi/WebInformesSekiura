@@ -34,16 +34,21 @@
   </div>
   <div>
     <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="mostrar_borradores" id="mostrar_borradores" 
-             {% if request.GET.mostrar_borradores %}checked{% endif %}>
-      <label class="form-check-label" for="mostrar_borradores">
-        Mostrar borradores
-      </label>
+      <a href="{% url 'lista_borradores' %}" class="btn btn-primary">🗒️ Mostrar Borradores</a>
     </div>
   </div>
 </form>
 
 <h2 class="h5">Historial de Emails</h2>
+
+<!-- Encabezados -->
+<div class="row fw-bold mb-2">
+  <div class="col-2">Estado</div>
+  <div class="col-3">Asunto</div>
+  <div class="col-3">Cliente</div>
+  <div class="col-2">Creado por</div>
+  <div class="col-2">Fecha</div>
+</div>
 
 {% if emails %}
   <div class="accordion" id="emailAccordion">
@@ -52,18 +57,28 @@
         <h2 class="accordion-header" id="heading{{ forloop.counter }}">
           <button class="accordion-button collapsed {% if mail.enviado %}bg-success bg-opacity-10{% else %}bg-warning bg-opacity-10{% endif %}" 
                   type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}">
-            {% if mail.enviado %}
-              📧 Enviado: 
-            {% else %}
-              📝 Borrador: 
-            {% endif %}
-            {{ mail.asunto }} — Cliente: {{ mail.cliente.nombre }} — Por: {{ mail.usuario }} — Creado: {{ mail.fecha_evento }}
+            
+            <div class="row w-100">
+              <div class="col-2">
+                {% if mail.enviado %}
+                  📧 Enviado
+                {% else %}
+                  📝 Borrador
+                {% endif %}
+              </div>
+              <div class="col-3">{{ mail.asunto }}</div>
+              <div class="col-3">{{ mail.cliente.nombre }}</div>
+              <div class="col-2">{{ mail.usuario }}</div>
+              <div class="col-2">{{ mail.fecha_evento }}</div>
+            </div>
+
           </button>
         </h2>
         <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse">
           <div class="accordion-body">
-            <!-- Contenedor para previsualizar el cuerpo -->
-            <div id="quill-preview-{{ forloop.counter }}" class="quill-preview"></div>
+            <div class="email-preview">
+              {{ mail.cuerpo|safe }}
+            </div>
             <p>
             {% if mail.archivo_adjunto and mail.archivo_adjunto.name %}
               <a href="{{ mail.archivo_adjunto.url }}" download>
@@ -95,8 +110,6 @@
       </div>
     {% endfor %}
   </div>
-{% else %}
-  <p>No se encontraron emails en ese rango.</p>
 {% endif %}
 
 <script>

@@ -78,14 +78,19 @@ def home_view(request):
     fecha_fin = request.GET.get('fecha_fin')
 
     emails = EmailEnviado.objects.all()
-
+    
     if fecha_inicio:
         emails = emails.filter(fecha_envio__date__gte=parse_date(fecha_inicio))
     if fecha_fin:
         emails = emails.filter(fecha_envio__date__lte=parse_date(fecha_fin))
 
     emails = emails.order_by('-fecha_envio')
-    
+    for m in emails:
+        if isinstance(m.asunto, str):
+            i = m.asunto.find("Informe")
+            if i != -1:
+                m.asunto = m.asunto[i:]
+
     return render(request, 'home.html', {
         'emails': emails,
     })
@@ -285,16 +290,14 @@ def enviar_email_guardado(request, email_id):
         print("Error al enviar correo:", e)
         return HttpResponse(f"Error al enviar el correo: {str(e)}", status=500)
     
-@login_required
 def lista_borradores(request):
-    borradores = EmailEnviado.objects.filter(
-        usuario=request.user,
-        enviado=False
-    ).order_by('-fecha_evento')
+    # Filtra solo los borradores
+    borradores = EmailEnviado.objects.filter(enviado=False).order_by('-fecha_evento')
     
-    return render(request, 'lista_borradores.html', {
-        'borradores': borradores
-    })
+    context = {
+        'emails': borradores
+    }
+    return render(request, 'lista_borradores.html', context)
 
 @login_required
 def crear_plantilla_view(request):
