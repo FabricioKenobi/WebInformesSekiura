@@ -85,11 +85,11 @@ def home_view(request):
         emails = emails.filter(fecha_envio__date__lte=parse_date(fecha_fin))
 
     emails = emails.order_by('-fecha_envio')
-    for m in emails:
+    '''for m in emails:
         if isinstance(m.asunto, str):
             i = m.asunto.find("Informe")
             if i != -1:
-                m.asunto = m.asunto[i:]
+                m.asunto = m.asunto[i:]'''
 
     return render(request, 'home.html', {
         'emails': emails,
@@ -297,12 +297,12 @@ def lista_borradores(request):
     context = {
         'emails': borradores
     }
-    for m in borradores:
+    '''for m in borradores:
         if isinstance(m.asunto, str):
             i = m.asunto.find("Informe")
             if i != -1:
-                m.asunto = m.asunto[i:]
-                
+                m.asunto = m.asunto[i:]'''
+
     return render(request, 'lista_borradores.html', context)
 
 @login_required

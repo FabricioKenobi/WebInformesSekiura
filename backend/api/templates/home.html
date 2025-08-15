@@ -43,10 +43,11 @@
 
 <!-- Encabezados -->
 <div class="row fw-bold mb-2">
-  <div class="col-2">Estado</div>
-  <div class="col-3">Asunto</div>
-  <div class="col-3">Cliente</div>
-  <div class="col-2">Creado por</div>
+  <div class="col-1">Estado</div>
+  <div class="col-4">Asunto</div>
+  <div class="col-1">Cliente</div>
+  <div class="col-1">Creado por</div>
+  <div class="col-3">Para</div>
   <div class="col-2">Fecha</div>
 </div>
 
@@ -59,16 +60,17 @@
                   type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}">
             
             <div class="row w-100">
-              <div class="col-2">
+              <div class="col-1">
                 {% if mail.enviado %}
                   📧 Enviado
                 {% else %}
                   📝 Borrador
                 {% endif %}
               </div>
-              <div class="col-3">{{ mail.asunto }}</div>
-              <div class="col-3">{{ mail.cliente.nombre }}</div>
-              <div class="col-2">{{ mail.usuario }}</div>
+              <div class="col-4">{{ mail.asunto }}</div>
+              <div class="col-1">{{ mail.cliente.nombre }}</div>
+              <div class="col-1">{{ mail.usuario }}</div>
+              <div class="col-3">{{ mail.cliente.lista_emails }}</div>
               <div class="col-2">{{ mail.fecha_evento }}</div>
             </div>
 
@@ -87,13 +89,12 @@
             {% else %}
               <em>Sin archivo adjunto.</em>
             {% endif %}
-            <p style="text-align: right;">elaborado por: {{ mail.usuario }}</p>
+            
             </p>
             <p>
               {% if mail.enviado %}
-                Enviado: {{ mail.fecha_envio }}
+                <p>Enviado</p>
               {% else %}
-                Creado: {{ mail.fecha_evento }}
                 <a href="{% url 'enviar_email_guardado' mail.id %}" class="btn btn-sm btn-success ms-2">
                   Enviar ahora
                 </a>
@@ -101,9 +102,7 @@
                   Editar
                 </a>
               {% endif %}
-              <p style="text-align: right;">
-                to: {{ mail.cliente.lista_emails }}
-              </p>
+              
             </p>
           </div>
         </div>
